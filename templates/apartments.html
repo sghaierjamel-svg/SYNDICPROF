@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="text-white mb-4">
+            <i class="bi bi-house-door"></i> Gestion des Appartements & Blocs
+        </h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-5">
+        <!-- Ajouter un bloc -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-building"></i> Ajouter un Bloc
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <input type="hidden" name="action" value="add_block">
+                    <div class="mb-3">
+                        <label class="form-label">Nom du Bloc *</label>
+                        <input class="form-control" name="block_name" 
+                               placeholder="Ex: A, B, C..." required>
+                    </div>
+                    <button class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Ajouter le Bloc
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Ajouter un appartement -->
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-house-door"></i> Ajouter un Appartement
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <input type="hidden" name="action" value="add_apartment">
+                    <div class="mb-3">
+                        <label class="form-label">Numéro d'Appartement *</label>
+                        <input class="form-control" name="apt_number" 
+                               placeholder="Ex: 101, 102..." required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Bloc *</label>
+                        <select name="block_id" class="form-select" required>
+                            <option value="">Choisir le bloc</option>
+                            {% for b in blocks %}
+                            <option value="{{ b.id }}">{{ b.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Redevance Mensuelle (DT) *</label>
+                        <input type="number" class="form-control" name="monthly_fee" 
+                               step="0.01" value="100.00" required>
+                    </div>
+                    <button class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Ajouter l'Appartement
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-list"></i> Liste des Blocs & Appartements
+            </div>
+            <div class="card-body">
+                {% for b in blocks %}
+                <div class="mb-4">
+                    <h5 class="mb-3">
+                        <i class="bi bi-building"></i> Bloc {{ b.name }}
+                        <span class="badge bg-primary">{{ b.apartments|length }} appartements</span>
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>N° Appt</th>
+                                    <th>Redevance</th>
+                                    <th>Résidents</th>
+                                    <th>Impayés</th>
+                                    <th>Prochain Mois</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for a in b.apartments %}
+                                <tr {% if a.unpaid_count >= 3 %}class="table-warning"{% endif %}>
+                                    <td><strong>{{ a.number }}</strong></td>
+                                    <td>{{ '{:.2f}'.format(a.monthly_fee) }} DT</td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            {{ a.residents|length }} 
+                                            <i class="bi bi-person"></i>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if a.unpaid_count > 0 %}
+                                            <span class="badge bg-danger">
+                                                {{ a.unpaid_count }} mois
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-check"></i> À jour
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if a.next_unpaid %}
+                                            <small class="text-muted">{{ a.next_unpaid }}</small>
+                                        {% else %}
+                                            <small class="text-muted">-</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('edit_apartment', apartment_id=a.id) }}" 
+                                               class="btn btn-warning" title="Modifier">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a href="{{ url_for('delete_apartment', apartment_id=a.id) }}" 
+                                               class="btn btn-danger" 
+                                               onclick="return confirm('Confirmer la suppression ? Tous les paiements associés seront aussi supprimés.');"
+                                               title="Supprimer">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted">
+                                        Aucun appartement dans ce bloc
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Aucun bloc créé. Commencez par ajouter un bloc.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="text-white mb-4">
+            <i class="bi bi-pencil"></i> Modifier l'Appartement
+        </h2>
+        <a href="{{ url_for('apartments') }}" class="btn btn-light">
+            <i class="bi bi-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-house-door"></i> Modifier Appartement #{{ apartment.id }}
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label class="form-label">Numéro d'Appartement *</label>
+                        <input class="form-control" name="apt_number" 
+                               value="{{ apartment.number }}" 
+                               placeholder="Ex: 101" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Bloc *</label>
+                        <select name="block_id" class="form-select" required>
+                            {% for b in blocks %}
+                            <option value="{{ b.id }}" 
+                                    {% if apartment.block_id == b.id %}selected{% endif %}>
+                                {{ b.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Redevance Mensuelle (DT) *</label>
+                        <input type="number" class="form-control" name="monthly_fee" 
+                               step="0.01" value="{{ apartment.monthly_fee }}" required>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-save"></i> Enregistrer les Modifications
+                        </button>
+                        <a href="{{ url_for('apartments') }}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Annuler
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card shadow-lg">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <i class="bi bi-building" style="font-size: 4rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                    <h3 class="mt-3 fw-bold">Inscription à SyndicPro</h3>
+                    <p class="text-muted">Créez votre compte et bénéficiez de 30 jours d'essai gratuit !</p>
+                </div>
+                
+                <form method="post">
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-building"></i> Nom de l'Organisation *
+                            </label>
+                            <input class="form-control form-control-lg" name="org_name" 
+                                   type="text" placeholder="Ex: Résidence Les Jasmins" required autofocus>
+                        </div>
+
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-envelope"></i> Email *
+                            </label>
+                            <input class="form-control form-control-lg" name="email" 
+                                   type="email" placeholder="votre@email.com" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-phone"></i> Téléphone
+                            </label>
+                            <input class="form-control form-control-lg" name="phone" 
+                                   type="text" placeholder="+216 XX XXX XXX">
+                        </div>
+
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-lock"></i> Mot de passe *
+                            </label>
+                            <input class="form-control form-control-lg" name="password" 
+                                   type="password" placeholder="••••••••" required minlength="6">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-geo-alt"></i> Adresse
+                        </label>
+                        <textarea class="form-control" name="address" rows="2" 
+                                  placeholder="Adresse complète de la résidence"></textarea>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">
+                            <i class="bi bi-gift"></i> Offre d'essai gratuit
+                        </h6>
+                        <ul class="mb-0 small">
+                            <li><strong>30 jours gratuits</strong> pour tester toutes les fonctionnalités</li>
+                            <li>Jusqu'à <strong>20 appartements</strong> durant la période d'essai</li>
+                            <li>Aucune carte bancaire requise</li>
+                            <li>Support technique inclus</li>
+                        </ul>
+                    </div>
+
+                    <div class="d-grid mb-3">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-check-circle"></i> Créer mon compte gratuit
+                        </button>
+                    </div>
+
+                    <div class="text-center">
+                        <p class="text-muted small mb-0">
+                            Vous avez déjà un compte ? 
+                            <a href="{{ url_for('login') }}" class="fw-bold">Se connecter</a>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-4 bg-light">
+            <div class="card-body">
+                <h6 class="fw-bold mb-3"><i class="bi bi-cash-coin"></i> Tarification Simple et Transparente</h6>
+                <div class="row text-center">
+                    <div class="col-md-4 mb-3">
+                        <div class="p-3 bg-white rounded shadow-sm">
+                            <h4 class="text-warning fw-bold">75 DT</h4>
+                            <p class="mb-0 small text-muted">> 75 appartements</p>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-center mb-0 small text-muted">Prix par mois / Sans engagement</p>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <p class="text-white">
+                <i class="bi bi-shield-check"></i> Vos données sont sécurisées et confidentielles
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+    body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .container {
+        margin-top: -20px;
+    }
+</style>
+{% endblock %}-sm">
+                            <h4 class="text-primary fw-bold">30 DT</h4>
+                            <p class="mb-0 small text-muted">< 20 appartements</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="p-3 bg-white rounded shadow-sm">
+                            <h4 class="text-success fw-bold">50 DT</h4>
+                            <p class="mb-0 small text-muted">20 - 75 appartements</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="p-3 bg-white rounded shadow

@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="text-white mb-4">
+            <i class="bi bi-people"></i> Gestion des Utilisateurs
+        </h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-person-plus"></i> Créer un Utilisateur
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label class="form-label">Email *</label>
+                        <input class="form-control" name="email" type="email" 
+                               placeholder="exemple@email.com" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Nom Complet</label>
+                        <input class="form-control" name="name" 
+                               placeholder="Ex: Jean Dupont">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Mot de Passe</label>
+                        <input class="form-control" name="password" type="password" 
+                               placeholder="Laisser vide pour: resident123">
+                        <small class="form-text text-muted">
+                            Par défaut: resident123
+                        </small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Rôle *</label>
+                        <select class="form-select" name="role" required>
+                            <option value="resident" selected>Résident</option>
+                            <option value="admin">Administrateur</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Affecter à un Appartement</label>
+                        <select class="form-select" name="apartment_id">
+                            <option value="">Aucun (optionnel)</option>
+                            {% for a in apartments %}
+                            <option value="{{ a.id }}">
+                                {{ a.block.name }}-{{ a.number }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-person-plus"></i> Créer l'Utilisateur
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-list"></i> Liste des Utilisateurs
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Nom</th>
+                                <th>Email</th>
+                                <th>Rôle</th>
+                                <th>Appartement</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in users %}
+                            <tr>
+                                <td><strong>{{ u.name }}</strong></td>
+                                <td>{{ u.email }}</td>
+                                <td>
+                                    <span class="badge {% if u.role == 'admin' %}bg-danger{% else %}bg-primary{% endif %}">
+                                        {{ u.role|upper }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if u.apartment_id %}
+                                        {{ u.apartment.block.name }}-{{ u.apartment.number }}
+                                    {% else %}
+                                        <span class="text-muted">Non affecté</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if u.id != user.id %}
+                                    <a href="{{ url_for('delete_user', user_id=u.id) }}" 
+                                       class="btn btn-sm btn-danger"
+                                       onclick="return confirm('Confirmer la suppression ?');">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Vous</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">
+                                    Aucun utilisateur
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

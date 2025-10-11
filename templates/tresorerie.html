@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="text-white mb-4">
+            <i class="bi bi-graph-up"></i> Tableau de Trésorerie
+        </h2>
+        <p class="text-white">
+            <i class="bi bi-info-circle"></i> 
+            Ce tableau affiche les encaissements et décaissements selon leurs <strong>dates réelles</strong> de paiement.
+        </p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-table"></i> Trésorerie - 12 derniers mois
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead class="table-primary">
+                            <tr>
+                                <th style="min-width: 150px;">Appartement</th>
+                                {% for year, month in months %}
+                                <th class="text-center" style="min-width: 100px;">
+                                    {{ '%02d'|format(month) }}/{{ year }}
+                                </th>
+                                {% endfor %}
+                                <th class="text-center bg-light">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in data %}
+                            <tr>
+                                <td><strong>{{ row.apartment }}</strong></td>
+                                {% set total = namespace(value=0) %}
+                                {% for year, month in months %}
+                                    {% set month_key = '%04d-%02d'|format(year, month) %}
+                                    {% set amount = row.months[month_key] %}
+                                    {% set total.value = total.value + amount %}
+                                    <td class="text-end">
+                                        {% if amount > 0 %}
+                                            <span class="text-success fw-bold">
+                                                {{ '{:.2f}'.format(amount) }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                {% endfor %}
+                                <td class="text-end bg-light">
+                                    <strong>{{ '{:.2f}'.format(total.value) }} DT</strong>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            
+                            <!-- Ligne des dépenses -->
+                            <tr class="table-danger">
+                                <td><strong>{{ expense_row.apartment }}</strong></td>
+                                {% set total_exp = namespace(value=0) %}
+                                {% for year, month in months %}
+                                    {% set month_key = '%04d-%02d'|format(year, month) %}
+                                    {% set amount = expense_row.months[month_key] %}
+                                    {% set total_exp.value = total_exp.value + amount %}
+                                    <td class="text-end">
+                                        {% if amount > 0 %}
+                                            <span class="text-danger fw-bold">
+                                                ({{ '{:.2f}'.format(amount) }})
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                {% endfor %}
+                                <td class="text-end bg-light">
+                                    <strong class="text-danger">
+                                        ({{ '{:.2f}'.format(total_exp.value) }}) DT
+                                    </strong>
+                                </td>
+                            </tr>
+                            
+                            <!-- Ligne du solde -->
+                            <tr class="table-success fw-bold">
+                                <td><strong>{{ solde_row.apartment }}</strong></td>
+                                {% set total_solde = namespace(value=0) %}
+                                {% for year, month in months %}
+                                    {% set month_key = '%04d-%02d'|format(year, month) %}
+                                    {% set amount = solde_row.months[month_key] %}
+                                    {% set total_solde.value = total_solde.value + amount %}
+                                    <td class="text-end">
+                                        <span class="{% if amount >= 0 %}text-success{% else %}text-danger{% endif %} fw-bold">
+                                            {{ '{:.2f}'.format(amount) }}
+                                        </span>
+                                    </td>
+                                {% endfor %}
+                                <td class="text-end bg-light">
+                                    <strong class="{% if total_solde.value >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        {{ '{:.2f}'.format(total_solde.value) }} DT
+                                    </strong>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-3">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Légende:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Les montants en <span class="text-success fw-bold">vert</span> représentent les encaissements</li>
+                            <li>Les montants en <span class="text-danger fw-bold">rouge</span> représentent les dépenses</li>
+                            <li>Le solde est calculé : Encaissements - Dépenses</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mt-3 text-end">
+                    <a href="{{ url_for('export_excel') }}" class="btn btn-success">
+                        <i class="bi bi-file-earmark-spreadsheet"></i> Exporter en Excel
+                    </a>
+                    <a href="{{ url_for('comptable') }}" class="btn btn-primary">
+                        <i class="bi bi-calculator"></i> Voir Tableau Comptable
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

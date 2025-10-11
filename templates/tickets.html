@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="text-white mb-4">
+            <i class="bi bi-chat-left-dots"></i> Gestion des Tickets
+        </h2>
+    </div>
+</div>
+
+<div class="row">
+    {% if user.role == 'resident' %}
+    <!-- Formulaire de création de ticket pour résidents -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-plus-circle"></i> Créer un Ticket
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label class="form-label">Sujet *</label>
+                        <input type="text" name="subject" class="form-control" 
+                               placeholder="Ex: Problème de plomberie" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Priorité *</label>
+                        <select name="priority" class="form-select" required>
+                            <option value="normale" selected>Normale</option>
+                            <option value="basse">Basse</option>
+                            <option value="haute">Haute</option>
+                            <option value="urgente">Urgente</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Message *</label>
+                        <textarea name="message" class="form-control" rows="5" 
+                                  placeholder="Décrivez votre demande en détail..." required></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-send"></i> Envoyer le Ticket
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+    {% else %}
+    <div class="col-12">
+    {% endif %}
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-list"></i> {% if user.role == 'admin' %}Tous les Tickets{% else %}Mes Tickets{% endif %}
+            </div>
+            <div class="card-body">
+                <!-- Filtres -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <select class="form-select" id="filterStatus">
+                            <option value="">Tous les statuts</option>
+                            <option value="ouvert">Ouvert</option>
+                            <option value="en_cours">En cours</option>
+                            <option value="resolu">Résolu</option>
+                            <option value="ferme">Fermé</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select" id="filterPriority">
+                            <option value="">Toutes les priorités</option>
+                            <option value="urgente">Urgente</option>
+                            <option value="haute">Haute</option>
+                            <option value="normale">Normale</option>
+                            <option value="basse">Basse</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover" id="ticketsTable">
+                        <thead>
+                            <tr>
+                                {% if user.role == 'admin' %}
+                                <th>Appartement</th>
+                                {% endif %}
+                                <th>Sujet</th>
+                                <th>Priorité</th>
+                                <th>Statut</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ticket in tickets %}
+                            <tr data-status="{{ ticket.status }}" data-priority="{{ ticket.priority }}">
+                                {% if user.role == 'admin' %}
+                                <td>
+                                    <strong>{{ ticket.apartment.block.name }}-{{ ticket.apartment.number }}</strong><br>
+                                    <small class="text-muted">{{ ticket.user.name }}</small>
+                                </td>
+                                {% endif %}
+                                <td>
+                                    <strong>{{ ticket.subject }}</strong><br>
+                                    <small class="text-muted">{{ ticket.message[:50] }}...</small>
+                                </td>
+                                <td>
+                                    <span class="badge 
+                                        {% if ticket.priority == 'urgente' %}bg-danger
+                                        {% elif ticket.priority == 'haute' %}bg-warning
+                                        {% elif ticket.priority == 'normale' %}bg-info
+                                        {% else %}bg-secondary{% endif %}">
+                                        <i class="bi bi-flag"></i> {{ ticket.priority|upper }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge 
+                                        {% if ticket.status == 'ouvert' %}bg-primary
+                                        {% elif ticket.status == 'en_cours' %}bg-info
+                                        {% elif ticket.status == 'resolu' %}bg-success
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ ticket.status|upper }}
+                                    </span>
+                                </td>
+                                <td>{{ ticket.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('ticket_detail', ticket_id=ticket.id) }}" 
+                                           class="btn btn-primary" title="Voir détails">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        {% if user.role == 'admin' %}
+                                        <a href="{{ url_for('delete_ticket', ticket_id=ticket.id) }}" 
+                                           class="btn btn-danger"
+                                           onclick="return confirm('Confirmer la suppression ?');"
+                                           title="Supprimer">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="{% if user.role == 'admin' %}6{% else %}5{% endif %}" 
+                                    class="text-center text-muted">
+                                    Aucun ticket
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Filtres
+const filterStatus = document.getElementById('filterStatus');
+const filterPriority = document.getElementById('filterPriority');
+const rows = document.querySelectorAll('#ticketsTable tbody tr[data-status]');
+
+function applyFilters() {
+    const statusValue = filterStatus.value.toLowerCase();
+    const priorityValue = filterPriority.value.toLowerCase();
+    
+    rows.forEach(row => {
+        const rowStatus = row.getAttribute('data-status').toLowerCase();
+        const rowPriority = row.getAttribute('data-priority').toLowerCase();
+        
+        const statusMatch = !statusValue || rowStatus === statusValue;
+        const priorityMatch = !priorityValue || rowPriority === priorityValue;
+        
+        if (statusMatch && priorityMatch) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+if (filterStatus) {
+    filterStatus.addEventListener('change', applyFilters);
+}
+if (filterPriority) {
+    filterPriority.addEventListener('change', applyFilters);
+}
+</script>
+{% endblock %}

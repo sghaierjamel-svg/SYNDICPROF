@@ -1,0 +1,331 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="text-white mb-4">
+            <i class="bi bi-speedometer2"></i> Tableau de bord
+        </h2>
+    </div>
+</div>
+
+<!-- Statistiques rapides -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="icon"><i class="bi bi-building"></i></div>
+            <h3>{{ blocks_count }}</h3>
+            <p>Blocs</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="icon"><i class="bi bi-house-door"></i></div>
+            <h3>{{ apartments_count }}</h3>
+            <p>Appartements</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="icon"><i class="bi bi-cash-coin"></i></div>
+            <h3>{{ '{:.0f}'.format(total_payments) }} DT</h3>
+            <p>Total Encaissements</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="icon"><i class="bi bi-credit-card"></i></div>
+            <h3>{{ '{:.0f}'.format(total_expenses) }} DT</h3>
+            <p>Total Dépenses</p>
+        </div>
+    </div>
+</div>
+<!-- Ajouter après les statistiques, pour afficher l'abonnement -->
+{% if subscription %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert {% if subscription.is_expired() %}alert-danger{% elif subscription.days_remaining() <= 7 %}alert-warning{% else %}alert-info{% endif %}">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="bi bi-credit-card"></i>
+                    <strong>Abonnement:</strong>
+                    {% if subscription.plan == 'trial' %}Essai Gratuit{% else %}Plan Actif{% endif %}
+                </div>
+                <div>
+                    <i class="bi bi-clock"></i>
+                    <strong>{{ days_left }} jours restants</strong>
+                </div>
+                <a href="{{ url_for('subscription_status') }}" class="btn btn-sm btn-primary">
+                    Voir détails
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% if user.role == 'resident' and user.apartment_id %}
+
+<!-- Info pour résidents -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-person"></i> Mon Espace Résident
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Statut des paiements</h5>
+                        {% if unpaid_count == 0 %}
+                            <div class="alert alert-success">
+                                <i class="bi bi-check-circle"></i> Tous vos paiements sont à jour !
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle"></i> 
+                                Vous avez <strong>{{ unpaid_count }}</strong> mois impayé(s)
+                            </div>
+                            <p>Prochain mois à payer : <strong>{{ next_month }}</strong></p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Actions rapides</h5>
+                        <a href="{{ url_for('tickets') }}" class="btn btn-primary mb-2">
+                            <i class="bi bi-chat-left-dots"></i> Créer un ticket
+                        </a>
+                        <a href="{{ url_for('residents_menu') }}" class="btn btn-info">
+                            <i class="bi bi-file-text"></i> Voir mes paiements
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if user.role == 'admin' %}
+<!-- Alertes impayés pour admin -->
+{% if alerts %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <i class="bi bi-exclamation-triangle"></i> Alertes Impayés Récentes
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Appartement</th>
+                                <th>Mois Impayés</th>
+                                <th>Date Alerte</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alert in alerts %}
+                            <tr>
+                                <td>
+                                    <strong>{{ alert.apartment.block.name }}-{{ alert.apartment.number }}</strong>
+                                </td>
+                                <td>
+                                    <span class="badge bg-danger">{{ alert.months_unpaid }} mois</span>
+                                </td>
+                                <td>{{ alert.alert_date.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td>
+                                    <a href="{{ url_for('alerts') }}" class="btn btn-sm btn-warning">
+                                        <i class="bi bi-eye"></i> Voir détails
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Tickets récents -->
+{% if recent_tickets %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-chat-left-dots"></i> Tickets Récents
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Appartement</th>
+                                <th>Sujet</th>
+                                <th>Priorité</th>
+                                <th>Statut</th>
+                                <th>Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ticket in recent_tickets %}
+                            <tr>
+                                <td>{{ ticket.apartment.block.name }}-{{ ticket.apartment.number }}</td>
+                                <td>{{ ticket.subject }}</td>
+                                <td>
+                                    <span class="badge 
+                                        {% if ticket.priority == 'urgente' %}bg-danger
+                                        {% elif ticket.priority == 'haute' %}bg-warning
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ ticket.priority }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge 
+                                        {% if ticket.status == 'ouvert' %}bg-primary
+                                        {% elif ticket.status == 'en_cours' %}bg-info
+                                        {% elif ticket.status == 'resolu' %}bg-success
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ ticket.status }}
+                                    </span>
+                                </td>
+                                <td>{{ ticket.created_at.strftime('%d/%m/%Y') }}</td>
+                                <td>
+                                    <a href="{{ url_for('ticket_detail', ticket_id=ticket.id) }}" 
+                                       class="btn btn-sm btn-primary">
+                                        <i class="bi bi-eye"></i> Voir
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-end mt-3">
+                    <a href="{{ url_for('tickets') }}" class="btn btn-outline-primary">
+                        Voir tous les tickets <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endif %}
+
+<!-- Graphique -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-graph-up"></i> Évolution sur 12 mois (Trésorerie)
+            </div>
+            <div class="card-body">
+                <canvas id="chartMonthly" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Actions rapides pour admin -->
+{% if user.role == 'admin' %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-lightning"></i> Actions Rapides
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ url_for('payments') }}" class="btn btn-primary">
+                        <i class="bi bi-cash-coin"></i> Nouvel Encaissement
+                    </a>
+                    <a href="{{ url_for('expenses') }}" class="btn btn-secondary">
+                        <i class="bi bi-credit-card"></i> Nouvelle Dépense
+                    </a>
+                    <a href="{{ url_for('apartments') }}" class="btn btn-info">
+                        <i class="bi bi-house-door"></i> Gérer Appartements
+                    </a>
+                    <a href="{{ url_for('tresorerie') }}" class="btn btn-success">
+                        <i class="bi bi-table"></i> Tableau Trésorerie
+                    </a>
+                    <a href="{{ url_for('comptable') }}" class="btn btn-warning">
+                        <i class="bi bi-calculator"></i> Tableau Comptable
+                    </a>
+                    <a href="{{ url_for('export_excel') }}" class="btn btn-outline-success">
+                        <i class="bi bi-file-earmark-spreadsheet"></i> Exporter Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+fetch('{{ url_for("api_dashboard_data") }}')
+    .then(response => response.json())
+    .then(data => {
+        const ctx = document.getElementById('chartMonthly');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.labels,
+                datasets: [
+                    {
+                        label: 'Encaissements',
+                        data: data.payments,
+                        backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    },
+                    {
+                        label: 'Dépenses',
+                        data: data.expenses,
+                        backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                        borderColor: 'rgba(239, 68, 68, 1)',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        borderRadius: 8
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    })
+    .catch(error => console.error('Erreur chargement données:', error));
+</script>
+{% endblock %}

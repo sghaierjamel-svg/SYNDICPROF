@@ -1,0 +1,393 @@
+{% extends "base.html" %}
+
+{% block title %}Encaissements{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-money-bill-wave text-success"></i> Gestion des Encaissements
+            </h2>
+        </div>
+    </div>
+
+    <!-- Formulaire d'ajout d'encaissement -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-plus-circle"></i> Nouvel Encaissement
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="paymentForm">
+                        <div class="form-group mb-3">
+                            <label for="apartment_id" class="form-label fw-bold">
+                                <i class="fas fa-building"></i> Appartement *
+                            </label>
+                            <select class="form-select" id="apartment_id" name="apartment_id" required onchange="updateApartmentInfo()">
+                                <option value="">-- Sélectionner un appartement --</option>
+                                {% for apt in apartments %}
+                                <option value="{{ apt.id }}" 
+                                        data-fee="{{ apt.monthly_fee }}" 
+                                        data-unpaid="{{ apt.unpaid_count }}"
+                                        data-next="{{ apt.next_unpaid }}"
+                                        data-credit="{{ apt.credit_balance }}">
+                                    {{ apt.block.name }} - Appt {{ apt.number }} 
+                                    ({{ apt.monthly_fee }} DT/mois - {{ apt.unpaid_count }} mois impayés)
+                                    {% if apt.credit_balance > 0 %}
+                                    💳 Crédit: {{ "%.2f"|format(apt.credit_balance) }} DT
+                                    {% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- 💳 Informations de l'appartement avec crédit -->
+                        <div id="aptInfo" class="alert alert-info d-none mb-3">
+                            <strong>📊 Informations :</strong><br>
+                            <span id="aptInfoText"></span>
+                            <div id="creditInfo" class="mt-2 p-2 bg-light rounded d-none">
+                                <strong class="text-success">💳 Crédit disponible : <span id="creditAmount">0.00</span> DT</strong><br>
+                                <small class="text-muted">Ce crédit sera automatiquement utilisé pour ce paiement</small>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="amount" class="form-label fw-bold">
+                                <i class="fas fa-coins"></i> Montant (DT) *
+                            </label>
+                            <input type="number" step="0.01" class="form-control" id="amount" name="amount" 
+                                   placeholder="Ex: 300.00" required onchange="calculateMonths()">
+                            <small class="form-text text-muted" id="monthsInfo"></small>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="payment_date" class="form-label fw-bold">
+                                <i class="fas fa-calendar"></i> Date de Paiement *
+                            </label>
+                            <input type="date" class="form-control" id="payment_date" name="payment_date" 
+                                   value="{{ today }}" required>
+                        </div>
+
+                        <!-- Champ Mois de redevance -->
+                        <div class="form-group mb-3">
+                            <label for="start_month" class="form-label fw-bold">
+                                <i class="fas fa-calendar-alt"></i> Mois de Redevance 
+                                <span class="badge bg-info">Optionnel</span>
+                            </label>
+                            <input type="month" class="form-control" id="start_month" name="start_month" 
+                                   placeholder="YYYY-MM">
+                            <small class="form-text text-muted">
+                                <strong>💡 Conseil :</strong><br>
+                                • <strong>Laissez vide</strong> → Le système commence automatiquement au premier mois impayé<br>
+                                • <strong>Remplissez</strong> → Choisissez le mois de départ (utile pour payer des mois anciens)
+                            </small>
+                            <div id="modeInfo" class="alert alert-sm mt-2 d-none"></div>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="description" class="form-label fw-bold">
+                                <i class="fas fa-comment"></i> Description
+                            </label>
+                            <input type="text" class="form-control" id="description" name="description" 
+                                   placeholder="Ex: Paiement redevances">
+                        </div>
+
+                        <button type="submit" class="btn btn-success btn-lg w-100">
+                            <i class="fas fa-save"></i> Enregistrer l'Encaissement
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aide contextuelle -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-question-circle"></i> Guide d'Utilisation
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <h6 class="fw-bold text-success">💳 Système de Crédit</h6>
+                    <p class="text-muted">
+                        Si le montant payé ne couvre pas exactement un nombre de mois complets, 
+                        le reste est automatiquement mis en <strong>crédit</strong> et sera utilisé 
+                        lors du prochain paiement.
+                    </p>
+                    
+                    <div class="alert alert-success">
+                        <strong>✅ Exemple :</strong><br>
+                        Redevance : 100 DT/mois<br>
+                        Paiement 1 : 350 DT → 3 mois payés + 50 DT en crédit<br>
+                        Paiement 2 : 80 DT → Total 130 DT → 1 mois payé + 30 DT en crédit
+                    </div>
+
+                    <hr>
+                    
+                    <h6 class="fw-bold text-primary">🤖 Mode Automatique (Recommandé)</h6>
+                    <p class="text-muted">
+                        Laissez le champ <strong>"Mois de Redevance"</strong> vide. 
+                        Le système paiera automatiquement les mois dans l'ordre chronologique 
+                        depuis le premier mois impayé.
+                    </p>
+                    
+                    <hr>
+                    
+                    <h6 class="fw-bold text-primary">📅 Mode Manuel (Avancé)</h6>
+                    <p class="text-muted">
+                        Remplissez le champ <strong>"Mois de Redevance"</strong> pour choisir 
+                        à partir de quel mois commencer le paiement.
+                    </p>
+                    
+                    <div class="alert alert-warning">
+                        <strong>💡 Exemple :</strong><br>
+                        Un résident a 5 mois impayés (Jan, Fév, Mar, Avr, Mai).<br>
+                        Il paye d'abord Mai (le mois courant), puis revient payer Jan-Avr.<br><br>
+                        <strong>Solution :</strong><br>
+                        1️⃣ Saisir "2025-05" dans "Mois de Redevance" pour payer Mai<br>
+                        2️⃣ Saisir "2025-01" dans "Mois de Redevance" pour payer Jan-Avr
+                    </div>
+
+                    <hr>
+
+                    <h6 class="fw-bold text-success">✅ Fonctionnalités</h6>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-check text-success"></i> Paiement multiple automatique</li>
+                        <li><i class="fas fa-check text-success"></i> Système de crédit automatique</li>
+                        <li><i class="fas fa-check text-success"></i> Détection des doublons</li>
+                        <li><i class="fas fa-check text-success"></i> Calcul du reste non utilisé</li>
+                        <li><i class="fas fa-check text-success"></i> Historique détaillé</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des encaissements -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list"></i> Historique des Encaissements
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if payments %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Appartement</th>
+                                    <th>Montant</th>
+                                    <th>💳 Crédit Utilisé</th>
+                                    <th>Date Paiement</th>
+                                    <th>Mois Payé</th>
+                                    <th>Description</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in payments %}
+                                <tr>
+                                    <td>{{ p.id }}</td>
+                                    <td>
+                                        <strong>{{ p.apartment.block.name }}</strong> - Appt {{ p.apartment.number }}
+                                        {% if p.apartment.credit_balance > 0 %}
+                                        <br><small class="text-success">💳 Crédit: {{ "%.2f"|format(p.apartment.credit_balance) }} DT</small>
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="badge bg-success">{{ "%.2f"|format(p.amount) }} DT</span></td>
+                                    <td>
+                                        {% if p.credit_used > 0 %}
+                                        <span class="badge bg-info">{{ "%.2f"|format(p.credit_used) }} DT</span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ p.payment_date.strftime('%d/%m/%Y') }}</td>
+                                    <td><span class="badge bg-primary">{{ p.month_paid }}</span></td>
+                                    <td>{{ p.description }}</td>
+                                    <td>
+                                        <a href="{{ url_for('edit_payment', payment_id=p.id) }}" 
+                                           class="btn btn-sm btn-warning">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{{ url_for('delete_payment', payment_id=p.id) }}" 
+                                           class="btn btn-sm btn-danger"
+                                           onclick="return confirm('Supprimer cet encaissement ?')">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-info-circle"></i> Aucun encaissement enregistré.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Variables globales
+let currentFee = 0;
+let currentUnpaid = 0;
+let currentNextMonth = '';
+let currentCredit = 0;
+
+// Mise à jour des informations de l'appartement
+function updateApartmentInfo() {
+    const select = document.getElementById('apartment_id');
+    const option = select.options[select.selectedIndex];
+    const infoDiv = document.getElementById('aptInfo');
+    const infoText = document.getElementById('aptInfoText');
+    const creditInfo = document.getElementById('creditInfo');
+    const creditAmount = document.getElementById('creditAmount');
+    const startMonthInput = document.getElementById('start_month');
+    
+    if (option.value) {
+        currentFee = parseFloat(option.dataset.fee);
+        currentUnpaid = parseInt(option.dataset.unpaid);
+        currentNextMonth = option.dataset.next;
+        currentCredit = parseFloat(option.dataset.credit || 0);
+        
+        infoText.innerHTML = `
+            <strong>Redevance mensuelle :</strong> ${currentFee} DT<br>
+            <strong>Mois impayés :</strong> ${currentUnpaid}<br>
+            <strong>Prochain mois impayé :</strong> ${currentNextMonth}
+        `;
+        infoDiv.classList.remove('d-none');
+        
+        // Afficher le crédit si disponible
+        if (currentCredit > 0) {
+            creditAmount.textContent = currentCredit.toFixed(2);
+            creditInfo.classList.remove('d-none');
+        } else {
+            creditInfo.classList.add('d-none');
+        }
+        
+        // Suggérer le prochain mois impayé
+        startMonthInput.placeholder = `Suggestion : ${currentNextMonth}`;
+        
+        calculateMonths();
+    } else {
+        infoDiv.classList.add('d-none');
+        creditInfo.classList.add('d-none');
+        currentFee = 0;
+        currentUnpaid = 0;
+        currentNextMonth = '';
+        currentCredit = 0;
+    }
+}
+
+// Calculer le nombre de mois couverts (avec crédit)
+function calculateMonths() {
+    const amount = parseFloat(document.getElementById('amount').value);
+    const monthsInfo = document.getElementById('monthsInfo');
+    
+    if (amount && currentFee > 0) {
+        // Total disponible = montant saisi + crédit existant
+        const totalAvailable = amount + currentCredit;
+        const months = Math.floor(totalAvailable / currentFee);
+        const remainder = (totalAvailable % currentFee).toFixed(2);
+        
+        let infoHtml = '';
+        
+        if (currentCredit > 0) {
+            infoHtml += `<span class="text-info">💳 Crédit actuel : ${currentCredit.toFixed(2)} DT<br></span>`;
+            infoHtml += `<span class="text-primary">💰 Total disponible : ${totalAvailable.toFixed(2)} DT<br></span>`;
+        }
+        
+        if (months > 0) {
+            infoHtml += `
+                <span class="text-success">
+                    ✅ Ce montant couvre <strong>${months} mois</strong> 
+                    ${remainder > 0 ? `<br>💳 Nouveau crédit : ${remainder} DT` : '<br>✅ Montant exact'}
+                </span>
+            `;
+        } else {
+            infoHtml += `
+                <span class="text-warning">
+                    💰 Montant insuffisant pour 1 mois (redevance: ${currentFee} DT)<br>
+                    💳 ${totalAvailable.toFixed(2)} DT sera mis en crédit
+                </span>
+            `;
+        }
+        
+        monthsInfo.innerHTML = infoHtml;
+    } else {
+        monthsInfo.innerHTML = '';
+    }
+}
+
+// Afficher le mode sélectionné
+document.getElementById('start_month').addEventListener('input', function() {
+    const modeInfo = document.getElementById('modeInfo');
+    
+    if (this.value) {
+        modeInfo.className = 'alert alert-sm alert-primary mt-2';
+        modeInfo.innerHTML = `
+            <strong>📅 Mode MANUEL activé</strong><br>
+            Le paiement commencera à partir de <strong>${this.value}</strong>
+        `;
+        modeInfo.classList.remove('d-none');
+    } else {
+        modeInfo.className = 'alert alert-sm alert-success mt-2';
+        modeInfo.innerHTML = `
+            <strong>🤖 Mode AUTO activé</strong><br>
+            Le système paiera automatiquement depuis le premier mois impayé
+        `;
+        modeInfo.classList.remove('d-none');
+    }
+});
+
+// Recalculer lors du changement de montant
+document.getElementById('amount').addEventListener('input', calculateMonths);
+
+// Initialiser la date d'aujourd'hui
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('payment_date').value = today;
+});
+</script>
+
+<style>
+.alert-sm {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.badge {
+    font-size: 0.875rem;
+}
+
+.form-label {
+    margin-bottom: 0.5rem;
+}
+
+.card {
+    border-radius: 10px;
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+}
+
+.bg-light {
+    background-color: #f8f9fa !important;
+}
+</style>
+{% endblock %}
