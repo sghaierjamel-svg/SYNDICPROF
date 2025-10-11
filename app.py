@@ -88,6 +88,7 @@ db = SQLAlchemy(app)
 
 class Organization(db.Model):
     """Organisation = 1 Syndic client"""
+    __tablename__ = 'organization'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
     slug = db.Column(db.String(100), unique=True, nullable=False)
@@ -108,6 +109,7 @@ class Organization(db.Model):
 
 class Subscription(db.Model):
     """Abonnement de l'organisation"""
+    __tablename__ = 'subscription'
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
     plan = db.Column(db.String(20), default='trial')
@@ -138,6 +140,7 @@ class Subscription(db.Model):
             return 75.0
 
 class User(db.Model):
+    __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=True)
     email = db.Column(db.String(120), nullable=False)
@@ -154,12 +157,14 @@ class User(db.Model):
         return check_password_hash(self.password_hash, pwd)
 
 class Block(db.Model):
+    __tablename__ = 'block'
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
     name = db.Column(db.String(50), nullable=False)
     apartments = db.relationship('Apartment', backref='block', lazy=True)
 
 class Apartment(db.Model):
+    __tablename__ = 'apartment'
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
     number = db.Column(db.String(20), nullable=False)
@@ -172,6 +177,7 @@ class Apartment(db.Model):
     tickets = db.relationship('Ticket', backref='apartment', lazy=True)
 
 class Payment(db.Model):
+    __tablename__ = 'payment'
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
     apartment_id = db.Column(db.Integer, db.ForeignKey('apartment.id'), nullable=False)
@@ -182,6 +188,7 @@ class Payment(db.Model):
     credit_used = db.Column(db.Float, default=0.0)  # 🆕 NOUVEAU : Crédit utilisé pour ce paiement
 
 class Expense(db.Model):
+    __tablename__ = 'expense'
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
@@ -190,6 +197,7 @@ class Expense(db.Model):
     description = db.Column(db.String(300))
 
 class Ticket(db.Model):
+    __tablename__ = 'ticket'
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
     apartment_id = db.Column(db.Integer, db.ForeignKey('apartment.id'), nullable=False)
@@ -204,6 +212,7 @@ class Ticket(db.Model):
     user = db.relationship('User', backref='tickets')
 
 class UnpaidAlert(db.Model):
+    __tablename__ = 'unpaid_alert'
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
     apartment_id = db.Column(db.Integer, db.ForeignKey('apartment.id'), nullable=False)
@@ -216,42 +225,30 @@ class UnpaidAlert(db.Model):
 
 def init_db():
     """Initialise la base de données multi-tenant"""
-    db_dir = os.path.join(BASE_DIR, 'database')
-    os.makedirs(db_dir, exist_ok=True)
-    db.create_all()
-    
-    # 🆕 Migration : Ajouter credit_balance si la colonne n'existe pas
     try:
-        with db.engine.connect() as conn:
-            result = conn.execute(db.text("PRAGMA table_info(apartment)"))
-            columns = [row[1] for row in result]
-            if 'credit_balance' not in columns:
-                conn.execute(db.text("ALTER TABLE apartment ADD COLUMN credit_balance REAL DEFAULT 0.0"))
-                conn.commit()
-                print("✅ Colonne credit_balance ajoutée à la table apartment")
+        print("🔄 Initialisation de la base de données...")
+        db.create_all()
+        print("✅ Tables créées avec succès!")
+        
+        # Créer le super admin si il n'existe pas
+        if not User.query.filter_by(email='superadmin@syndicpro.tn').first():
+            superadmin = User(
+                email='superadmin@syndicpro.tn',
+                name='Super Administrateur',
+                role='superadmin',
+                organization_id=None
+            )
+            superadmin.set_password('SuperAdmin2024!')
+            db.session.add(superadmin)
+            db.session.commit()
+            print("✅ Super Admin créé: superadmin@syndicpro.tn / SuperAdmin2024!")
+            print("⚠️  CHANGEZ CE MOT DE PASSE après la première connexion!")
+        else:
+            print("ℹ️  Super Admin déjà existant")
             
-            # Ajouter credit_used à Payment si n'existe pas
-            result = conn.execute(db.text("PRAGMA table_info(payment)"))
-            columns = [row[1] for row in result]
-            if 'credit_used' not in columns:
-                conn.execute(db.text("ALTER TABLE payment ADD COLUMN credit_used REAL DEFAULT 0.0"))
-                conn.commit()
-                print("✅ Colonne credit_used ajoutée à la table payment")
     except Exception as e:
-        print(f"⚠️ Erreur lors de la migration : {e}")
-    
-    if not User.query.filter_by(email='superadmin@syndicpro.tn').first():
-        superadmin = User(
-            email='superadmin@syndicpro.tn',
-            name='Super Administrateur',
-            role='superadmin',
-            organization_id=None
-        )
-        superadmin.set_password('SuperAdmin2024!')
-        db.session.add(superadmin)
-        db.session.commit()
-        print("✅ Super Admin créé: superadmin@syndicpro.tn / SuperAdmin2024!")
-        print("⚠️  CHANGEZ CE MOT DE PASSE après la première connexion!")
+        print(f"❌ Erreur lors de l'initialisation : {e}")
+        db.session.rollback()
 
 def current_user():
     uid = session.get('user_id')
@@ -412,6 +409,10 @@ def get_month_name(month_num):
     months_fr = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 
                  'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc']
     return months_fr[month_num - 1]
+
+# 🔥 INITIALISATION AUTOMATIQUE DE LA BASE
+with app.app_context():
+    init_db()
 
 # -------- Routes --------
 
@@ -1278,7 +1279,8 @@ def subscription_status():
     apartments_count = Apartment.query.filter_by(organization_id=org.id).count()
     recommended_price = subscription.calculate_price(apartments_count) if subscription else 0
     return render_template('subscription_status.html', user=user, org=org, subscription=subscription, apartments_count=apartments_count, recommended_price=recommended_price)
-# Ajouter à la fin de app.py, avant le __main__
+
+# Gestion des erreurs
 @app.errorhandler(404)
 def not_found_error(error):
     return render_template('404.html'), 404
@@ -1288,32 +1290,7 @@ def internal_error(error):
     db.session.rollback()
     return render_template('500.html'), 500
 
-# Créer templates/404.html
-"""
-{% extends "base.html" %}
-{% block content %}
-<div class="text-center py-5">
-    <h1>404 - Page Non Trouvée</h1>
-    <p>La page que vous recherchez n'existe pas.</p>
-    <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Retour au Tableau de Bord</a>
-</div>
-{% endblock %}
-"""
-
-# Créer templates/500.html  
-"""
-{% extends "base.html" %}
-{% block content %}
-<div class="text-center py-5">
-    <h1>500 - Erreur Serveur</h1>
-    <p>Une erreur interne s'est produite.</p>
-    <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Retour au Tableau de Bord</a>
-</div>
-{% endblock %}
-"""
 if __name__ == "__main__":
-    with app.app_context():
-        init_db()
     print("="*60)
     print("🚀 SYNDICPRO MULTI-TENANT - VERSION 3.0.5")
     print("="*60)
@@ -1325,5 +1302,4 @@ if __name__ == "__main__":
     print("🔑 Mot de passe: SuperAdmin2024!")
     print("⚠️  CHANGEZ CE MOT DE PASSE après connexion!")
     print("="*60)
-
     app.run(debug=True, host='0.0.0.0', port=5000)
