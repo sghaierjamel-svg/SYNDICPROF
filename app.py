@@ -1,3 +1,4 @@
+
 """
 SyndicPro - Application Multi-Tenant de gestion de syndic
 Version 3.0.5 - SYSTÈME DE CRÉDIT INTÉGRÉ
@@ -54,7 +55,6 @@ if missing:
         import sys
         sys.exit(1)
 
-import os
 from flask import Flask, render_template, request, redirect, url_for, session, send_file, jsonify, flash, abort
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -73,10 +73,18 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
 
 # Configuration de la base de données
-database_url = os.environ.get('DATABASE_URL', 'sqlite:///' + os.path.join(BASE_DIR, 'database', 'syndicpro.db'))
+database_url = os.environ.get('DATABASE_URL')
+
+# Si pas de DATABASE_URL (en local), utiliser SQLite
+if not database_url:
+    # Créer le dossier database s'il n'existe pas
+    database_dir = os.path.join(BASE_DIR, 'database')
+    if not os.path.exists(database_dir):
+        os.makedirs(database_dir)
+    database_url = 'sqlite:///' + os.path.join(database_dir, 'syndicpro.db')
 
 # Si on utilise PostgreSQL sur Render, corriger l'URL
-if database_url and database_url.startswith('postgres://'):
+if database_url.startswith('postgres://'):
     database_url = database_url.replace('postgres://', 'postgresql://', 1)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
@@ -88,7 +96,6 @@ db = SQLAlchemy(app)
 
 class Organization(db.Model):
     """Organisation = 1 Syndic client"""
-    __tablename__ = 'organization'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
     slug = db.Column(db.String(100), unique=True, nullable=False)
@@ -109,7 +116,6 @@ class Organization(db.Model):
 
 class Subscription(db.Model):
     """Abonnement de l'organisation"""
-    __tablename__ = 'subscription'
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
     plan = db.Column(db.String(20), default='trial')
@@ -140,7 +146,6 @@ class Subscription(db.Model):
             return 75.0
 
 class User(db.Model):
-    __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=True)
     email = db.Column(db.String(120), nullable=False)
@@ -157,14 +162,12 @@ class User(db.Model):
         return check_password_hash(self.password_hash, pwd)
 
 class Block(db.Model):
-    __tablename__ = 'block'
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
     name = db.Column(db.String(50), nullable=False)
     apartments = db.relationship('Apartment', backref='block', lazy=True)
 
 class Apartment(db.Model):
-    __tablename__ = 'apartment'
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
     number = db.Column(db.String(20), nullable=False)
@@ -177,7 +180,6 @@ class Apartment(db.Model):
     tickets = db.relationship('Ticket', backref='apartment', lazy=True)
 
 class Payment(db.Model):
-    __tablename__ = 'payment'
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
     apartment_id = db.Column(db.Integer, db.ForeignKey('apartment.id'), nullable=False)
@@ -188,7 +190,6 @@ class Payment(db.Model):
     credit_used = db.Column(db.Float, default=0.0)  # 🆕 NOUVEAU : Crédit utilisé pour ce paiement
 
 class Expense(db.Model):
-    __tablename__ = 'expense'
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
@@ -197,7 +198,6 @@ class Expense(db.Model):
     description = db.Column(db.String(300))
 
 class Ticket(db.Model):
-    __tablename__ = 'ticket'
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
     apartment_id = db.Column(db.Integer, db.ForeignKey('apartment.id'), nullable=False)
@@ -212,7 +212,6 @@ class Ticket(db.Model):
     user = db.relationship('User', backref='tickets')
 
 class UnpaidAlert(db.Model):
-    __tablename__ = 'unpaid_alert'
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
     apartment_id = db.Column(db.Integer, db.ForeignKey('apartment.id'), nullable=False)
@@ -225,30 +224,42 @@ class UnpaidAlert(db.Model):
 
 def init_db():
     """Initialise la base de données multi-tenant"""
+    db_dir = os.path.join(BASE_DIR, 'database')
+    os.makedirs(db_dir, exist_ok=True)
+    db.create_all()
+    
+    # 🆕 Migration : Ajouter credit_balance si la colonne n'existe pas
     try:
-        print("🔄 Initialisation de la base de données...")
-        db.create_all()
-        print("✅ Tables créées avec succès!")
-        
-        # Créer le super admin si il n'existe pas
-        if not User.query.filter_by(email='superadmin@syndicpro.tn').first():
-            superadmin = User(
-                email='superadmin@syndicpro.tn',
-                name='Super Administrateur',
-                role='superadmin',
-                organization_id=None
-            )
-            superadmin.set_password('SuperAdmin2024!')
-            db.session.add(superadmin)
-            db.session.commit()
-            print("✅ Super Admin créé: superadmin@syndicpro.tn / SuperAdmin2024!")
-            print("⚠️  CHANGEZ CE MOT DE PASSE après la première connexion!")
-        else:
-            print("ℹ️  Super Admin déjà existant")
+        with db.engine.connect() as conn:
+            result = conn.execute(db.text("PRAGMA table_info(apartment)"))
+            columns = [row[1] for row in result]
+            if 'credit_balance' not in columns:
+                conn.execute(db.text("ALTER TABLE apartment ADD COLUMN credit_balance REAL DEFAULT 0.0"))
+                conn.commit()
+                print("✅ Colonne credit_balance ajoutée à la table apartment")
             
+            # Ajouter credit_used à Payment si n'existe pas
+            result = conn.execute(db.text("PRAGMA table_info(payment)"))
+            columns = [row[1] for row in result]
+            if 'credit_used' not in columns:
+                conn.execute(db.text("ALTER TABLE payment ADD COLUMN credit_used REAL DEFAULT 0.0"))
+                conn.commit()
+                print("✅ Colonne credit_used ajoutée à la table payment")
     except Exception as e:
-        print(f"❌ Erreur lors de l'initialisation : {e}")
-        db.session.rollback()
+        print(f"⚠️ Erreur lors de la migration : {e}")
+    
+    if not User.query.filter_by(email='superadmin@syndicpro.tn').first():
+        superadmin = User(
+            email='superadmin@syndicpro.tn',
+            name='Super Administrateur',
+            role='superadmin',
+            organization_id=None
+        )
+        superadmin.set_password('SuperAdmin2024!')
+        db.session.add(superadmin)
+        db.session.commit()
+        print("✅ Super Admin créé: superadmin@syndicpro.tn / SuperAdmin2024!")
+        print("⚠️  CHANGEZ CE MOT DE PASSE après la première connexion!")
 
 def current_user():
     uid = session.get('user_id')
@@ -410,15 +421,20 @@ def get_month_name(month_num):
                  'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc']
     return months_fr[month_num - 1]
 
-# 🔥 INITIALISATION AUTOMATIQUE DE LA BASE
-with app.app_context():
-    init_db()
-
 # -------- Routes --------
 
 @app.route('/')
 def index():
-    return redirect(url_for('login'))
+    """Page d'accueil avec choix : Se connecter ou S'inscrire"""
+    # Si l'utilisateur est déjà connecté, rediriger vers le dashboard approprié
+    if current_user():
+        user = current_user()
+        if user.role == 'superadmin':
+            return redirect(url_for('superadmin_dashboard'))
+        else:
+            return redirect(url_for('dashboard'))
+    # Sinon afficher la page d'accueil
+    return render_template('index.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -484,7 +500,7 @@ def register():
             start_date=datetime.utcnow(),
             end_date=datetime.utcnow() + timedelta(days=30),
             monthly_price=0.0,
-            max_apartments=20
+            max_apartments=999999
         )
         db.session.add(subscription)
         admin = User(
@@ -1243,6 +1259,76 @@ def superadmin_extend_subscription(org_id):
         db.session.commit()
         flash(f'Abonnement prolongé de {days} jours pour {org.name}', 'success')
     return redirect(url_for('superadmin_org_detail', org_id=org_id))
+@app.route('/superadmin/organization/<int:org_id>/update-limits', methods=['POST'])
+@login_required
+@superadmin_required
+def superadmin_update_limits(org_id):
+    """
+    Permet au superadmin de modifier la limite d'appartements d'une organisation.
+    Si le champ est vide, la limite devient illimitée (999999).
+    """
+    org = Organization.query.get_or_404(org_id)
+    
+    if org.subscription:
+        max_apartments_str = request.form.get('max_apartments', '').strip()
+        
+        # Si le champ est vide, mettre illimité
+        if not max_apartments_str:
+            max_apartments = 999999
+            flash('✅ Limite d\'appartements : Illimité', 'success')
+        else:
+            try:
+                max_apartments = int(max_apartments_str)
+                flash(f'✅ Limite d\'appartements mise à jour : {max_apartments}', 'success')
+            except ValueError:
+                flash('❌ Erreur : Veuillez entrer un nombre valide', 'danger')
+                return redirect(url_for('superadmin_org_detail', org_id=org_id))
+        
+        org.subscription.max_apartments = max_apartments
+        db.session.commit()
+    else:
+        flash('❌ Cette organisation n\'a pas d\'abonnement', 'danger')
+    
+    return redirect(url_for('superadmin_org_detail', org_id=org_id))
+
+
+@app.route('/superadmin/organization/<int:org_id>/update-plan', methods=['POST'])
+@login_required
+@superadmin_required
+def superadmin_update_plan(org_id):
+    """
+    Permet au superadmin de modifier le plan et le prix mensuel d'une organisation.
+    """
+    org = Organization.query.get_or_404(org_id)
+    
+    if org.subscription:
+        plan = request.form.get('plan', 'trial')
+        
+        try:
+            price = float(request.form.get('monthly_price', 0.0))
+        except ValueError:
+            flash('❌ Erreur : Prix mensuel invalide', 'danger')
+            return redirect(url_for('superadmin_org_detail', org_id=org_id))
+        
+        # Mettre à jour le plan et le prix
+        org.subscription.plan = plan
+        org.subscription.monthly_price = price
+        db.session.commit()
+        
+        # Message de confirmation avec emoji
+        plan_names = {
+            'trial': 'Essai Gratuit',
+            'starter': 'Starter',
+            'pro': 'Pro',
+            'enterprise': 'Enterprise'
+        }
+        plan_display = plan_names.get(plan, plan)
+        
+        flash(f'✅ Plan mis à jour : {plan_display} ({price:.2f} DT/mois)', 'success')
+    else:
+        flash('❌ Cette organisation n\'a pas d\'abonnement', 'danger')
+    
+    return redirect(url_for('superadmin_org_detail', org_id=org_id))
 
 @app.route('/superadmin/change-password', methods=['GET', 'POST'])
 @login_required
@@ -1279,8 +1365,7 @@ def subscription_status():
     apartments_count = Apartment.query.filter_by(organization_id=org.id).count()
     recommended_price = subscription.calculate_price(apartments_count) if subscription else 0
     return render_template('subscription_status.html', user=user, org=org, subscription=subscription, apartments_count=apartments_count, recommended_price=recommended_price)
-
-# Gestion des erreurs
+# Ajouter à la fin de app.py, avant le __main__
 @app.errorhandler(404)
 def not_found_error(error):
     return render_template('404.html'), 404
@@ -1290,7 +1375,32 @@ def internal_error(error):
     db.session.rollback()
     return render_template('500.html'), 500
 
+# Créer templates/404.html
+"""
+{% extends "base.html" %}
+{% block content %}
+<div class="text-center py-5">
+    <h1>404 - Page Non Trouvée</h1>
+    <p>La page que vous recherchez n'existe pas.</p>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Retour au Tableau de Bord</a>
+</div>
+{% endblock %}
+"""
+
+# Créer templates/500.html  
+"""
+{% extends "base.html" %}
+{% block content %}
+<div class="text-center py-5">
+    <h1>500 - Erreur Serveur</h1>
+    <p>Une erreur interne s'est produite.</p>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Retour au Tableau de Bord</a>
+</div>
+{% endblock %}
+"""
 if __name__ == "__main__":
+    with app.app_context():
+        init_db()
     print("="*60)
     print("🚀 SYNDICPRO MULTI-TENANT - VERSION 3.0.5")
     print("="*60)
@@ -1303,4 +1413,3 @@ if __name__ == "__main__":
     print("⚠️  CHANGEZ CE MOT DE PASSE après connexion!")
     print("="*60)
     app.run(debug=True, host='0.0.0.0', port=5000)
-
