@@ -77,9 +77,11 @@ database_url = os.environ.get('DATABASE_URL')
 
 # Si pas de DATABASE_URL (en local), utiliser SQLite
 if not database_url:
-    database_path = os.path.join(BASE_DIR, 'database', 'syndicpro.db')
-    database_url = f"sqlite:///{database_path}"
-
+    # Créer le dossier database s'il n'existe pas
+    database_dir = os.path.join(BASE_DIR, 'database')
+    if not os.path.exists(database_dir):
+        os.makedirs(database_dir)
+    database_url = 'sqlite:///' + os.path.join(database_dir, 'syndicpro.db')
 
 # Si on utilise PostgreSQL sur Render, corriger l'URL
 if database_url.startswith('postgres://'):
@@ -90,6 +92,9 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
+with app.app_context():
+    db.create_all()
+    create_superadmin()
 
 # -------- Models Multi-Tenant --------
 
@@ -145,7 +150,6 @@ class Subscription(db.Model):
             return 75.0
 
 class User(db.Model):
-    __tablename__ = 'utilisateur'   # 👈 LIGNE MAGIQUE
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=True)
     email = db.Column(db.String(120), nullable=False)
@@ -219,6 +223,20 @@ class UnpaidAlert(db.Model):
     alert_date = db.Column(db.DateTime, default=datetime.utcnow)
     email_sent = db.Column(db.Boolean, default=False)
     apartment = db.relationship('Apartment', backref='alerts')
+
+
+def create_superadmin():
+    from werkzeug.security import generate_password_hash
+
+    if not Utilisateur.query.filter_by(email="superadmin@syndicpro.tn").first():
+        admin = Utilisateur(
+            email="superadmin@syndicpro.tn",
+            name="Super Admin",
+            password_hash=generate_password_hash("SuperAdmin2024!"),
+            role="superadmin"
+        )
+        db.session.add(admin)
+        db.session.commit()
 
 # -------- Fonctions utilitaires --------
 
@@ -1365,7 +1383,7 @@ def subscription_status():
     apartments_count = Apartment.query.filter_by(organization_id=org.id).count()
     recommended_price = subscription.calculate_price(apartments_count) if subscription else 0
     return render_template('subscription_status.html', user=user, org=org, subscription=subscription, apartments_count=apartments_count, recommended_price=recommended_price)
-
+# Ajouter à la fin de app.py, avant le __main__
 @app.errorhandler(404)
 def not_found_error(error):
     return render_template('404.html'), 404
