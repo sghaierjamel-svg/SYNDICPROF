@@ -92,6 +92,10 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
+with app.app_context():
+    init_db()
+
+
 # -------- Models Multi-Tenant --------
 
 class Organization(db.Model):
