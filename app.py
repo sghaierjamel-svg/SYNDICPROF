@@ -94,7 +94,7 @@ db = SQLAlchemy(app)
 
 with app.app_context():
     
-    create_superadmin()
+   
 
 # -------- Models Multi-Tenant --------
 
