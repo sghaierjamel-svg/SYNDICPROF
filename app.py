@@ -1365,7 +1365,7 @@ def subscription_status():
     apartments_count = Apartment.query.filter_by(organization_id=org.id).count()
     recommended_price = subscription.calculate_price(apartments_count) if subscription else 0
     return render_template('subscription_status.html', user=user, org=org, subscription=subscription, apartments_count=apartments_count, recommended_price=recommended_price)
-# Ajouter à la fin de app.py, avant le __main__
+
 @app.errorhandler(404)
 def not_found_error(error):
     return render_template('404.html'), 404
