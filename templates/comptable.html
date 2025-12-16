@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="text-white mb-4">
+            <i class="bi bi-calculator"></i> Tableau Comptable
+        </h2>
+        <p class="text-white">
+            <i class="bi bi-info-circle"></i> 
+            Ce tableau affiche les redevances selon les <strong>mois couverts</strong>, indépendamment de la date de paiement.
+        </p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-table"></i> État Comptable - 12 derniers mois
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead class="table-success">
+                            <tr>
+                                <th style="min-width: 150px;">Appartement</th>
+                                <th class="text-center" style="min-width: 100px;">Redevance</th>
+                                {% for year, month in months %}
+                                <th class="text-center" style="min-width: 100px;">
+                                    {{ '%02d'|format(month) }}/{{ year }}
+                                </th>
+                                {% endfor %}
+                                <th class="text-center bg-light">Impayés</th>
+                                <th class="text-center bg-light">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in data %}
+                            <tr {% if row.unpaid_count >= 3 %}class="table-danger"{% endif %}>
+                                <td><strong>{{ row.apartment }}</strong></td>
+                                <td class="text-center">{{ '{:.2f}'.format(row.monthly_fee) }} DT</td>
+                                {% set total_paid = namespace(value=0) %}
+                                {% for year, month in months %}
+                                    {% set month_key = '%04d-%02d'|format(year, month) %}
+                                    {% set month_data = row.months[month_key] %}
+                                    {% if month_data.paid %}
+                                        {% set total_paid.value = total_paid.value + month_data.amount %}
+                                    {% endif %}
+                                    <td class="text-center">
+                                        {% if month_data.paid %}
+                                            <span class="status-paid">
+                                                <i class="bi bi-check-circle"></i> Payé
+                                            </span>
+                                        {% else %}
+                                            <span class="status-unpaid">
+                                                <i class="bi bi-x-circle"></i> Impayé
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                {% endfor %}
+                                <td class="text-center bg-light">
+                                    {% if row.unpaid_count > 0 %}
+                                        <span class="badge bg-danger">
+                                            {{ row.unpaid_count }} mois
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-check"></i> À jour
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end bg-light">
+                                    <strong>{{ '{:.2f}'.format(total_paid.value) }} DT</strong>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-primary fw-bold">
+                                <td colspan="2">TOTAL ENCAISSEMENTS</td>
+                                {% for year, month in months %}
+                                    {% set month_key = '%04d-%02d'|format(year, month) %}
+                                    {% set month_total = namespace(value=0) %}
+                                    {% for row in data %}
+                                        {% if row.months[month_key].paid %}
+                                            {% set month_total.value = month_total.value + row.months[month_key].amount %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    <td class="text-end">
+                                        {% if month_total.value > 0 %}
+                                            {{ '{:.2f}'.format(month_total.value) }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                {% endfor %}
+                                <td colspan="2" class="text-end bg-light">
+                                    {% set grand_total = namespace(value=0) %}
+                                    {% for row in data %}
+                                        {% for year, month in months %}
+                                            {% set month_key = '%04d-%02d'|format(year, month) %}
+                                            {% if row.months[month_key].paid %}
+                                                {% set grand_total.value = grand_total.value + row.months[month_key].amount %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endfor %}
+                                    {{ '{:.2f}'.format(grand_total.value) }} DT
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Résumé des impayés -->
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="alert alert-warning">
+                            <h5><i class="bi bi-exclamation-triangle"></i> Résumé des Impayés</h5>
+                            <ul>
+                                {% for row in data %}
+                                    {% if row.unpaid_count > 0 %}
+                                    <li>
+                                        <strong>{{ row.apartment }}</strong> : 
+                                        {{ row.unpaid_count }} mois 
+                                        ({{ '{:.2f}'.format(row.monthly_fee * row.unpaid_count) }} DT)
+                                    </li>
+                                    {% endif %}
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="alert alert-info">
+                            <h5><i class="bi bi-info-circle"></i> Légende</h5>
+                            <ul class="mb-0">
+                                <li><span class="status-paid">Payé</span> : Le mois de redevance est payé</li>
+                                <li><span class="status-unpaid">Impayé</span> : Le mois de redevance n'est pas payé</li>
+                                <li><span class="badge bg-danger">Ligne rouge</span> : 3 mois ou plus d'impayés</li>
+                                <li>La date de paiement réel n'apparaît pas ici (voir Trésorerie)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3 text-end">
+                    <a href="{{ url_for('export_excel') }}" class="btn btn-success">
+                        <i class="bi bi-file-earmark-spreadsheet"></i> Exporter en Excel
+                    </a>
+                    <a href="{{ url_for('tresorerie') }}" class="btn btn-primary">
+                        <i class="bi bi-graph-up"></i> Voir Tableau Trésorerie
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

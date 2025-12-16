@@ -1,0 +1,302 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="text-white mb-4">
+            <i class="bi bi-building"></i> {{ org.name }}
+        </h2>
+        <a href="{{ url_for('superadmin_dashboard') }}" class="btn btn-light">
+            <i class="bi bi-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Informations de l'organisation -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-info-circle"></i> Informations Générales
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Nom:</strong> {{ org.name }}</p>
+                        <p><strong>Slug:</strong> <code>{{ org.slug }}</code></p>
+                        <p><strong>Email:</strong> {{ org.email }}</p>
+                        <p><strong>Téléphone:</strong> {{ org.phone or '-' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Adresse:</strong><br>{{ org.address or '-' }}</p>
+                        <p><strong>Date de création:</strong><br>{{ org.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                        <p><strong>Statut:</strong><br>
+                            {% if org.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-danger">Désactivée</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistiques -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-graph-up"></i> Statistiques d'Utilisation
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4 mb-3">
+                        <div class="p-3 bg-light rounded">
+                            <h3 class="text-primary">{{ apartments_count }}</h3>
+                            <p class="mb-0 text-muted">Appartements</p>
+                            {% if org.subscription %}
+                            <small class="text-muted">
+                                Limite: {{ org.subscription.max_apartments if org.subscription.max_apartments < 999999 else '∞' }}
+                            </small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="p-3 bg-light rounded">
+                            <h3 class="text-success">{{ users_count }}</h3>
+                            <p class="mb-0 text-muted">Utilisateurs</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="p-3 bg-light rounded">
+                            <h3 class="text-info">
+                                {% if org.subscription %}
+                                    {{ org.subscription.days_remaining() }}
+                                {% else %}
+                                    0
+                                {% endif %}
+                            </h3>
+                            <p class="mb-0 text-muted">Jours restants</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Abonnement -->
+        {% if org.subscription %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-credit-card"></i> Gestion de l'Abonnement
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Plan:</strong>
+                            {% if org.subscription.plan == 'trial' %}
+                                <span class="badge bg-info">Essai Gratuit</span>
+                            {% elif org.subscription.plan == 'starter' %}
+                                <span class="badge bg-success">Starter</span>
+                            {% else %}
+                                <span class="badge bg-primary">{{ org.subscription.plan }}</span>
+                            {% endif %}
+                        </p>
+                        <p><strong>Statut:</strong>
+                            {% if org.subscription.is_expired() %}
+                                <span class="badge bg-danger">Expiré</span>
+                            {% elif org.subscription.status == 'active' %}
+                                <span class="badge bg-success">Actif</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ org.subscription.status }}</span>
+                            {% endif %}
+                        </p>
+                        <p><strong>Prix mensuel:</strong> {{ '{:.0f}'.format(org.subscription.monthly_price) }} DT</p>
+                        <p><strong>Limite d'appartements:</strong> 
+                            {% if org.subscription.max_apartments >= 999999 %}
+                                <span class="badge bg-success">Illimité</span>
+                            {% else %}
+                                {{ org.subscription.max_apartments }}
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Date de début:</strong><br>
+                            {{ org.subscription.start_date.strftime('%d/%m/%Y') }}
+                        </p>
+                        <p><strong>Date d'expiration:</strong><br>
+                            {% if org.subscription.end_date %}
+                                {{ org.subscription.end_date.strftime('%d/%m/%Y') }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </p>
+                        <p><strong>Jours restants:</strong><br>
+                            <span class="fs-4 fw-bold text-primary">{{ org.subscription.days_remaining() }}</span> jours
+                        </p>
+                    </div>
+                </div>
+
+                {% if org.subscription.is_expired() %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle"></i> 
+                    <strong>L'abonnement a expiré!</strong>
+                </div>
+                {% elif org.subscription.days_remaining() <= 7 %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-clock-history"></i> 
+                    <strong>L'abonnement expire bientôt!</strong>
+                </div>
+                {% endif %}
+
+                <!-- 🆕 NOUVEAU : Modifier le plan -->
+                <div class="card bg-light mt-3">
+                    <div class="card-body">
+                        <h6 class="fw-bold mb-3">
+                            <i class="bi bi-gear"></i> Modifier le Plan
+                        </h6>
+                        <form method="post" action="{{ url_for('superadmin_update_plan', org_id=org.id) }}">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Type de plan</label>
+                                    <select name="plan" class="form-select">
+                                        <option value="trial" {% if org.subscription.plan == 'trial' %}selected{% endif %}>Essai Gratuit</option>
+                                        <option value="starter" {% if org.subscription.plan == 'starter' %}selected{% endif %}>Starter</option>
+                                        <option value="pro" {% if org.subscription.plan == 'pro' %}selected{% endif %}>Pro</option>
+                                        <option value="enterprise" {% if org.subscription.plan == 'enterprise' %}selected{% endif %}>Enterprise</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Prix mensuel (DT)</label>
+                                    <input type="number" name="monthly_price" class="form-control" 
+                                           value="{{ org.subscription.monthly_price }}" step="0.01">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="bi bi-save"></i> Mettre à jour le plan
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- 🆕 NOUVEAU : Modifier la limite d'appartements -->
+                <div class="card bg-light mt-3">
+                    <div class="card-body">
+                        <h6 class="fw-bold mb-3">
+                            <i class="bi bi-house-door"></i> Limite d'Appartements
+                        </h6>
+                        <form method="post" action="{{ url_for('superadmin_update_limits', org_id=org.id) }}">
+                            <div class="row align-items-end">
+                                <div class="col-md-8 mb-3">
+                                    <label class="form-label">Nombre maximum d'appartements</label>
+                                    <input type="number" name="max_apartments" class="form-control" 
+                                           value="{{ org.subscription.max_apartments if org.subscription.max_apartments < 999999 else '' }}"
+                                           placeholder="Laisser vide pour illimité">
+                                    <small class="form-text text-muted">
+                                        Actuellement: {{ apartments_count }} appartements utilisés
+                                    </small>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <button type="submit" class="btn btn-warning w-100">
+                                        <i class="bi bi-check-circle"></i> Modifier
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Formulaire de prolongation -->
+                <div class="card bg-light mt-3">
+                    <div class="card-body">
+                        <h6 class="fw-bold mb-3">
+                            <i class="bi bi-calendar-plus"></i> Prolonger l'Abonnement
+                        </h6>
+                        <form method="post" action="{{ url_for('superadmin_extend_subscription', org_id=org.id) }}">
+                            <div class="row align-items-end">
+                                <div class="col-md-8">
+                                    <label class="form-label">Ajouter des jours :</label>
+                                    <select name="days" class="form-select">
+                                        <option value="7">7 jours (1 semaine)</option>
+                                        <option value="30">30 jours (1 mois)</option>
+                                        <option value="90">90 jours (3 mois)</option>
+                                        <option value="180">180 jours (6 mois)</option>
+                                        <option value="365">365 jours (1 an)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <button type="submit" class="btn btn-success w-100">
+                                        <i class="bi bi-calendar-plus"></i> Prolonger
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Actions -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-lightning"></i> Actions Rapides
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <form method="post" action="{{ url_for('superadmin_toggle_org', org_id=org.id) }}">
+                        {% if org.is_active %}
+                            <button type="submit" class="btn btn-danger w-100" 
+                                    onclick="return confirm('Confirmer la désactivation ?');">
+                                <i class="bi bi-x-circle"></i> Désactiver l'Organisation
+                            </button>
+                        {% else %}
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="bi bi-check-circle"></i> Activer l'Organisation
+                            </button>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contacts -->
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-telephone"></i> Contact
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="mailto:{{ org.email }}" class="btn btn-outline-primary">
+                        <i class="bi bi-envelope"></i> Envoyer un Email
+                    </a>
+                    {% if org.phone %}
+                    <a href="tel:{{ org.phone }}" class="btn btn-outline-success">
+                        <i class="bi bi-telephone"></i> Appeler
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Informations utiles -->
+        <div class="card mt-3">
+            <div class="card-header bg-info text-white">
+                <i class="bi bi-info-circle"></i> Informations
+            </div>
+            <div class="card-body">
+                <p class="small mb-2">
+                    <strong>💡 Conseil :</strong> Pour un essai gratuit illimité, 
+                    laissez la limite d'appartements vide ou entrez un nombre très élevé.
+                </p>
+                <p class="small mb-0">
+                    <strong>🔧 Tarification recommandée :</strong><br>
+                    • < 20 appts : 30 DT/mois<br>
+                    • 20-75 appts : 50 DT/mois<br>
+                    • > 75 appts : 75 DT/mois
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

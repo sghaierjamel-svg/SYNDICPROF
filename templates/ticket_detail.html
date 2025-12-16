@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="text-white mb-4">
+            <i class="bi bi-chat-left-dots"></i> Détail du Ticket #{{ ticket.id }}
+        </h2>
+        <a href="{{ url_for('tickets') }}" class="btn btn-light">
+            <i class="bi bi-arrow-left"></i> Retour aux tickets
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">{{ ticket.subject }}</h5>
+            </div>
+            <div class="card-body">
+                <!-- Informations du ticket -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Appartement:</strong> 
+                            {{ ticket.apartment.block.name }}-{{ ticket.apartment.number }}
+                        </p>
+                        <p><strong>Créé par:</strong> {{ ticket.user.name }} ({{ ticket.user.email }})</p>
+                        <p><strong>Date de création:</strong> 
+                            {{ ticket.created_at.strftime('%d/%m/%Y à %H:%M') }}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Priorité:</strong> 
+                            <span class="badge 
+                                {% if ticket.priority == 'urgente' %}bg-danger
+                                {% elif ticket.priority == 'haute' %}bg-warning
+                                {% elif ticket.priority == 'normale' %}bg-info
+                                {% else %}bg-secondary{% endif %}">
+                                {{ ticket.priority|upper }}
+                            </span>
+                        </p>
+                        <p><strong>Statut:</strong> 
+                            <span class="badge 
+                                {% if ticket.status == 'ouvert' %}bg-primary
+                                {% elif ticket.status == 'en_cours' %}bg-info
+                                {% elif ticket.status == 'resolu' %}bg-success
+                                {% else %}bg-secondary{% endif %}">
+                                {{ ticket.status|upper }}
+                            </span>
+                        </p>
+                        <p><strong>Dernière mise à jour:</strong> 
+                            {{ ticket.updated_at.strftime('%d/%m/%Y à %H:%M') }}
+                        </p>
+                    </div>
+                </div>
+
+                <hr>
+
+                <!-- Message initial -->
+                <div class="mb-4">
+                    <h6><i class="bi bi-chat-text"></i> Message du résident</h6>
+                    <div class="p-3 bg-light rounded">
+                        {{ ticket.message }}
+                    </div>
+                </div>
+
+                <!-- Réponse admin -->
+                {% if ticket.admin_response %}
+                <div class="mb-4">
+                    <h6><i class="bi bi-reply"></i> Réponse de l'administrateur</h6>
+                    <div class="p-3 bg-success bg-opacity-10 rounded border border-success">
+                        {{ ticket.admin_response }}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Formulaire de réponse (admin uniquement) -->
+                {% if user.role == 'admin' %}
+                <div class="mt-4">
+                    <h6><i class="bi bi-pencil"></i> Gérer le ticket</h6>
+                    <form method="post">
+                        <div class="mb-3">
+                            <label class="form-label">Statut</label>
+                            <select name="status" class="form-select">
+                                <option value="ouvert" {% if ticket.status == 'ouvert' %}selected{% endif %}>Ouvert</option>
+                                <option value="en_cours" {% if ticket.status == 'en_cours' %}selected{% endif %}>En cours</option>
+                                <option value="resolu" {% if ticket.status == 'resolu' %}selected{% endif %}>Résolu</option>
+                                <option value="ferme" {% if ticket.status == 'ferme' %}selected{% endif %}>Fermé</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Réponse / Commentaire</label>
+                            <textarea name="admin_response" class="form-control" rows="5" 
+                                      placeholder="Votre réponse au résident...">{{ ticket.admin_response or '' }}</textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-save"></i> Enregistrer la Mise à Jour
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Actions rapides -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-lightning"></i> Actions Rapides
+            </div>
+            <div class="card-body">
+                {% if user.role == 'admin' %}
+                <div class="d-grid gap-2">
+                    <button class="btn btn-success" onclick="setStatus('resolu')">
+                        <i class="bi bi-check-circle"></i> Marquer comme Résolu
+                    </button>
+                    <button class="btn btn-info" onclick="setStatus('en_cours')">
+                        <i class="bi bi-hourglass-split"></i> Mettre En Cours
+                    </button>
+                    <button class="btn btn-secondary" onclick="setStatus('ferme')">
+                        <i class="bi bi-x-circle"></i> Fermer le Ticket
+                    </button>
+                    <hr>
+                    <a href="{{ url_for('delete_ticket', ticket_id=ticket.id) }}" 
+                       class="btn btn-danger"
+                       onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce ticket ?');">
+                        <i class="bi bi-trash"></i> Supprimer
+                    </a>
+                </div>
+                {% else %}
+                <div class="alert alert-info mb-0">
+                    <i class="bi bi-info-circle"></i> 
+                    Votre ticket a été envoyé. Un administrateur y répondra prochainement.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Historique -->
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-clock-history"></i> Historique
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="bi bi-circle-fill text-primary" style="font-size: 0.5rem;"></i>
+                        <small>Créé le {{ ticket.created_at.strftime('%d/%m/%Y à %H:%M') }}</small>
+                    </li>
+                    {% if ticket.admin_response %}
+                    <li class="mb-2">
+                        <i class="bi bi-circle-fill text-success" style="font-size: 0.5rem;"></i>
+                        <small>Réponse admin le {{ ticket.updated_at.strftime('%d/%m/%Y à %H:%M') }}</small>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function setStatus(status) {
+    const form = document.querySelector('form');
+    const statusSelect = form.querySelector('select[name="status"]');
+    statusSelect.value = status;
+    
+    // Auto-fill réponse selon statut
+    const responseTextarea = form.querySelector('textarea[name="admin_response"]');
+    if (!responseTextarea.value.trim()) {
+        if (status === 'resolu') {
+            responseTextarea.value = 'Votre demande a été traitée et résolue. N\'hésitez pas à nous contacter si nécessaire.';
+        } else if (status === 'en_cours') {
+            responseTextarea.value = 'Votre demande est en cours de traitement. Nous vous tiendrons informé.';
+        } else if (status === 'ferme') {
+            responseTextarea.value = 'Ce ticket est maintenant fermé. Merci.';
+        }
+    }
+}
+</script>
+{% endblock %}

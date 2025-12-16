@@ -1,0 +1,42 @@
+{% extends 'base.html' %}{% block content %}
+<h1 class="mb-4 text-info"><i class="fas fa-edit me-2"></i> Modification d'un Utilisateur</h1>
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card card-quiet p-4">
+      <h5 class="card-title">Modifier Utilisateur: **{{ user.name or user.email }}**</h5>
+      <form method="post" class="mt-3">
+        <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input class="form-control" name="email" value="{{ user.email }}" type="email" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Nom complet (optionnel)</label>
+            <input class="form-control" name="name" value="{{ user.name or '' }}" placeholder="Nom complet">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Mot de passe</label>
+            <input class="form-control" name="password" placeholder="Nouveau mot de passe (laisser vide pour ne pas changer)" type="password">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Rôle</label>
+            <select name="role" class="form-select">
+            <option value="resident" {% if user.role == 'resident' %}selected{% endif %}>Résident</option>
+            <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Administrateur</option>
+          </select>
+        </div>
+        <div class="mb-4">
+            <label class="form-label">Appartement associé</label>
+            <select name="apartment_id" class="form-select">
+            <option value="">-- Non assigné --</option>
+            {% for a in apartments %}
+              <option value="{{ a.id }}" {% if user.apartment_id == a.id %}selected{% endif %}>{{ a.block.name }} - {{ a.number }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button class="btn btn-info w-100 text-white"><i class="fas fa-save me-1"></i> Enregistrer les modifications</button>
+        <a href="{{ url_for('users') }}" class="btn btn-secondary">Annuler</a>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

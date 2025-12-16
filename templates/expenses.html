@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="text-white mb-4">
+            <i class="bi bi-credit-card"></i> Gestion des Dépenses
+        </h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-plus-circle"></i> Enregistrer une Dépense
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label class="form-label">Montant (DT) *</label>
+                        <input class="form-control" name="amount" type="number" 
+                               step="0.01" placeholder="0.00" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Date de Dépense *</label>
+                        <input class="form-control" name="expense_date" 
+                               type="date" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Catégorie</label>
+                        <select class="form-select" name="category">
+                            <option value="Eau">Eau</option>
+                            <option value="Électricité">Électricité</option>
+                            <option value="Entretien">Entretien</option>
+                            <option value="Réparations">Réparations</option>
+                            <option value="Gardiennage">Gardiennage</option>
+                            <option value="Assurances">Assurances</option>
+                            <option value="Taxes">Taxes</option>
+                            <option value="Autre">Autre</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" name="description" rows="3" 
+                                  placeholder="Ex: Facture mensuelle..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-save"></i> Enregistrer la Dépense
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Statistiques par catégorie -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <i class="bi bi-pie-chart"></i> Dépenses par Catégorie (Total)
+            </div>
+            <div class="card-body">
+                {% set categories = {} %}
+                {% for e in expenses %}
+                    {% if e.category not in categories %}
+                        {% set _ = categories.update({e.category: 0}) %}
+                    {% endif %}
+                    {% set _ = categories.update({e.category: categories[e.category] + e.amount}) %}
+                {% endfor %}
+                
+                <div class="list-group">
+                    {% for cat, total in categories.items() %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ cat }}
+                        <span class="badge bg-primary rounded-pill">
+                            {{ '{:.2f}'.format(total) }} DT
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-list"></i> Historique des Dépenses
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Catégorie</th>
+                                <th>Montant</th>
+                                <th>Description</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for e in expenses %}
+                            <tr>
+                                <td>{{ e.expense_date.strftime('%d/%m/%Y') }}</td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ e.category }}</span>
+                                </td>
+                                <td><strong class="text-danger">{{ '{:.2f}'.format(e.amount) }} DT</strong></td>
+                                <td>{{ e.description }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('edit_expense', expense_id=e.id) }}" 
+                                           class="btn btn-warning" title="Modifier">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="{{ url_for('delete_expense', expense_id=e.id) }}" 
+                                           class="btn btn-danger" 
+                                           onclick="return confirm('Confirmer la suppression ?');"
+                                           title="Supprimer">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">
+                                    Aucune dépense enregistrée
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Date du jour par défaut
+const today = new Date().toISOString().split('T')[0];
+document.querySelector('input[name="expense_date"]').value = today;
+</script>
+{% endblock %}

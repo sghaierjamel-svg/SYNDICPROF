@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center vh-100 align-items-center">
+    <div class="col-md-8">
+        <div class="card shadow-lg">
+            <div class="card-body p-5">
+                <div class="text-center mb-5">
+                    <i class="bi bi-building" style="font-size: 5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                    <h1 class="mt-4 fw-bold display-4">SyndicPro</h1>
+                    <p class="lead text-muted">La solution complète pour la gestion de votre syndic</p>
+                </div>
+
+                <!-- Boutons principaux -->
+                <div class="row g-3 mb-5">
+                    <div class="col-md-6">
+                        <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg w-100 py-3">
+                            <i class="bi bi-box-arrow-in-right"></i> Se Connecter
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="{{ url_for('register') }}" class="btn btn-success btn-lg w-100 py-3">
+                            <i class="bi bi-person-plus"></i> S'inscrire Gratuitement
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Avantages -->
+                <div class="alert alert-info mb-4">
+                    <h5 class="alert-heading">
+                        <i class="bi bi-gift"></i> Essai Gratuit - 30 Jours
+                    </h5>
+                    <ul class="mb-0">
+                        <li><strong>Sans carte bancaire</strong></li>
+                        <li>Accès complet à toutes les fonctionnalités</li>
+                        <li>Support technique inclus</li>
+                        <li>Aucun engagement</li>
+                    </ul>
+                </div>
+
+                <!-- Fonctionnalités -->
+                <div class="row text-center mt-5">
+                    <div class="col-md-4 mb-4">
+                        <div class="feature-icon">
+                            <i class="bi bi-house-door text-primary" style="font-size: 2.5rem;"></i>
+                        </div>
+                        <h5 class="mt-3">Gestion des Appartements</h5>
+                        <p class="text-muted small">Organisez vos blocs et appartements facilement</p>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="feature-icon">
+                            <i class="bi bi-cash-coin text-success" style="font-size: 2.5rem;"></i>
+                        </div>
+                        <h5 class="mt-3">Encaissements & Dépenses</h5>
+                        <p class="text-muted small">Suivi en temps réel de votre trésorerie</p>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="feature-icon">
+                            <i class="bi bi-graph-up text-info" style="font-size: 2.5rem;"></i>
+                        </div>
+                        <h5 class="mt-3">Tableaux & Rapports</h5>
+                        <p class="text-muted small">Visualisez vos données en un clin d'œil</p>
+                    </div>
+                </div>
+
+                <div class="row text-center">
+                    <div class="col-md-4 mb-4">
+                        <div class="feature-icon">
+                            <i class="bi bi-exclamation-triangle text-warning" style="font-size: 2.5rem;"></i>
+                        </div>
+                        <h5 class="mt-3">Alertes Automatiques</h5>
+                        <p class="text-muted small">Notifications pour les impayés</p>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="feature-icon">
+                            <i class="bi bi-people text-danger" style="font-size: 2.5rem;"></i>
+                        </div>
+                        <h5 class="mt-3">Gestion des Résidents</h5>
+                        <p class="text-muted small">Espace dédié pour chaque résident</p>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="feature-icon">
+                            <i class="bi bi-file-earmark-spreadsheet text-primary" style="font-size: 2.5rem;"></i>
+                        </div>
+                        <h5 class="mt-3">Export Excel</h5>
+                        <p class="text-muted small">Exportez vos données facilement</p>
+                    </div>
+                </div>
+
+                <!-- Tarification -->
+                <div class="card mt-5 bg-light">
+                    <div class="card-body">
+                        <h5 class="text-center fw-bold mb-4">
+                            <i class="bi bi-cash-coin"></i> Tarification Simple
+                        </h5>
+                        <div class="row text-center">
+                            <div class="col-md-4 mb-3">
+                                <div class="p-3 bg-white rounded shadow-sm">
+                                    <h4 class="text-primary fw-bold">30 DT</h4>
+                                    <p class="mb-0 small text-muted">< 20 appartements</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="p-3 bg-white rounded shadow-sm">
+                                    <h4 class="text-success fw-bold">50 DT</h4>
+                                    <p class="mb-0 small text-muted">20 - 75 appartements</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="p-3 bg-white rounded shadow-sm">
+                                    <h4 class="text-warning fw-bold">75 DT</h4>
+                                    <p class="mb-0 small text-muted">> 75 appartements</p>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-center mb-0 mt-3 small text-muted">
+                            Prix par mois • Sans engagement
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <p class="text-white">
+                <i class="bi bi-shield-check"></i> Plateforme sécurisée et confidentielle
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+    body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .container {
+        margin-top: -30px;
+    }
+    .feature-icon {
+        padding: 20px;
+    }
+</style>
+{% endblock %}

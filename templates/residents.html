@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="text-white mb-4">
+            <i class="bi bi-person"></i> Mon Espace Résident
+        </h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-info-circle"></i> Statut de Mon Appartement
+            </div>
+            <div class="card-body">
+                {% if user.apartment_id %}
+                    <h5>Appartement : {{ user.apartment.block.name }}-{{ user.apartment.number }}</h5>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Redevance mensuelle :</strong><br>
+                            {{ '{:.2f}'.format(user.apartment.monthly_fee) }} DT</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Statut des paiements :</strong><br>
+                            {% if unpaid_count == 0 %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i> À jour
+                                </span>
+                            {% else %}
+                                <span class="badge bg-danger">
+                                    {{ unpaid_count }} mois impayé(s)
+                                </span>
+                            {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    {% if unpaid_count > 0 %}
+                    <div class="alert alert-warning mt-3">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Attention :</strong> Vous avez {{ unpaid_count }} mois impayé(s).
+                        <br>Prochain mois à payer : <strong>{{ next_month }}</strong>
+                        <br>Montant total dû : <strong>{{ '{:.2f}'.format(user.apartment.monthly_fee * unpaid_count) }} DT</strong>
+                    </div>
+                    {% endif %}
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Vous n'êtes pas encore affecté à un appartement.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-lightning"></i> Actions Rapides
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('tickets') }}" class="btn btn-primary">
+                        <i class="bi bi-chat-left-dots"></i> Créer un Ticket
+                    </a>
+                    <a href="{{ url_for('export_excel') }}" class="btn btn-success">
+                        <i class="bi bi-file-earmark-spreadsheet"></i> Télécharger Rapport Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-clock-history"></i> Historique de Mes Paiements
+            </div>
+            <div class="card-body">
+                {% if my_payments %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date Paiement</th>
+                                <th>Mois Payé</th>
+                                <th>Montant</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in my_payments %}
+                            <tr>
+                                <td>{{ p.payment_date.strftime('%d/%m/%Y') }}</td>
+                                <td><span class="badge bg-info">{{ p.month_paid }}</span></td>
+                                <td><strong>{{ '{:.2f}'.format(p.amount) }} DT</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info mb-0">
+                    <i class="bi bi-info-circle"></i> Aucun paiement enregistré pour le moment.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

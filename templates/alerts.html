@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="text-white mb-4">
+            <i class="bi bi-exclamation-triangle"></i> Gestion des Alertes Impayés
+        </h2>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="alert alert-warning">
+            <h5><i class="bi bi-info-circle"></i> Système d'Alerte Automatique</h5>
+            <p class="mb-0">
+                Les alertes sont générées automatiquement lorsqu'un appartement accumule <strong>3 mois ou plus d'impayés</strong>.
+                Vous pouvez marquer une alerte comme "Email envoyé" une fois que vous avez contacté le résident.
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-list"></i> Liste des Alertes
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date Alerte</th>
+                                <th>Appartement</th>
+                                <th>Mois Impayés</th>
+                                <th>Montant Dû</th>
+                                <th>Prochain Mois</th>
+                                <th>Email Envoyé</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alert in alerts %}
+                            <tr class="{% if not alert.email_sent %}table-warning{% endif %}">
+                                <td>{{ alert.alert_date.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td>
+                                    <strong>{{ alert.apartment.block.name }}-{{ alert.apartment.number }}</strong><br>
+                                    {% if alert.apartment.residents %}
+                                        <small class="text-muted">
+                                            {% for resident in alert.apartment.residents %}
+                                                {{ resident.name }} ({{ resident.email }})
+                                            {% endfor %}
+                                        </small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-danger fs-6">
+                                        {{ alert.months_unpaid }} mois
+                                    </span>
+                                </td>
+                                <td>
+                                    <strong class="text-danger">
+                                        {{ '{:.2f}'.format(alert.apartment.monthly_fee * alert.months_unpaid) }} DT
+                                    </strong>
+                                </td>
+                                <td>
+                                    {% set next = namespace() %}
+                                    {% for p in alert.apartment.payments %}
+                                        {% if loop.first %}
+                                            {% set next.month = p.month_paid %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    <span class="badge bg-info">
+                                        Voir détails
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if alert.email_sent %}
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-check-circle"></i> Envoyé
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="bi bi-clock"></i> En attente
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        {% if not alert.email_sent %}
+                                        <a href="{{ url_for('mark_alert_sent', alert_id=alert.id) }}" 
+                                           class="btn btn-success" 
+                                           title="Marquer comme envoyé">
+                                            <i class="bi bi-envelope-check"></i>
+                                        </a>
+                                        {% endif %}
+                                        <a href="{{ url_for('comptable') }}" 
+                                           class="btn btn-info" 
+                                           title="Voir tableau comptable">
+                                            <i class="bi bi-table"></i>
+                                        </a>
+                                        <a href="mailto:{% if alert.apartment.residents %}{{ alert.apartment.residents[0].email }}{% endif %}?subject=Rappel Impayés - Appartement {{ alert.apartment.block.name }}-{{ alert.apartment.number }}&body=Bonjour,%0D%0A%0D%0ANous vous informons que votre appartement présente {{ alert.months_unpaid }} mois d'impayés pour un montant total de {{ '{:.2f}'.format(alert.apartment.monthly_fee * alert.months_unpaid) }} DT.%0D%0A%0D%0AMerci de régulariser votre situation dans les meilleurs délais.%0D%0A%0D%0ACordialement," 
+                                           class="btn btn-primary" 
+                                           title="Envoyer un email">
+                                            <i class="bi bi-envelope"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted">
+                                    <div class="py-5">
+                                        <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+                                        <p class="mt-3 mb-0">Aucune alerte d'impayés !</p>
+                                        <small class="text-muted">Tous les appartements sont à jour ou ont moins de 3 mois d'impayés.</small>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Résumé statistique -->
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="icon"><i class="bi bi-exclamation-triangle"></i></div>
+            <h3>{{ alerts|length }}</h3>
+            <p>Alertes Totales</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="icon"><i class="bi bi-envelope-x"></i></div>
+            <h3>{{ alerts|selectattr('email_sent', 'equalto', false)|list|length }}</h3>
+            <p>Emails Non Envoyés</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="icon"><i class="bi bi-envelope-check"></i></div>
+            <h3>{{ alerts|selectattr('email_sent', 'equalto', true)|list|length }}</h3>
+            <p>Emails Envoyés</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

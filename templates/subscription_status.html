@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="text-white mb-4">
+            <i class="bi bi-credit-card"></i> Mon Abonnement
+        </h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Statut actuel -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-info-circle"></i> Statut de l'Abonnement
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>{{ org.name }}</h5>
+                        <p class="text-muted mb-3">{{ org.email }}</p>
+                        
+                        <div class="mb-3">
+                            <strong>Plan actuel:</strong><br>
+                            {% if subscription.plan == 'trial' %}
+                                <span class="badge bg-info fs-6">Essai Gratuit</span>
+                            {% elif subscription.plan == 'starter' %}
+                                <span class="badge bg-success fs-6">Plan Starter</span>
+                            {% else %}
+                                <span class="badge bg-primary fs-6">Plan Pro</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <strong>Statut:</strong><br>
+                            {% if subscription.is_expired() %}
+                                <span class="badge bg-danger fs-6">Expiré</span>
+                            {% elif subscription.status == 'active' %}
+                                <span class="badge bg-success fs-6">Actif</span>
+                            {% else %}
+                                <span class="badge bg-secondary fs-6">{{ subscription.status }}</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <strong>Nombre d'appartements:</strong><br>
+                            <span class="fs-4 text-primary fw-bold">{{ apartments_count }}</span>
+                            <span class="text-muted">/ {{ subscription.max_apartments }} max</span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        {% if subscription.end_date %}
+                        <div class="mb-3">
+                            <strong>Date d'expiration:</strong><br>
+                            <span class="fs-5">{{ subscription.end_date.strftime('%d/%m/%Y') }}</span>
+                        </div>
+
+                        <div class="mb-3">
+                            <strong>Jours restants:</strong><br>
+                            {% if subscription.days_remaining() > 0 %}
+                                <span class="fs-3 fw-bold text-success">{{ subscription.days_remaining() }}</span>
+                                <span class="text-muted">jours</span>
+                            {% else %}
+                                <span class="fs-5 text-danger fw-bold">Expiré</span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        {% if subscription.monthly_price > 0 %}
+                        <div class="mb-3">
+                            <strong>Prix actuel:</strong><br>
+                            <span class="fs-4 text-primary fw-bold">{{ '{:.0f}'.format(subscription.monthly_price) }} DT</span>
+                            <span class="text-muted">/ mois</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if subscription.is_expired() %}
+                <div class="alert alert-danger mt-3">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Votre abonnement a expiré!</strong><br>
+                    Veuillez le renouveler pour continuer à utiliser SyndicPro.
+                </div>
+                {% elif subscription.days_remaining() <= 7 %}
+                <div class="alert alert-warning mt-3">
+                    <i class="bi bi-clock-history"></i>
+                    <strong>Attention!</strong> Votre abonnement expire dans {{ subscription.days_remaining() }} jour(s).
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Grille tarifaire -->
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-cash-coin"></i> Tarification selon le nombre d'appartements
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4 mb-3">
+                        <div class="p-4 border rounded {% if apartments_count < 20 %}bg-primary bg-opacity-10 border-primary{% else %}bg-light{% endif %}">
+                            <h3 class="text-primary fw-bold">30 DT</h3>
+                            <p class="mb-2">< 20 appartements</p>
+                            {% if apartments_count < 20 %}
+                                <span class="badge bg-primary">Votre plan recommandé</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="p-4 border rounded {% if apartments_count >= 20 and apartments_count <= 75 %}bg-success bg-opacity-10 border-success{% else %}bg-light{% endif %}">
+                            <h3 class="text-success fw-bold">50 DT</h3>
+                            <p class="mb-2">20 - 75 appartements</p>
+                            {% if apartments_count >= 20 and apartments_count <= 75 %}
+                                <span class="badge bg-success">Votre plan recommandé</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="p-4 border rounded {% if apartments_count > 75 %}bg-warning bg-opacity-10 border-warning{% else %}bg-light{% endif %}">
+                            <h3 class="text-warning fw-bold">75 DT</h3>
+                            <p class="mb-2">> 75 appartements</p>
+                            {% if apartments_count > 75 %}
+                                <span class="badge bg-warning text-dark">Votre plan recommandé</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info mt-3">
+                    <strong>Prix recommandé pour vous:</strong> 
+                    <span class="fs-4 fw-bold text-primary">{{ '{:.0f}'.format(recommended_price) }} DT / mois</span>
+                    <br>
+                    <small>Basé sur vos {{ apartments_count }} appartements actuels</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Actions -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-lightning"></i> Actions
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="tel:+21612345678" class="btn btn-primary">
+                        <i class="bi bi-telephone"></i> Nous Contacter
+                    </a>
+                    <a href="mailto:contact@syndicpro.tn?subject=Renouvellement abonnement - {{ org.name }}" 
+                       class="btn btn-success">
+                        <i class="bi bi-envelope"></i> Demander un Renouvellement
+                    </a>
+                    <a href="https://wa.me/21612345678?text=Bonjour, je souhaite renouveler mon abonnement SyndicPro pour {{ org.name }}" 
+                       class="btn btn-outline-success" target="_blank">
+                        <i class="bi bi-whatsapp"></i> WhatsApp
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fonctionnalités -->
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-check-circle"></i> Fonctionnalités Incluses
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success"></i> Gestion des appartements
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success"></i> Encaissements & Dépenses
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success"></i> Tableaux trésorerie
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success"></i> Alertes impayés
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success"></i> Système de tickets
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success"></i> Export Excel
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success"></i> Multi-utilisateurs
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success"></i> Support technique
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
