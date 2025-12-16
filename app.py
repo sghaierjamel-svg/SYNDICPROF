@@ -93,7 +93,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 with app.app_context():
-    db.create_all()
+    
     create_superadmin()
 
 # -------- Models Multi-Tenant --------
@@ -244,7 +244,6 @@ def init_db():
     """Initialise la base de données multi-tenant"""
     db_dir = os.path.join(BASE_DIR, 'database')
     os.makedirs(db_dir, exist_ok=True)
-    db.create_all()
     
     # 🆕 Migration : Ajouter credit_balance si la colonne n'existe pas
     try:
@@ -1383,6 +1382,13 @@ def subscription_status():
     apartments_count = Apartment.query.filter_by(organization_id=org.id).count()
     recommended_price = subscription.calculate_price(apartments_count) if subscription else 0
     return render_template('subscription_status.html', user=user, org=org, subscription=subscription, apartments_count=apartments_count, recommended_price=recommended_price)
+
+@app.route("/init_db")
+def init_db():
+    db.create_all()
+    return "✅ Base de données initialisée"
+
+
 # Ajouter à la fin de app.py, avant le __main__
 @app.errorhandler(404)
 def not_found_error(error):
