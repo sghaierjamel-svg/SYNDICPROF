@@ -145,6 +145,7 @@ class Subscription(db.Model):
             return 75.0
 
 class User(db.Model):
+    __tablename__ = 'utilisateur'   # 👈 LIGNE MAGIQUE
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=True)
     email = db.Column(db.String(120), nullable=False)
