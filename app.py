@@ -77,11 +77,9 @@ database_url = os.environ.get('DATABASE_URL')
 
 # Si pas de DATABASE_URL (en local), utiliser SQLite
 if not database_url:
-    # Créer le dossier database s'il n'existe pas
-    database_dir = os.path.join(BASE_DIR, 'database')
-    if not os.path.exists(database_dir):
-        os.makedirs(database_dir)
-    database_url = 'sqlite:///' + os.path.join(database_dir, 'syndicpro.db')
+    database_path = os.path.join(BASE_DIR, 'database', 'syndicpro.db')
+    database_url = f"sqlite:///{database_path}"
+
 
 # Si on utilise PostgreSQL sur Render, corriger l'URL
 if database_url.startswith('postgres://'):
@@ -91,9 +89,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
-
-with app.app_context():
-    init_db()
 
 
 # -------- Models Multi-Tenant --------
