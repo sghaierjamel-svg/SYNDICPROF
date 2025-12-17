@@ -1382,58 +1382,6 @@ def subscription_status():
     recommended_price = subscription.calculate_price(apartments_count) if subscription else 0
     return render_template('subscription_status.html', user=user, org=org, subscription=subscription, apartments_count=apartments_count, recommended_price=recommended_price)
 
-@app.route("/setup_database_now")
-def setup_database_now():
-    """Route pour créer les tables et le super admin"""
-    try:
-        # 1. Créer toutes les tables
-        db.create_all()
-        
-        # 2. Créer le super admin
-        existing_admin = User.query.filter_by(email='superadmin@syndicpro.tn').first()
-        if not existing_admin:
-            superadmin = User(
-                email='superadmin@syndicpro.tn',
-                name='Super Administrateur',
-                role='superadmin',
-                organization_id=None
-            )
-            superadmin.set_password('SuperAdmin2024!')
-            db.session.add(superadmin)
-            db.session.commit()
-            message = "✅ Super Admin créé !"
-        else:
-            message = "✅ Super Admin existe déjà !"
-        
-        return f"""
-        <html>
-        <body style="font-family: Arial; padding: 50px; text-align: center;">
-            <h1 style="color: green;">✅ BASE DE DONNÉES PRÊTE !</h1>
-            <p style="font-size: 20px;">{message}</p>
-            <h2>🔑 Identifiants Super Admin :</h2>
-            <p><strong>Email :</strong> superadmin@syndicpro.tn</p>
-            <p><strong>Mot de passe :</strong> SuperAdmin2024!</p>
-            <hr>
-            <p style="color: red; font-weight: bold;">⚠️ SUPPRIME cette route /setup_database_now du code après !</p>
-            <br>
-            <a href="/login" style="background: blue; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px;">
-                Aller à la page de connexion
-            </a>
-        </body>
-        </html>
-        """
-    except Exception as e:
-        return f"""
-        <html>
-        <body style="font-family: Arial; padding: 50px;">
-            <h1 style="color: red;">❌ ERREUR</h1>
-            <p style="font-size: 18px; color: red;">{str(e)}</p>
-            <p>Contacte-moi et montre-moi cette erreur !</p>
-        </body>
-        </html>
-        """
-
-
 
 # Ajouter à la fin de app.py, avant le __main__
 @app.errorhandler(404)
