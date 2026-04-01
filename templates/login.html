@@ -12,6 +12,7 @@
                 </div>
                 
                 <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-4">
                         <label class="form-label fw-semibold">
                             <i class="bi bi-envelope"></i> Email

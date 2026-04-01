@@ -59,6 +59,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, s
 from flask_sqlalchemy import SQLAlchemy
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
@@ -68,6 +69,7 @@ import io
 import os
 import calendar
 import secrets
+import re
 
 load_dotenv()
 
@@ -76,6 +78,7 @@ app = Flask(__name__)
 
 # 🔥 CONFIGURATION POUR RENDER 🔥
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 
 # Configuration de la base de données
 database_url = os.environ.get('DATABASE_URL')
@@ -103,6 +106,8 @@ limiter = Limiter(
     default_limits=[],
     storage_uri="memory://"
 )
+
+csrf = CSRFProtect(app)
 
 # -------- Models Multi-Tenant --------
 
@@ -272,6 +277,18 @@ def init_db():
         db.session.commit()
         print("✅ Super Admin créé: superadmin@syndicpro.tn")
         print("⚠️  Mot de passe défini via variable d'environnement SUPERADMIN_PASSWORD")
+
+@app.before_request
+def check_session_timeout():
+    if session.get('user_id'):
+        last_activity = session.get('last_activity')
+        if last_activity:
+            elapsed = datetime.utcnow() - datetime.fromisoformat(last_activity)
+            if elapsed > timedelta(minutes=30):
+                session.clear()
+                flash("Session expirée, veuillez vous reconnecter.", "warning")
+                return redirect(url_for('login'))
+        session['last_activity'] = datetime.utcnow().isoformat()
 
 def current_user():
     uid = session.get('user_id')
@@ -465,6 +482,8 @@ def login():
                     flash('Organisation désactivée. Contactez le support.', 'danger')
                     return redirect(url_for('login'))
             session['user_id'] = user.id
+            session.permanent = True
+            session['last_activity'] = datetime.utcnow().isoformat()
             flash('Connecté avec succès', 'success')
             if user.role == 'superadmin':
                 return redirect(url_for('superadmin_dashboard'))
@@ -487,6 +506,15 @@ def register():
         password = request.form['password']
         phone = request.form.get('phone', '').strip()
         address = request.form.get('address', '').strip()
+        if len(password) < 8:
+            flash('Le mot de passe doit contenir au moins 8 caractères.', 'danger')
+            return redirect(url_for('register'))
+        if not re.search(r'[0-9]', password):
+            flash('Le mot de passe doit contenir au moins 1 chiffre.', 'danger')
+            return redirect(url_for('register'))
+        if not re.search(r'[A-Z]', password):
+            flash('Le mot de passe doit contenir au moins 1 lettre majuscule.', 'danger')
+            return redirect(url_for('register'))
         if User.query.filter_by(email=email).first():
             flash('Cet email est déjà utilisé.', 'danger')
             return redirect(url_for('register'))

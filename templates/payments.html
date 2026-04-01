@@ -23,6 +23,7 @@
                 </div>
                 <div class="card-body">
                     <form method="POST" id="paymentForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="form-group mb-3">
                             <label for="apartment_id" class="form-label fw-bold">
                                 <i class="fas fa-building"></i> Appartement *
@@ -220,6 +221,7 @@
                                             <i class="fas fa-edit"></i>
                                         </a>
                                         <form method="POST" action="{{ url_for('delete_payment', payment_id=p.id) }}" style="display:inline;">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button type="submit" class="btn btn-sm btn-danger"
                                                     onclick="return confirm('Supprimer cet encaissement ?')">
                                                 <i class="fas fa-trash"></i>

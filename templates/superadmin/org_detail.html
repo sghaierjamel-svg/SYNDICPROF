@@ -154,6 +154,7 @@
                             <i class="bi bi-gear"></i> Modifier le Plan
                         </h6>
                         <form method="post" action="{{ url_for('superadmin_update_plan', org_id=org.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Type de plan</label>
@@ -184,6 +185,7 @@
                             <i class="bi bi-house-door"></i> Limite d'Appartements
                         </h6>
                         <form method="post" action="{{ url_for('superadmin_update_limits', org_id=org.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="row align-items-end">
                                 <div class="col-md-8 mb-3">
                                     <label class="form-label">Nombre maximum d'appartements</label>
@@ -211,6 +213,7 @@
                             <i class="bi bi-calendar-plus"></i> Prolonger l'Abonnement
                         </h6>
                         <form method="post" action="{{ url_for('superadmin_extend_subscription', org_id=org.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="row align-items-end">
                                 <div class="col-md-8">
                                     <label class="form-label">Ajouter des jours :</label>
@@ -245,6 +248,7 @@
             <div class="card-body">
                 <div class="d-grid gap-2">
                     <form method="post" action="{{ url_for('superadmin_toggle_org', org_id=org.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         {% if org.is_active %}
                             <button type="submit" class="btn btn-danger w-100" 
                                     onclick="return confirm('Confirmer la désactivation ?');">

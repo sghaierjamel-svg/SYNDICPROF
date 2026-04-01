@@ -18,6 +18,7 @@
             </div>
             <div class="card-body">
                 <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="action" value="add_block">
                     <div class="mb-3">
                         <label class="form-label">Nom du Bloc *</label>
@@ -38,6 +39,7 @@
             </div>
             <div class="card-body">
                 <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="action" value="add_apartment">
                     <div class="mb-3">
                         <label class="form-label">Numéro d'Appartement *</label>
