@@ -11,28 +11,28 @@
 
 <!-- Statistiques globales -->
 <div class="row g-4 mb-4">
-    <div class="col-md-3">
+    <div class="col-6 col-md-3">
         <div class="stat-card">
             <div class="icon"><i class="bi bi-building"></i></div>
             <h3>{{ total_orgs }}</h3>
             <p>Organisations Totales</p>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-6 col-md-3">
         <div class="stat-card">
             <div class="icon"><i class="bi bi-check-circle"></i></div>
             <h3>{{ active_orgs }}</h3>
             <p>Organisations Actives</p>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-6 col-md-3">
         <div class="stat-card">
             <div class="icon"><i class="bi bi-x-circle"></i></div>
             <h3>{{ total_orgs - active_orgs }}</h3>
             <p>Organisations Inactives</p>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-6 col-md-3">
         <div class="stat-card">
             <div class="icon"><i class="bi bi-cash-coin"></i></div>
             <h3>{{ '{:.0f}'.format(total_revenue) }} DT</h3>
@@ -49,7 +49,7 @@
                 <i class="bi bi-lightning"></i> Actions Rapides
             </div>
             <div class="card-body">
-                <div class="d-flex gap-2">
+                <div class="d-flex flex-wrap gap-2">
                     <a href="{{ url_for('register') }}" class="btn btn-primary" target="_blank">
                         <i class="bi bi-plus-circle"></i> Créer une Organisation
                     </a>
@@ -74,28 +74,28 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>ID</th>
+                                <th class="d-none d-md-table-cell">ID</th>
                                 <th>Organisation</th>
-                                <th>Email</th>
-                                <th>Téléphone</th>
+                                <th class="d-none d-md-table-cell">Email</th>
+                                <th class="d-none d-lg-table-cell">Téléphone</th>
                                 <th>Plan</th>
                                 <th>Statut</th>
-                                <th>Expiration</th>
-                                <th>Prix</th>
-                                <th>Créé le</th>
+                                <th class="d-none d-md-table-cell">Expiration</th>
+                                <th class="d-none d-lg-table-cell">Prix</th>
+                                <th class="d-none d-lg-table-cell">Créé le</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for org in organizations %}
                             <tr class="{% if not org.is_active %}table-secondary{% endif %}">
-                                <td><strong>#{{ org.id }}</strong></td>
+                                <td class="d-none d-md-table-cell"><strong>#{{ org.id }}</strong></td>
                                 <td>
                                     <strong>{{ org.name }}</strong><br>
                                     <small class="text-muted">{{ org.slug }}</small>
                                 </td>
-                                <td>{{ org.email }}</td>
-                                <td>{{ org.phone or '-' }}</td>
+                                <td class="d-none d-md-table-cell">{{ org.email }}</td>
+                                <td class="d-none d-lg-table-cell">{{ org.phone or '-' }}</td>
                                 <td>
                                     {% if org.subscription %}
                                         {% if org.subscription.plan == 'trial' %}
@@ -122,7 +122,7 @@
                                         <span class="badge bg-dark">Désactivé</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td class="d-none d-md-table-cell">
                                     {% if org.subscription and org.subscription.end_date %}
                                         {{ org.subscription.end_date.strftime('%d/%m/%Y') }}
                                         {% if org.subscription.days_remaining() > 0 %}
@@ -132,14 +132,14 @@
                                         -
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td class="d-none d-lg-table-cell">
                                     {% if org.subscription %}
                                         <strong>{{ '{:.0f}'.format(org.subscription.monthly_price) }} DT</strong>
                                     {% else %}
                                         -
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td class="d-none d-lg-table-cell">
                                     {{ org.created_at.strftime('%d/%m/%Y') }}
                                 </td>
                                 <td>
