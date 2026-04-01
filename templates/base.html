@@ -9,357 +9,592 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         :root {
-            --primary-color: #2563eb;
-            --secondary-color: #64748b;
-            --success-color: #10b981;
-            --danger-color: #ef4444;
-            --warning-color: #f59e0b;
-            --info-color: #06b6d4;
+            --bg: #0A0E1A;
+            --card-bg: #111827;
+            --border: #1F2937;
+            --border2: #374151;
+            --green: #00C896;
+            --text: #F9FAFB;
+            --muted: #9CA3AF;
+            --sidebar-width: 260px;
         }
-        
+
+        * { box-sizing: border-box; }
+
         body {
-            padding-top: 70px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--bg);
             min-height: 100vh;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text);
+            margin: 0;
         }
-        
-        .navbar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--card-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
         }
-        
-        .navbar-brand {
-            font-weight: 700;
-            font-size: 1.5rem;
+
+        .sidebar-logo {
+            padding: 1.5rem 1.25rem 1rem;
+            border-bottom: 1px solid var(--border);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .sidebar-logo span {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--green);
             letter-spacing: 1px;
         }
-        
-        .container {
-            max-width: 1400px;
+
+        .sidebar-logo .logo-icon {
+            font-size: 1.6rem;
+            color: var(--green);
         }
-        
-        .card {
-            border: none;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            background: white;
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 1rem 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        .sidebar-section {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--border2);
+            padding: 0.75rem 0.5rem 0.25rem;
+            font-weight: 600;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0.85rem;
+            border-radius: 10px;
+            text-decoration: none;
+            color: var(--muted);
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-link:hover {
+            background: var(--border);
+            color: var(--text);
+        }
+
+        .sidebar-link.active {
+            background: rgba(0, 200, 150, 0.12);
+            color: var(--green);
+            border-left: 3px solid var(--green);
+            padding-left: calc(0.85rem - 3px);
+        }
+
+        .sidebar-link i {
+            font-size: 1.05rem;
+            width: 1.2rem;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            padding: 1rem 0.75rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .sidebar-user {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.5rem 0.85rem;
+            border-radius: 10px;
+            margin-bottom: 0.3rem;
+        }
+
+        .sidebar-user .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(0,200,150,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--green);
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .sidebar-user .user-info {
             overflow: hidden;
         }
-        
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+
+        .sidebar-user .user-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-        
+
+        .sidebar-user .user-role {
+            font-size: 0.7rem;
+            color: var(--muted);
+        }
+
+        /* ── MAIN CONTENT ── */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            padding: 1.5rem 2rem;
+        }
+
+        .main-content.no-sidebar {
+            margin-left: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+            width: 100%;
+            min-height: 100vh;
+        }
+
+        /* ── MOBILE TOGGLE ── */
+        .sidebar-toggle {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1100;
+            background: var(--card-bg);
+            border: 1px solid var(--border2);
+            color: var(--text);
+            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 999;
+        }
+
+        /* ── CARDS ── */
+        .card {
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            background: var(--card-bg);
+            color: var(--text);
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
         .card-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: var(--border);
+            color: var(--text);
             font-weight: 600;
             border: none;
+            border-bottom: 1px solid var(--border2);
             padding: 1rem 1.5rem;
         }
-        
+
+        .card-body { color: var(--text); }
+
+        /* ── BUTTONS ── */
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--green);
             border: none;
             padding: 0.6rem 1.5rem;
             border-radius: 8px;
             font-weight: 600;
+            color: #0A0E1A;
             transition: all 0.3s ease;
         }
-        
-        .btn-primary:hover {
+
+        .btn-primary:hover, .btn-primary:focus {
+            background: #00b386;
+            color: #0A0E1A;
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 8px 20px rgba(0,200,150,0.35);
         }
-        
+
         .btn-success {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            border: none;
-            border-radius: 8px;
-            padding: 0.6rem 1.5rem;
-            font-weight: 600;
+            border: none; border-radius: 8px;
+            padding: 0.6rem 1.5rem; font-weight: 600; color: white;
         }
-        
+
         .btn-danger {
             background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            border: none;
-            border-radius: 8px;
-            padding: 0.6rem 1.5rem;
-            font-weight: 600;
+            border: none; border-radius: 8px;
+            padding: 0.6rem 1.5rem; font-weight: 600; color: white;
         }
-        
+
         .btn-warning {
             background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            border: none;
-            border-radius: 8px;
-            padding: 0.6rem 1.5rem;
-            font-weight: 600;
-            color: white;
+            border: none; border-radius: 8px;
+            padding: 0.6rem 1.5rem; font-weight: 600; color: white;
         }
-        
+
         .btn-info {
             background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-            border: none;
-            border-radius: 8px;
-            padding: 0.6rem 1.5rem;
-            font-weight: 600;
-            color: white;
+            border: none; border-radius: 8px;
+            padding: 0.6rem 1.5rem; font-weight: 600; color: white;
         }
-        
+
+        .btn-secondary {
+            background: var(--border2); border: none; border-radius: 8px;
+            padding: 0.6rem 1.5rem; font-weight: 600; color: var(--text);
+        }
+
+        .btn-outline-primary {
+            border: 2px solid var(--green); color: var(--green);
+            border-radius: 8px; font-weight: 600; background: transparent;
+        }
+
+        .btn-outline-primary:hover { background: var(--green); color: #0A0E1A; }
+
+        .btn-outline-secondary {
+            border: 2px solid var(--border2); color: var(--muted);
+            border-radius: 8px; font-weight: 600; background: transparent;
+        }
+
+        .btn-outline-secondary:hover { background: var(--border2); color: var(--text); }
+
+        .btn-outline-success {
+            border: 2px solid var(--green); color: var(--green);
+            border-radius: 8px; font-weight: 600; background: transparent;
+        }
+
+        .btn-outline-success:hover { background: var(--green); color: #0A0E1A; }
+
+        /* ── STAT CARDS ── */
         .stat-card {
-            background: white;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
             border-radius: 16px;
             padding: 1.5rem;
             text-align: center;
             transition: all 0.3s ease;
-            border: none;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
-        
+
         .stat-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
         }
-        
-        .stat-card .icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+
+        .stat-card .icon { font-size: 3rem; margin-bottom: 1rem; color: var(--green); }
+        .stat-card h3 { font-size: 2.5rem; font-weight: 700; margin: 0; color: var(--text); }
+        .stat-card p { color: var(--muted); margin: 0; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* ── ALERTS ── */
+        .alert { border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1.5rem; }
+
+        .alert-info {
+            background: rgba(6,182,212,0.12);
+            border: 1px solid rgba(6,182,212,0.3);
+            color: #67e8f9;
         }
-        
-        .stat-card h3 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin: 0;
-            color: #1e293b;
+
+        .alert-success {
+            background: rgba(0,200,150,0.12);
+            border: 1px solid rgba(0,200,150,0.3);
+            color: #6ee7b7;
         }
-        
-        .stat-card p {
-            color: #64748b;
-            margin: 0;
-            font-size: 0.95rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+
+        .alert-warning {
+            background: rgba(245,158,11,0.12);
+            border: 1px solid rgba(245,158,11,0.3);
+            color: #fcd34d;
         }
-        
-        .alert {
-            border: none;
-            border-radius: 12px;
-            padding: 1rem 1.5rem;
-            margin-bottom: 1.5rem;
+
+        .alert-danger {
+            background: rgba(239,68,68,0.12);
+            border: 1px solid rgba(239,68,68,0.3);
+            color: #fca5a5;
         }
-        
-        .badge {
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.85rem;
-        }
-        
-        .table {
-            border-radius: 12px;
-            overflow: hidden;
-        }
-        
-        .table thead {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        
-        .table-hover tbody tr:hover {
-            background-color: #f8fafc;
-            cursor: pointer;
-        }
-        
+
+        /* ── BADGES ── */
+        .badge { padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; font-size: 0.85rem; }
+
+        /* ── TABLES ── */
+        .table { border-radius: 12px; overflow: hidden; color: var(--text); }
+        .table thead { background: var(--border); color: var(--muted); }
+        .table thead th { border-color: var(--border2); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .table tbody tr { border-color: var(--border); }
+        .table tbody td { border-color: var(--border); color: var(--text); vertical-align: middle; }
+        .table-hover tbody tr:hover { background-color: var(--border); color: var(--text); cursor: pointer; }
+        .table-striped tbody tr:nth-of-type(odd) { background-color: rgba(31,41,55,0.5); }
+
+        /* ── FORMS ── */
         .form-control, .form-select {
-            border: 2px solid #e2e8f0;
+            background: var(--border);
+            border: 1px solid var(--border2);
+            color: var(--text);
             border-radius: 8px;
             padding: 0.7rem 1rem;
             transition: all 0.3s ease;
         }
-        
+
         .form-control:focus, .form-select:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: var(--border);
+            border-color: var(--green);
+            color: var(--text);
+            box-shadow: 0 0 0 3px rgba(0,200,150,0.15);
         }
-        
-        .nav-link {
-            transition: all 0.3s ease;
-            border-radius: 8px;
-            margin: 0 0.2rem;
-        }
-        
-        .nav-link:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-        
+
+        .form-control::placeholder { color: #6B7280; }
+        .form-label { color: var(--muted); font-weight: 500; }
+        .form-text { color: #6B7280; }
+
+        /* ── DROPDOWN ── */
+        .dropdown-menu { background: var(--card-bg); border: 1px solid var(--border2); }
+        .dropdown-item { color: var(--text); }
+        .dropdown-item:hover { background: var(--border); color: var(--green); }
+
+        /* ── STATUS BADGES ── */
         .status-paid {
-            background: #d1fae5;
-            color: #065f46;
-            padding: 0.3rem 0.8rem;
-            border-radius: 6px;
-            font-weight: 600;
+            background: rgba(0,200,150,0.15); color: var(--green);
+            padding: 0.3rem 0.8rem; border-radius: 6px; font-weight: 600;
         }
-        
+
         .status-unpaid {
-            background: #fee2e2;
-            color: #991b1b;
-            padding: 0.3rem 0.8rem;
-            border-radius: 6px;
-            font-weight: 600;
+            background: rgba(239,68,68,0.15); color: #f87171;
+            padding: 0.3rem 0.8rem; border-radius: 6px; font-weight: 600;
         }
-        
-        .priority-haute {
-            background: #fef3c7;
-            color: #92400e;
-        }
-        
-        .priority-urgente {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-        
+
+        .priority-haute { background: rgba(245,158,11,0.15); color: #fcd34d; }
+        .priority-urgente { background: rgba(239,68,68,0.15); color: #f87171; }
+
+        /* ── TEXT ── */
+        .text-muted { color: var(--muted) !important; }
+        h1, h2, h3, h4, h5, h6 { color: var(--text); }
+        hr { border-color: var(--border2); }
+
+        /* ── RESPONSIVE ── */
         @media (max-width: 768px) {
-            body {
-                padding-top: 60px;
+            .sidebar {
+                transform: translateX(-100%);
             }
-            
-            .stat-card {
-                margin-bottom: 1rem;
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .sidebar-overlay.open {
+                display: block;
+            }
+
+            .sidebar-toggle {
+                display: flex;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 1rem;
+                padding-top: 4rem;
             }
         }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
-                <i class="bi bi-building"></i> SyndicPro
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    {% if user %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('dashboard') }}">
-                            <i class="bi bi-speedometer2"></i> Tableau de bord
-                        </a>
-                    </li>
-                    {% if user.role == 'admin' %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('subscription_status') }}">
-                            <i class="bi bi-credit-card"></i> Mon Abonnement
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('apartments') }}">
-                            <i class="bi bi-house-door"></i> Appartements
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('payments') }}">
-                            <i class="bi bi-cash-coin"></i> Encaissements
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('expenses') }}">
-                            <i class="bi bi-credit-card"></i> Dépenses
-                        </a>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-graph-up"></i> Tableaux
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('tresorerie') }}">Trésorerie</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('comptable') }}">Comptable</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('alerts') }}">
-                            <i class="bi bi-exclamation-triangle"></i> Alertes
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('users') }}">
-                            <i class="bi bi-people"></i> Utilisateurs
-                        </a>
-                    </li>
-                    {% endif %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('tickets') }}">
-                            <i class="bi bi-chat-left-dots"></i> Tickets
-                        </a>
-                    </li>
-                    {% if user.role == 'resident' %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('residents_menu') }}">
-                            <i class="bi bi-person"></i> Mon Espace
-                        </a>
-                    </li>
-                    {% endif %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('export_excel') }}">
-                            <i class="bi bi-file-earmark-spreadsheet"></i> Export Excel
-                        </a>
-                    </li>
-                    {% if user.role == 'superadmin' %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('superadmin_dashboard') }}">
-                            <i class="bi bi-shield-check"></i> Super Admin
-                        </a>
-                    </li>
-                    {% endif %}
-                    {% endif %}
-                </ul>
-                <ul class="navbar-nav">
-                    {% if user %}
-                    <li class="nav-item">
-                        <span class="nav-link">
-                            <i class="bi bi-person-circle"></i> {{ user.name }}
-                        </span>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('logout') }}">
-                            <i class="bi bi-box-arrow-right"></i> Déconnexion
-                        </a>
-                    </li>
-                    {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('login') }}">
-                            <i class="bi bi-box-arrow-in-right"></i> Connexion
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </div>
-        </div>
+
+{% if user %}
+<!-- Bouton hamburger mobile -->
+<button class="sidebar-toggle" id="sidebarToggle">
+    <i class="bi bi-list"></i>
+</button>
+
+<!-- Overlay mobile -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+
+    <!-- Logo -->
+    <a class="sidebar-logo" href="{{ url_for('dashboard') }}">
+        <i class="bi bi-building logo-icon"></i>
+        <span>SyndicPro</span>
+    </a>
+
+    <!-- Navigation -->
+    <nav class="sidebar-nav">
+
+        <div class="sidebar-section">Principal</div>
+
+        <a class="sidebar-link {% if request.endpoint == 'dashboard' %}active{% endif %}"
+           href="{{ url_for('dashboard') }}">
+            <i class="bi bi-speedometer2"></i> Tableau de bord
+        </a>
+
+        {% if user.role == 'admin' %}
+
+        <div class="sidebar-section">Gestion</div>
+
+        <a class="sidebar-link {% if request.endpoint == 'apartments' %}active{% endif %}"
+           href="{{ url_for('apartments') }}">
+            <i class="bi bi-house-door"></i> Appartements
+        </a>
+
+        <a class="sidebar-link {% if request.endpoint == 'payments' %}active{% endif %}"
+           href="{{ url_for('payments') }}">
+            <i class="bi bi-cash-coin"></i> Encaissements
+        </a>
+
+        <a class="sidebar-link {% if request.endpoint == 'expenses' %}active{% endif %}"
+           href="{{ url_for('expenses') }}">
+            <i class="bi bi-credit-card"></i> Dépenses
+        </a>
+
+        <a class="sidebar-link {% if request.endpoint == 'alerts' %}active{% endif %}"
+           href="{{ url_for('alerts') }}">
+            <i class="bi bi-exclamation-triangle"></i> Alertes
+        </a>
+
+        <a class="sidebar-link {% if request.endpoint == 'users' %}active{% endif %}"
+           href="{{ url_for('users') }}">
+            <i class="bi bi-people"></i> Utilisateurs
+        </a>
+
+        <div class="sidebar-section">Rapports</div>
+
+        <a class="sidebar-link {% if request.endpoint == 'tresorerie' %}active{% endif %}"
+           href="{{ url_for('tresorerie') }}">
+            <i class="bi bi-table"></i> Trésorerie
+        </a>
+
+        <a class="sidebar-link {% if request.endpoint == 'comptable' %}active{% endif %}"
+           href="{{ url_for('comptable') }}">
+            <i class="bi bi-calculator"></i> Comptable
+        </a>
+
+        <a class="sidebar-link" href="{{ url_for('export_excel') }}">
+            <i class="bi bi-file-earmark-spreadsheet"></i> Export Excel
+        </a>
+
+        <div class="sidebar-section">Compte</div>
+
+        <a class="sidebar-link {% if request.endpoint == 'subscription_status' %}active{% endif %}"
+           href="{{ url_for('subscription_status') }}">
+            <i class="bi bi-gem"></i> Mon Abonnement
+        </a>
+
+        {% endif %}
+
+        {% if user.role == 'resident' %}
+
+        <div class="sidebar-section">Mon Espace</div>
+
+        <a class="sidebar-link {% if request.endpoint == 'residents_menu' %}active{% endif %}"
+           href="{{ url_for('residents_menu') }}">
+            <i class="bi bi-person-badge"></i> Mon Appartement
+        </a>
+
+        {% endif %}
+
+        <a class="sidebar-link {% if request.endpoint == 'tickets' %}active{% endif %}"
+           href="{{ url_for('tickets') }}">
+            <i class="bi bi-chat-left-dots"></i> Tickets
+        </a>
+
+        {% if user.role == 'superadmin' %}
+
+        <div class="sidebar-section">Administration</div>
+
+        <a class="sidebar-link {% if request.endpoint == 'superadmin_dashboard' %}active{% endif %}"
+           href="{{ url_for('superadmin_dashboard') }}">
+            <i class="bi bi-shield-check"></i> Super Admin
+        </a>
+
+        {% endif %}
+
     </nav>
 
-    <div class="container mt-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages[:2] %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                        <i class="bi bi-info-circle"></i> {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        
-        {% block content %}{% endblock %}
+    <!-- Footer utilisateur -->
+    <div class="sidebar-footer">
+        <div class="sidebar-user">
+            <div class="avatar"><i class="bi bi-person-fill"></i></div>
+            <div class="user-info">
+                <div class="user-name">{{ user.name }}</div>
+                <div class="user-role">{{ user.role | capitalize }}</div>
+            </div>
+        </div>
+        <a class="sidebar-link" href="{{ url_for('logout') }}" style="color:#f87171;">
+            <i class="bi bi-box-arrow-right"></i> Déconnexion
+        </a>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    {% block extra_js %}{% endblock %}
+</aside>
+{% endif %}
+
+<!-- CONTENU PRINCIPAL -->
+<main class="main-content {% if not user %}no-sidebar{% endif %}">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages[:2] %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    <i class="bi bi-info-circle"></i> {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"
+                            style="filter: invert(1);"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Toggle sidebar mobile
+    const toggle = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+
+    if (toggle) {
+        toggle.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('open');
+        });
+
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('open');
+        });
+    }
+</script>
+{% block extra_js %}{% endblock %}
 </body>
 </html>

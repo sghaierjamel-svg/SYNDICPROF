@@ -1073,7 +1073,7 @@ def ticket_detail(ticket_id):
         return redirect(url_for('ticket_detail', ticket_id=ticket_id))
     return render_template('ticket_detail.html', ticket=ticket, user=user)
 
-@app.route('/ticket/delete/<int:ticket_id>')
+@app.route('/ticket/delete/<int:ticket_id>', methods=['POST'])
 @login_required
 @admin_required
 @subscription_required
