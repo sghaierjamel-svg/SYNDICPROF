@@ -9,6 +9,36 @@
     </div>
 </div>
 
+{% if user.role == 'admin' %}
+<!-- KPIs du mois -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card" style="background:#111827; border:1px solid #1F2937; border-radius:12px;">
+            <p class="mb-1 small" style="color:#9CA3AF; text-transform:uppercase; letter-spacing:.05em;">Taux de recouvrement</p>
+            <h3 class="fw-800" style="font-size:2rem; color:{% if taux_recouvrement > 80 %}#00C896{% elif taux_recouvrement >= 60 %}#f59e0b{% else %}#ef4444{% endif %};">{{ taux_recouvrement }}%</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="background:#111827; border:1px solid #1F2937; border-radius:12px;">
+            <p class="mb-1 small" style="color:#9CA3AF; text-transform:uppercase; letter-spacing:.05em;">Encaissé ce mois</p>
+            <h3 class="fw-800" style="font-size:2rem; color:#F9FAFB;">{{ '{:.0f}'.format(encaisse_mois) }} DT</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="background:#111827; border:1px solid #1F2937; border-radius:12px;">
+            <p class="mb-1 small" style="color:#9CA3AF; text-transform:uppercase; letter-spacing:.05em;">Dépensé ce mois</p>
+            <h3 class="fw-800" style="font-size:2rem; color:#F9FAFB;">{{ '{:.0f}'.format(depense_mois) }} DT</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="background:#111827; border:1px solid #1F2937; border-radius:12px;">
+            <p class="mb-1 small" style="color:#9CA3AF; text-transform:uppercase; letter-spacing:.05em;">Solde de trésorerie</p>
+            <h3 class="fw-800" style="font-size:2rem; color:{% if solde_tresorerie >= 0 %}#00C896{% else %}#ef4444{% endif %};">{{ '{:.0f}'.format(solde_tresorerie) }} DT</h3>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Statistiques rapides -->
 <div class="row g-4 mb-4">
     <div class="col-md-3">

@@ -247,19 +247,18 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    {% if user %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('dashboard') }}">
                             <i class="bi bi-speedometer2"></i> Tableau de bord
                         </a>
                     </li>
-                    {% if user and user.role == 'admin' %}
+                    {% if user.role == 'admin' %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('subscription_status') }}">
                             <i class="bi bi-credit-card"></i> Mon Abonnement
                         </a>
                     </li>
-                    {% endif %}
-                    {% if user and user.role == 'admin' %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('apartments') }}">
                             <i class="bi bi-house-door"></i> Appartements
@@ -300,7 +299,7 @@
                             <i class="bi bi-chat-left-dots"></i> Tickets
                         </a>
                     </li>
-                    {% if user and user.role == 'resident' %}
+                    {% if user.role == 'resident' %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('residents_menu') }}">
                             <i class="bi bi-person"></i> Mon Espace
@@ -312,12 +311,13 @@
                             <i class="bi bi-file-earmark-spreadsheet"></i> Export Excel
                         </a>
                     </li>
-                    {% if user and user.role == 'superadmin' %}
+                    {% if user.role == 'superadmin' %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('superadmin_dashboard') }}">
                             <i class="bi bi-shield-check"></i> Super Admin
                         </a>
                     </li>
+                    {% endif %}
                     {% endif %}
                 </ul>
                 <ul class="navbar-nav">
@@ -347,7 +347,7 @@
     <div class="container mt-4">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                {% for category, message in messages %}
+                {% for category, message in messages[:2] %}
                     <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
                         <i class="bi bi-info-circle"></i> {{ message }}
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>

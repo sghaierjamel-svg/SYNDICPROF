@@ -90,22 +90,28 @@
                                 <td>
                                     <div class="btn-group btn-group-sm">
                                         {% if not alert.email_sent %}
-                                        <a href="{{ url_for('mark_alert_sent', alert_id=alert.id) }}" 
-                                           class="btn btn-success" 
+                                        <a href="{{ url_for('mark_alert_sent', alert_id=alert.id) }}"
+                                           class="btn btn-success"
                                            title="Marquer comme envoyé">
                                             <i class="bi bi-envelope-check"></i>
                                         </a>
                                         {% endif %}
-                                        <a href="{{ url_for('comptable') }}" 
-                                           class="btn btn-info" 
+                                        <a href="{{ url_for('comptable') }}"
+                                           class="btn btn-info"
                                            title="Voir tableau comptable">
                                             <i class="bi bi-table"></i>
                                         </a>
-                                        <a href="mailto:{% if alert.apartment.residents %}{{ alert.apartment.residents[0].email }}{% endif %}?subject=Rappel Impayés - Appartement {{ alert.apartment.block.name }}-{{ alert.apartment.number }}&body=Bonjour,%0D%0A%0D%0ANous vous informons que votre appartement présente {{ alert.months_unpaid }} mois d'impayés pour un montant total de {{ '{:.2f}'.format(alert.apartment.monthly_fee * alert.months_unpaid) }} DT.%0D%0A%0D%0AMerci de régulariser votre situation dans les meilleurs délais.%0D%0A%0D%0ACordialement," 
-                                           class="btn btn-primary" 
+                                        <a href="mailto:{% if alert.apartment.residents %}{{ alert.apartment.residents[0].email }}{% endif %}?subject=Rappel Impayés - Appartement {{ alert.apartment.block.name }}-{{ alert.apartment.number }}&body=Bonjour,%0D%0A%0D%0ANous vous informons que votre appartement présente {{ alert.months_unpaid }} mois d'impayés pour un montant total de {{ '{:.2f}'.format(alert.apartment.monthly_fee * alert.months_unpaid) }} DT.%0D%0A%0D%0AMerci de régulariser votre situation dans les meilleurs délais.%0D%0A%0D%0ACordialement,"
+                                           class="btn btn-primary"
                                            title="Envoyer un email">
                                             <i class="bi bi-envelope"></i>
                                         </a>
+                                        <button class="btn btn-secondary" disabled
+                                            title="Bientôt disponible — Relances WhatsApp arrivent en V2"
+                                            data-bs-toggle="tooltip"
+                                            data-bs-placement="top">
+                                            📨 Relancer
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -152,4 +158,12 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+    new bootstrap.Tooltip(el);
+});
+</script>
 {% endblock %}

@@ -570,6 +570,23 @@ def dashboard():
     apartments_count = Apartment.query.filter_by(organization_id=org.id).count()
     total_payments = sum(p.amount for p in Payment.query.filter_by(organization_id=org.id).all())
     total_expenses = sum(e.amount for e in Expense.query.filter_by(organization_id=org.id).all())
+    # KPIs du mois en cours
+    current_month_str = date.today().strftime('%Y-%m')
+    encaisse_mois = sum(
+        p.amount for p in Payment.query.filter_by(organization_id=org.id).all()
+        if p.month_paid == current_month_str
+    )
+    depense_mois = sum(
+        e.amount for e in Expense.query.filter_by(organization_id=org.id).all()
+        if e.expense_date.strftime('%Y-%m') == current_month_str
+    )
+    solde_tresorerie = total_payments - total_expenses
+    apts_total = apartments_count
+    apts_payes_mois = len(set(
+        p.apartment_id for p in Payment.query.filter_by(organization_id=org.id).all()
+        if p.month_paid == current_month_str
+    ))
+    taux_recouvrement = round((apts_payes_mois / apts_total * 100) if apts_total > 0 else 0)
     subscription = org.subscription
     days_left = subscription.days_remaining() if subscription else 0
     unpaid_count = 0
@@ -597,7 +614,7 @@ def dashboard():
         recent_tickets = Ticket.query.filter_by(
             apartment_id=user.apartment_id
         ).order_by(Ticket.created_at.desc()).limit(5).all()
-    return render_template('dashboard.html', 
+    return render_template('dashboard.html',
                          user=user,
                          org=org,
                          subscription=subscription,
@@ -610,7 +627,11 @@ def dashboard():
                          next_month=next_month,
                          credit=credit,
                          alerts=alerts,
-                         recent_tickets=recent_tickets)
+                         recent_tickets=recent_tickets,
+                         encaisse_mois=encaisse_mois,
+                         depense_mois=depense_mois,
+                         solde_tresorerie=solde_tresorerie,
+                         taux_recouvrement=taux_recouvrement)
 
 @app.route('/apartments', methods=['GET', 'POST'])
 @login_required
