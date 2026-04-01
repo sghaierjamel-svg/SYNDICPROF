@@ -54,6 +54,7 @@ def logout():
 
 
 @app.route('/register', methods=['GET', 'POST'])
+@limiter.limit("3 per minute", methods=['POST'], error_message="Trop de tentatives. Réessayez dans 1 minute.")
 def register():
     from core import db
     if request.method == 'POST':

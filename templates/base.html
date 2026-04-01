@@ -550,6 +550,10 @@
                 <div class="user-role">{{ user.role | capitalize }}</div>
             </div>
         </div>
+        <a class="sidebar-link {% if request.endpoint == 'change_password' %}active{% endif %}"
+           href="{{ url_for('change_password') }}">
+            <i class="bi bi-shield-lock"></i> Changer mon mot de passe
+        </a>
         <a class="sidebar-link" href="{{ url_for('logout') }}" style="color:#f87171;">
             <i class="bi bi-box-arrow-right"></i> Déconnexion
         </a>

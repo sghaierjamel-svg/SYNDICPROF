@@ -90,11 +90,12 @@
                                 <td>
                                     <div class="btn-group btn-group-sm">
                                         {% if not alert.email_sent %}
-                                        <a href="{{ url_for('mark_alert_sent', alert_id=alert.id) }}"
-                                           class="btn btn-success"
-                                           title="Marquer comme envoyé">
-                                            <i class="bi bi-envelope-check"></i>
-                                        </a>
+                                        <form method="post" action="{{ url_for('mark_alert_sent', alert_id=alert.id) }}" style="display:inline;">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-sm btn-success" title="Marquer comme envoyé">
+                                                <i class="bi bi-envelope-check"></i>
+                                            </button>
+                                        </form>
                                         {% endif %}
                                         <a href="{{ url_for('comptable') }}"
                                            class="btn btn-info"

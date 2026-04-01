@@ -11,6 +11,7 @@ import routes.tickets
 import routes.users
 import routes.superadmin
 import routes.subscription
+import routes.profile
 
 
 @app.errorhandler(404)

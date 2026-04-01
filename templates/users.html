@@ -31,12 +31,9 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Mot de Passe</label>
-                        <input class="form-control" name="password" type="password" 
-                               placeholder="Laisser vide pour: resident123">
-                        <small class="form-text text-muted">
-                            Par défaut: resident123
-                        </small>
+                        <label class="form-label">Mot de Passe *</label>
+                        <input class="form-control" name="password" type="password"
+                               placeholder="Minimum 6 caractères" required minlength="6">
                     </div>
 
                     <div class="mb-3">
@@ -103,11 +100,13 @@
                                 </td>
                                 <td>
                                     {% if u.id != user.id %}
-                                    <a href="{{ url_for('delete_user', user_id=u.id) }}" 
-                                       class="btn btn-sm btn-danger"
-                                       onclick="return confirm('Confirmer la suppression ?');">
-                                        <i class="bi bi-trash"></i>
-                                    </a>
+                                    <form method="post" action="{{ url_for('delete_user', user_id=u.id) }}"
+                                          onsubmit="return confirm('Confirmer la suppression de {{ u.name }} ?');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
                                     {% else %}
                                     <span class="badge bg-secondary">Vous</span>
                                     {% endif %}

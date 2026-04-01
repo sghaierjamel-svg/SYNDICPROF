@@ -69,7 +69,7 @@ def edit_apartment(apartment_id):
     return render_template('edit_apartment.html', apartment=apt, blocks=blocks, user=current_user())
 
 
-@app.route('/apartment/delete/<int:apartment_id>')
+@app.route('/apartment/delete/<int:apartment_id>', methods=['POST'])
 @login_required
 @admin_required
 @subscription_required

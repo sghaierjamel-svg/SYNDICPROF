@@ -15,7 +15,16 @@ def users():
         email = request.form['email']
         name = request.form.get('name', '')
         role = request.form.get('role', 'resident')
+        password = request.form.get('password', '').strip()
         apt_id = request.form.get('apartment_id') or None
+        # Validation du rôle (sécurité : empêche la création de superadmin)
+        if role not in ['admin', 'resident']:
+            flash('Rôle invalide.', 'danger')
+            return redirect(url_for('users'))
+        # Mot de passe obligatoire
+        if not password or len(password) < 6:
+            flash('Le mot de passe est obligatoire (6 caractères minimum).', 'danger')
+            return redirect(url_for('users'))
         try:
             apt_id = int(apt_id) if apt_id else None
         except ValueError:
@@ -30,7 +39,7 @@ def users():
             role=role,
             apartment_id=apt_id
         )
-        u.set_password(request.form.get('password', 'resident123'))
+        u.set_password(password)
         db.session.add(u)
         db.session.commit()
         flash('Utilisateur créé', 'success')
@@ -40,7 +49,7 @@ def users():
     return render_template('users.html', users=users_list, apartments=apartments, user=current_user())
 
 
-@app.route('/user/delete/<int:user_id>')
+@app.route('/user/delete/<int:user_id>', methods=['POST'])
 @login_required
 @admin_required
 @subscription_required
@@ -69,7 +78,7 @@ def alerts():
     return render_template('alerts.html', alerts=all_alerts, user=current_user())
 
 
-@app.route('/alert/mark_sent/<int:alert_id>')
+@app.route('/alert/mark_sent/<int:alert_id>', methods=['POST'])
 @login_required
 @admin_required
 @subscription_required

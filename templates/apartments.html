@@ -127,12 +127,14 @@
                                                class="btn btn-warning" title="Modifier">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
-                                            <a href="{{ url_for('delete_apartment', apartment_id=a.id) }}" 
-                                               class="btn btn-danger" 
-                                               onclick="return confirm('Confirmer la suppression ? Tous les paiements associés seront aussi supprimés.');"
-                                               title="Supprimer">
-                                                <i class="bi bi-trash"></i>
-                                            </a>
+                                            <form method="post" action="{{ url_for('delete_apartment', apartment_id=a.id) }}"
+                                                  style="display:inline;"
+                                                  onsubmit="return confirm('Confirmer la suppression ? Tous les paiements associés seront aussi supprimés.');">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="btn btn-sm btn-danger" title="Supprimer">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
                                         </div>
                                     </td>
                                 </tr>
