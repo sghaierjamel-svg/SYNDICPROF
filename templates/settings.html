@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="text-white mb-1">
+            <i class="bi bi-gear"></i> Paramètres
+        </h2>
+        <p class="text-muted">Configurez vos intégrations de paiement et de messagerie.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+
+    <!-- ── KONNECT ── -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-credit-card-2-front" style="color:#00C896;"></i>
+                <span>Paiement en ligne — Konnect</span>
+                {% if org.konnect_api_key and org.konnect_wallet_id %}
+                <span class="badge bg-success ms-auto">Configuré</span>
+                {% else %}
+                <span class="badge bg-secondary ms-auto">Non configuré</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-4">
+                    Permet à vos résidents de payer leurs charges en ligne via Konnect.
+                    L'argent arrive directement sur votre compte Konnect.
+                    <br>Créez votre compte sur
+                    <a href="https://konnect.network" target="_blank" style="color:#00C896;">konnect.network</a>
+                    puis copiez votre Clé API et votre Wallet ID ici.
+                </p>
+
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="section" value="konnect">
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Clé API Konnect</label>
+                            <input type="password" name="konnect_api_key" class="form-control"
+                                   placeholder="sk_live_..."
+                                   value="{{ org.konnect_api_key or '' }}"
+                                   autocomplete="off">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Wallet ID</label>
+                            <input type="text" name="konnect_wallet_id" class="form-control"
+                                   placeholder="63f2a1b..."
+                                   value="{{ org.konnect_wallet_id or '' }}">
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Enregistrer
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="btnTestKonnect">
+                            <i class="bi bi-plug"></i> Tester la connexion
+                        </button>
+                    </div>
+                </form>
+
+                <div id="konnectTestResult" class="mt-3" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── WHATSAPP ── -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-whatsapp" style="color:#25d366;"></i>
+                <span>Notifications WhatsApp</span>
+                {% if org.whatsapp_enabled %}
+                <span class="badge bg-success ms-auto">Activé</span>
+                {% else %}
+                <span class="badge bg-secondary ms-auto">Désactivé</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-4">
+                    Recevez des notifications WhatsApp quand un résident paie en ligne
+                    ou crée un ticket. Les messages sont envoyés via le numéro SyndicPro.
+                </p>
+
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="section" value="whatsapp">
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="whatsapp_enabled"
+                                   id="whatsappSwitch" role="switch"
+                                   {% if org.whatsapp_enabled %}checked{% endif %}
+                                   style="width:2.5rem; height:1.3rem; cursor:pointer;">
+                            <label class="form-check-label ms-2" for="whatsappSwitch">
+                                Activer les notifications WhatsApp
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="col-md-5 mb-3">
+                        <label class="form-label">Votre numéro WhatsApp (admin)</label>
+                        <input type="text" name="whatsapp_admin_phone" class="form-control"
+                               placeholder="+216 XX XXX XXX"
+                               value="{{ org.whatsapp_admin_phone or '' }}">
+                        <small class="form-text text-muted">Format international : +216 20 123 456</small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Enregistrer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('btnTestKonnect').addEventListener('click', function() {
+    const btn = this;
+    const result = document.getElementById('konnectTestResult');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Test en cours...';
+    result.style.display = 'none';
+
+    fetch('{{ url_for("test_konnect") }}')
+        .then(r => r.json())
+        .then(data => {
+            result.style.display = 'block';
+            if (data.ok) {
+                result.innerHTML = '<div class="alert alert-success mb-0"><i class="bi bi-check-circle"></i> ' + data.message + '</div>';
+            } else {
+                result.innerHTML = '<div class="alert alert-danger mb-0"><i class="bi bi-x-circle"></i> ' + data.message + '</div>';
+            }
+        })
+        .catch(() => {
+            result.style.display = 'block';
+            result.innerHTML = '<div class="alert alert-danger mb-0"><i class="bi bi-x-circle"></i> Erreur réseau.</div>';
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-plug"></i> Tester la connexion';
+        });
+});
+</script>
+{% endblock %}

@@ -12,6 +12,7 @@ import routes.users
 import routes.superadmin
 import routes.subscription
 import routes.profile
+import routes.settings
 
 
 @app.errorhandler(404)

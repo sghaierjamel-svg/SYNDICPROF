@@ -510,6 +510,11 @@
             <i class="bi bi-gem"></i> Mon Abonnement
         </a>
 
+        <a class="sidebar-link {% if request.endpoint == 'settings' %}active{% endif %}"
+           href="{{ url_for('settings') }}">
+            <i class="bi bi-gear"></i> Paramètres
+        </a>
+
         {% endif %}
 
         {% if user.role == 'resident' %}

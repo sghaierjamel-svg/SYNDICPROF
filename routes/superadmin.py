@@ -1,8 +1,9 @@
-from flask import render_template, request, redirect, url_for, flash
+from flask import render_template, request, redirect, url_for, flash, jsonify
 from core import app, db
-from models import Organization, Apartment, User
+from models import Organization, Apartment, User, SuperAdminSettings
 from utils import (current_user, login_required, superadmin_required)
 from datetime import datetime, timedelta
+import requests as http
 
 
 @app.route('/superadmin')
@@ -150,3 +151,40 @@ def superadmin_change_password():
         flash('Mot de passe changé avec succès !', 'success')
         return redirect(url_for('superadmin_dashboard'))
     return render_template('superadmin/change_password.html')
+
+
+@app.route('/superadmin/settings', methods=['GET', 'POST'])
+@login_required
+@superadmin_required
+def superadmin_settings():
+    settings = SuperAdminSettings.get()
+    if request.method == 'POST':
+        settings.konnect_api_key = request.form.get('konnect_api_key', '').strip()
+        settings.konnect_wallet_id = request.form.get('konnect_wallet_id', '').strip()
+        db.session.commit()
+        flash('Paramètres enregistrés.', 'success')
+        return redirect(url_for('superadmin_settings'))
+    return render_template('superadmin/settings.html', settings=settings)
+
+
+@app.route('/superadmin/test-konnect')
+@login_required
+@superadmin_required
+def superadmin_test_konnect():
+    settings = SuperAdminSettings.get()
+    if not settings.konnect_api_key or not settings.konnect_wallet_id:
+        return jsonify({'ok': False, 'message': 'Clé API ou Wallet ID manquant.'})
+    try:
+        resp = http.get(
+            'https://api.konnect.network/api/v2/account/me',
+            headers={'x-api-key': settings.konnect_api_key},
+            timeout=8
+        )
+        if resp.status_code == 200:
+            return jsonify({'ok': True, 'message': 'Connexion Konnect réussie ✅'})
+        elif resp.status_code == 401:
+            return jsonify({'ok': False, 'message': 'Clé API invalide ou expirée.'})
+        else:
+            return jsonify({'ok': False, 'message': f'Erreur Konnect ({resp.status_code}).'})
+    except Exception:
+        return jsonify({'ok': False, 'message': 'Impossible de joindre Konnect. Vérifiez votre connexion.'})

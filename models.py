@@ -14,6 +14,12 @@ class Organization(db.Model):
     address = db.Column(db.String(300))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
+    # Paramètres Konnect (paiements résidents → compte du syndic)
+    konnect_api_key = db.Column(db.String(200))
+    konnect_wallet_id = db.Column(db.String(100))
+    # Paramètres WhatsApp
+    whatsapp_enabled = db.Column(db.Boolean, default=False)
+    whatsapp_admin_phone = db.Column(db.String(20))
 
     subscription = db.relationship('Subscription', backref='organization', uselist=False, lazy=True)
     users = db.relationship('User', backref='organization', lazy=True)
@@ -129,6 +135,22 @@ class Ticket(db.Model):
     user = db.relationship('User', backref='tickets')
 
 
+class SuperAdminSettings(db.Model):
+    """Paramètres globaux de SyndicPro (un seul enregistrement)"""
+    id = db.Column(db.Integer, primary_key=True)
+    konnect_api_key = db.Column(db.String(200))
+    konnect_wallet_id = db.Column(db.String(100))
+
+    @staticmethod
+    def get():
+        s = SuperAdminSettings.query.first()
+        if not s:
+            s = SuperAdminSettings()
+            db.session.add(s)
+            db.session.commit()
+        return s
+
+
 class UnpaidAlert(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
@@ -164,6 +186,24 @@ def init_db():
                 print("Colonne credit_used ajoutée à la table payment")
     except Exception as e:
         print(f"Erreur lors de la migration : {e}")
+
+    # Migration : nouvelles colonnes Organization
+    try:
+        with db.engine.connect() as conn:
+            result = conn.execute(db.text("PRAGMA table_info(organization)"))
+            cols = [row[1] for row in result]
+            new_cols = {
+                'konnect_api_key': 'VARCHAR(200)',
+                'konnect_wallet_id': 'VARCHAR(100)',
+                'whatsapp_enabled': 'BOOLEAN DEFAULT 0',
+                'whatsapp_admin_phone': 'VARCHAR(20)',
+            }
+            for col, col_type in new_cols.items():
+                if col not in cols:
+                    conn.execute(db.text(f"ALTER TABLE organization ADD COLUMN {col} {col_type}"))
+                    conn.commit()
+    except Exception:
+        pass  # PostgreSQL : db.create_all() gère les nouvelles tables
 
     if not User.query.filter_by(email='superadmin@syndicpro.tn').first():
         superadmin = User(
