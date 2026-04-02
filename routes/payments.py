@@ -1,11 +1,12 @@
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from core import app, db
-from models import Apartment, Payment
+from models import Apartment, Payment, User
 from utils import (current_user, current_organization, login_required,
                    admin_required, subscription_required,
                    get_unpaid_months_count, get_next_unpaid_month)
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+from utils_whatsapp import notify_payment
 
 
 @app.route('/payments', methods=['GET', 'POST'])
@@ -109,6 +110,12 @@ def payments():
                 flash(f"Paiement enregistré avec succès !", "success")
                 flash(f"{months_actually_paid} mois payé(s) : {months_display}", "success")
                 flash(f"Montant total : {total_recorded_amount:.2f} DT", "info")
+                # Notification WhatsApp (dernier mois payé comme référence)
+                try:
+                    resident = User.query.filter_by(apartment_id=apartment_id).first()
+                    notify_payment(org, apt, paid_months_list[-1], total_recorded_amount, resident)
+                except Exception:
+                    pass
             else:
                 flash("Aucun nouveau mois n'a été payé (tous les mois étaient déjà payés)", "warning")
 

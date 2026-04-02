@@ -1,9 +1,10 @@
 from flask import render_template, request, redirect, url_for, flash
 from core import app, db
-from models import Ticket
+from models import Ticket, User
 from utils import (current_user, current_organization, login_required,
                    admin_required, subscription_required)
 from datetime import datetime
+from utils_whatsapp import notify_ticket_created, notify_ticket_response
 
 
 @app.route('/tickets', methods=['GET', 'POST'])
@@ -30,6 +31,11 @@ def tickets():
         db.session.add(ticket)
         db.session.commit()
         flash('Ticket créé avec succès', 'success')
+        # Notification WhatsApp → admin
+        try:
+            notify_ticket_created(org, ticket, resident=user)
+        except Exception:
+            pass
         return redirect(url_for('tickets'))
     if user.role == 'admin':
         tickets_list = Ticket.query.filter_by(organization_id=org.id).order_by(Ticket.created_at.desc()).all()
@@ -54,6 +60,13 @@ def ticket_detail(ticket_id):
         ticket.updated_at = datetime.utcnow()
         db.session.commit()
         flash('Ticket mis à jour', 'success')
+        # Notification WhatsApp → résident si réponse fournie
+        try:
+            if ticket.admin_response:
+                resident = User.query.get(ticket.user_id)
+                notify_ticket_response(org, ticket, resident)
+        except Exception:
+            pass
         return redirect(url_for('ticket_detail', ticket_id=ticket_id))
     return render_template('ticket_detail.html', ticket=ticket, user=user)
 

@@ -32,11 +32,13 @@ def users():
         if User.query.filter_by(email=email, organization_id=org.id).first():
             flash('Cet email existe déjà', 'danger')
             return redirect(url_for('users'))
+        phone = request.form.get('phone', '').strip()
         u = User(
             organization_id=org.id,
             email=email,
             name=name,
             role=role,
+            phone=phone or None,
             apartment_id=apt_id
         )
         u.set_password(password)

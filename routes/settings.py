@@ -23,12 +23,28 @@ def settings():
         elif section == 'whatsapp':
             org.whatsapp_enabled = request.form.get('whatsapp_enabled') == 'on'
             org.whatsapp_admin_phone = request.form.get('whatsapp_admin_phone', '').strip()
+            org.whatsapp_token = request.form.get('whatsapp_token', '').strip()
             db.session.commit()
             flash('Paramètres WhatsApp enregistrés.', 'success')
 
         return redirect(url_for('settings'))
 
     return render_template('settings.html', user=current_user(), org=org)
+
+
+@app.route('/settings/test-whatsapp')
+@login_required
+@admin_required
+def test_whatsapp():
+    org = current_organization()
+    if not org.whatsapp_token or not org.whatsapp_admin_phone:
+        return jsonify({'ok': False, 'message': 'Token ou numéro admin manquant.'})
+    from utils_whatsapp import send_whatsapp
+    ok = send_whatsapp(org, org.whatsapp_admin_phone,
+                       '✅ SyndicPro — Test WhatsApp réussi !')
+    if ok:
+        return jsonify({'ok': True, 'message': 'Message de test envoyé ✅'})
+    return jsonify({'ok': False, 'message': 'Échec — vérifiez votre token fonnte et numéro.'})
 
 
 @app.route('/settings/test-konnect')

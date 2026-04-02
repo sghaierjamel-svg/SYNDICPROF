@@ -26,8 +26,19 @@
 
                     <div class="mb-3">
                         <label class="form-label">Nom Complet</label>
-                        <input class="form-control" name="name" 
+                        <input class="form-control" name="name"
                                placeholder="Ex: Jean Dupont">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-whatsapp" style="color:#25d366;"></i>
+                            Numéro WhatsApp
+                            <span class="badge bg-secondary ms-1" style="font-size:.7rem;">Optionnel</span>
+                        </label>
+                        <input class="form-control" name="phone" type="tel"
+                               placeholder="+216 20 123 456">
+                        <small class="form-text text-muted">Pour recevoir les notifications de paiement</small>
                     </div>
 
                     <div class="mb-3">
@@ -77,6 +88,7 @@
                                 <th>Nom</th>
                                 <th class="d-none d-md-table-cell">Email</th>
                                 <th>Rôle</th>
+                                <th class="d-none d-lg-table-cell">WhatsApp</th>
                                 <th class="d-none d-sm-table-cell">Appartement</th>
                                 <th>Actions</th>
                             </tr>
@@ -93,6 +105,15 @@
                                     <span class="badge {% if u.role == 'admin' %}bg-danger{% else %}bg-primary{% endif %}">
                                         {{ u.role|upper }}
                                     </span>
+                                </td>
+                                <td class="d-none d-lg-table-cell">
+                                    {% if u.phone %}
+                                    <span style="color:#25d366; font-size:.82rem;">
+                                        <i class="bi bi-whatsapp"></i> {{ u.phone }}
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted">—</span>
+                                    {% endif %}
                                 </td>
                                 <td class="d-none d-sm-table-cell">
                                     {% if u.apartment_id %}

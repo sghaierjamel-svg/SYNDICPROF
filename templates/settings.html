@@ -82,8 +82,9 @@
             </div>
             <div class="card-body">
                 <p class="text-muted small mb-4">
-                    Recevez des notifications WhatsApp quand un résident paie en ligne
-                    ou crée un ticket. Les messages sont envoyés via le numéro SyndicPro.
+                    Notifications automatiques WhatsApp : paiement reçu, nouveau ticket, réponse admin.
+                    Utilise <a href="https://fonnte.com" target="_blank" style="color:#25d366;">fonnte.com</a>
+                    — créez un compte gratuit, connectez votre numéro WhatsApp, copiez le token ici.
                 </p>
 
                 <form method="post">
@@ -102,18 +103,34 @@
                         </div>
                     </div>
 
-                    <div class="col-md-5 mb-3">
-                        <label class="form-label">Votre numéro WhatsApp (admin)</label>
-                        <input type="text" name="whatsapp_admin_phone" class="form-control"
-                               placeholder="+216 XX XXX XXX"
-                               value="{{ org.whatsapp_admin_phone or '' }}">
-                        <small class="form-text text-muted">Format international : +216 20 123 456</small>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Token API fonnte.com</label>
+                            <input type="password" name="whatsapp_token" class="form-control"
+                                   placeholder="Votre token fonnte"
+                                   value="{{ org.whatsapp_token or '' }}"
+                                   autocomplete="off">
+                            <small class="form-text text-muted">Trouvez ce token dans votre dashboard fonnte.com</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Votre numéro WhatsApp (admin)</label>
+                            <input type="text" name="whatsapp_admin_phone" class="form-control"
+                                   placeholder="+216 XX XXX XXX"
+                                   value="{{ org.whatsapp_admin_phone or '' }}">
+                            <small class="form-text text-muted">Format : +216 20 123 456</small>
+                        </div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save"></i> Enregistrer
-                    </button>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Enregistrer
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="btnTestWhatsapp">
+                            <i class="bi bi-whatsapp"></i> Envoyer un message test
+                        </button>
+                    </div>
                 </form>
+                <div id="whatsappTestResult" class="mt-3" style="display:none;"></div>
             </div>
         </div>
     </div>
@@ -147,6 +164,33 @@ document.getElementById('btnTestKonnect').addEventListener('click', function() {
         .finally(() => {
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-plug"></i> Tester la connexion';
+        });
+});
+
+document.getElementById('btnTestWhatsapp').addEventListener('click', function() {
+    const btn = this;
+    const result = document.getElementById('whatsappTestResult');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Envoi...';
+    result.style.display = 'none';
+
+    fetch('{{ url_for("test_whatsapp") }}')
+        .then(r => r.json())
+        .then(data => {
+            result.style.display = 'block';
+            if (data.ok) {
+                result.innerHTML = '<div class="alert alert-success mb-0"><i class="bi bi-check-circle"></i> ' + data.message + '</div>';
+            } else {
+                result.innerHTML = '<div class="alert alert-danger mb-0"><i class="bi bi-x-circle"></i> ' + data.message + '</div>';
+            }
+        })
+        .catch(() => {
+            result.style.display = 'block';
+            result.innerHTML = '<div class="alert alert-danger mb-0">Erreur réseau.</div>';
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-whatsapp"></i> Envoyer un message test';
         });
 });
 </script>

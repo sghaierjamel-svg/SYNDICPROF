@@ -1,11 +1,12 @@
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from core import app, db
-from models import Apartment, Payment, KonnectPayment, Organization
+from models import Apartment, Payment, KonnectPayment, Organization, User
 from utils import (current_user, current_organization, login_required,
                    admin_required, subscription_required, get_next_unpaid_month)
 from datetime import datetime
 import requests as http
 import os
+from utils_whatsapp import notify_payment
 
 BASE_URL = os.environ.get('BASE_URL', 'https://www.syndicpro.tn')
 
@@ -163,6 +164,13 @@ def konnect_success():
         kp.status = 'completed'
         kp.paid_at = datetime.utcnow()
         db.session.commit()
+        # Notification WhatsApp
+        try:
+            apt = Apartment.query.get(kp.apartment_id)
+            resident = User.query.filter_by(apartment_id=kp.apartment_id).first()
+            notify_payment(org, apt, kp.month_target, kp.amount, resident)
+        except Exception:
+            pass
 
     return render_template('konnect_success.html', kp=kp, verified=verified, already_done=False, user=user)
 

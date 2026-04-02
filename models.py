@@ -20,6 +20,7 @@ class Organization(db.Model):
     # Paramètres WhatsApp
     whatsapp_enabled = db.Column(db.Boolean, default=False)
     whatsapp_admin_phone = db.Column(db.String(20))
+    whatsapp_token = db.Column(db.String(200))    # token API fonnte.com
 
     subscription = db.relationship('Subscription', backref='organization', uselist=False, lazy=True)
     users = db.relationship('User', backref='organization', lazy=True)
@@ -70,6 +71,7 @@ class User(db.Model):
     name = db.Column(db.String(120))
     password_hash = db.Column(db.String(256))
     role = db.Column(db.String(20))
+    phone = db.Column(db.String(20))              # numéro WhatsApp résident
     apartment_id = db.Column(db.Integer, db.ForeignKey('apartment.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -215,6 +217,7 @@ def init_db():
                     'konnect_wallet_id': 'VARCHAR(100)',
                     'whatsapp_enabled': 'BOOLEAN DEFAULT FALSE',
                     'whatsapp_admin_phone': 'VARCHAR(20)',
+                    'whatsapp_token': 'VARCHAR(200)',
                 }
                 for col, col_type in pg_cols.items():
                     conn.execute(db.text(
@@ -231,6 +234,7 @@ def init_db():
                     'konnect_wallet_id': 'VARCHAR(100)',
                     'whatsapp_enabled': 'BOOLEAN DEFAULT 0',
                     'whatsapp_admin_phone': 'VARCHAR(20)',
+                    'whatsapp_token': 'VARCHAR(200)',
                 }
                 for col, col_type in sqlite_cols.items():
                     if col not in cols:
@@ -238,6 +242,23 @@ def init_db():
                 conn.commit()
     except Exception as e:
         print(f"Migration organization : {e}")
+
+    # Migration : colonne phone sur user
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text(
+                    "ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS phone VARCHAR(20)"
+                ))
+                conn.commit()
+            else:
+                result = conn.execute(db.text("PRAGMA table_info(user)"))
+                cols = [row[1] for row in result]
+                if 'phone' not in cols:
+                    conn.execute(db.text("ALTER TABLE \"user\" ADD COLUMN phone VARCHAR(20)"))
+                    conn.commit()
+    except Exception as e:
+        print(f"Migration user.phone : {e}")
 
     # Migration : table konnect_payment (db.create_all gère la création)
     try:
