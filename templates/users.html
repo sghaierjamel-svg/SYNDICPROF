@@ -10,7 +10,7 @@
 </div>
 
 <div class="row">
-    <div class="col-lg-5">
+    <div class="col-xl-5 col-12">
         <div class="card">
             <div class="card-header">
                 <i class="bi bi-person-plus"></i> Créer un Utilisateur
@@ -64,7 +64,7 @@
         </div>
     </div>
 
-    <div class="col-lg-7">
+    <div class="col-xl-7 col-12 mt-4 mt-xl-0">
         <div class="card">
             <div class="card-header">
                 <i class="bi bi-list"></i> Liste des Utilisateurs
@@ -75,27 +75,30 @@
                         <thead>
                             <tr>
                                 <th>Nom</th>
-                                <th>Email</th>
+                                <th class="d-none d-md-table-cell">Email</th>
                                 <th>Rôle</th>
-                                <th>Appartement</th>
+                                <th class="d-none d-sm-table-cell">Appartement</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for u in users %}
                             <tr>
-                                <td><strong>{{ u.name }}</strong></td>
-                                <td>{{ u.email }}</td>
+                                <td>
+                                    <strong>{{ u.name or '—' }}</strong>
+                                    <div class="d-md-none text-muted" style="font-size:0.75rem;">{{ u.email }}</div>
+                                </td>
+                                <td class="cell-email d-none d-md-table-cell">{{ u.email }}</td>
                                 <td>
                                     <span class="badge {% if u.role == 'admin' %}bg-danger{% else %}bg-primary{% endif %}">
                                         {{ u.role|upper }}
                                     </span>
                                 </td>
-                                <td>
+                                <td class="d-none d-sm-table-cell">
                                     {% if u.apartment_id %}
-                                        {{ u.apartment.block.name }}-{{ u.apartment.number }}
+                                        <span class="badge bg-secondary">{{ u.apartment.block.name }}-{{ u.apartment.number }}</span>
                                     {% else %}
-                                        <span class="text-muted">Non affecté</span>
+                                        <span class="text-muted">—</span>
                                     {% endif %}
                                 </td>
                                 <td>

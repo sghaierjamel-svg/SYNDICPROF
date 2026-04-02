@@ -10,7 +10,7 @@
 </div>
 
 <div class="row">
-    <div class="col-lg-5">
+    <div class="col-xl-5 col-12">
         <!-- Ajouter un bloc -->
         <div class="card mb-3">
             <div class="card-header">
@@ -68,7 +68,7 @@
         </div>
     </div>
 
-    <div class="col-lg-7">
+    <div class="col-xl-7 col-12 mt-4 mt-xl-0">
         <div class="card">
             <div class="card-header">
                 <i class="bi bi-list"></i> Liste des Blocs & Appartements
@@ -84,11 +84,11 @@
                         <table class="table table-hover">
                             <thead>
                                 <tr>
-                                    <th>N° Appt</th>
-                                    <th>Redevance</th>
-                                    <th>Résidents</th>
+                                    <th>N°</th>
+                                    <th>DT/mois</th>
+                                    <th class="d-none d-sm-table-cell">Résidents</th>
                                     <th>Impayés</th>
-                                    <th>Prochain Mois</th>
+                                    <th class="d-none d-md-table-cell">Prochain</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -97,29 +97,21 @@
                                 <tr {% if a.unpaid_count >= 3 %}class="table-warning"{% endif %}>
                                     <td><strong>{{ a.number }}</strong></td>
                                     <td>{{ '{:.2f}'.format(a.monthly_fee) }} DT</td>
-                                    <td>
+                                    <td class="d-none d-sm-table-cell">
                                         <span class="badge bg-secondary">
-                                            {{ a.residents|length }} 
+                                            {{ a.residents|length }}
                                             <i class="bi bi-person"></i>
                                         </span>
                                     </td>
                                     <td>
                                         {% if a.unpaid_count > 0 %}
-                                            <span class="badge bg-danger">
-                                                {{ a.unpaid_count }} mois
-                                            </span>
+                                            <span class="badge bg-danger">{{ a.unpaid_count }} mois</span>
                                         {% else %}
-                                            <span class="badge bg-success">
-                                                <i class="bi bi-check"></i> À jour
-                                            </span>
+                                            <span class="badge bg-success"><i class="bi bi-check"></i></span>
                                         {% endif %}
                                     </td>
-                                    <td>
-                                        {% if a.next_unpaid %}
-                                            <small class="text-muted">{{ a.next_unpaid }}</small>
-                                        {% else %}
-                                            <small class="text-muted">-</small>
-                                        {% endif %}
+                                    <td class="d-none d-md-table-cell">
+                                        <small class="text-muted">{{ a.next_unpaid or '-' }}</small>
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
