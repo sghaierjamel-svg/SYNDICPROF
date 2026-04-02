@@ -187,23 +187,40 @@ def init_db():
     except Exception as e:
         print(f"Erreur lors de la migration : {e}")
 
-    # Migration : nouvelles colonnes Organization
+    # Migration : nouvelles colonnes Organization (SQLite + PostgreSQL)
+    is_postgres = 'postgresql' in str(db.engine.url)
     try:
         with db.engine.connect() as conn:
-            result = conn.execute(db.text("PRAGMA table_info(organization)"))
-            cols = [row[1] for row in result]
-            new_cols = {
-                'konnect_api_key': 'VARCHAR(200)',
-                'konnect_wallet_id': 'VARCHAR(100)',
-                'whatsapp_enabled': 'BOOLEAN DEFAULT 0',
-                'whatsapp_admin_phone': 'VARCHAR(20)',
-            }
-            for col, col_type in new_cols.items():
-                if col not in cols:
-                    conn.execute(db.text(f"ALTER TABLE organization ADD COLUMN {col} {col_type}"))
-                    conn.commit()
-    except Exception:
-        pass  # PostgreSQL : db.create_all() gère les nouvelles tables
+            if is_postgres:
+                # PostgreSQL supporte ADD COLUMN IF NOT EXISTS
+                pg_cols = {
+                    'konnect_api_key': 'VARCHAR(200)',
+                    'konnect_wallet_id': 'VARCHAR(100)',
+                    'whatsapp_enabled': 'BOOLEAN DEFAULT FALSE',
+                    'whatsapp_admin_phone': 'VARCHAR(20)',
+                }
+                for col, col_type in pg_cols.items():
+                    conn.execute(db.text(
+                        f"ALTER TABLE organization ADD COLUMN IF NOT EXISTS {col} {col_type}"
+                    ))
+                conn.commit()
+                print("Migration PostgreSQL organization : colonnes Konnect/WhatsApp vérifiées.")
+            else:
+                # SQLite : vérification via PRAGMA
+                result = conn.execute(db.text("PRAGMA table_info(organization)"))
+                cols = [row[1] for row in result]
+                sqlite_cols = {
+                    'konnect_api_key': 'VARCHAR(200)',
+                    'konnect_wallet_id': 'VARCHAR(100)',
+                    'whatsapp_enabled': 'BOOLEAN DEFAULT 0',
+                    'whatsapp_admin_phone': 'VARCHAR(20)',
+                }
+                for col, col_type in sqlite_cols.items():
+                    if col not in cols:
+                        conn.execute(db.text(f"ALTER TABLE organization ADD COLUMN {col} {col_type}"))
+                conn.commit()
+    except Exception as e:
+        print(f"Migration organization : {e}")
 
     if not User.query.filter_by(email='superadmin@syndicpro.tn').first():
         superadmin = User(
