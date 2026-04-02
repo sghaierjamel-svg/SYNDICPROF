@@ -13,6 +13,7 @@ import routes.superadmin
 import routes.subscription
 import routes.profile
 import routes.settings
+import routes.konnect
 
 
 @app.errorhandler(404)

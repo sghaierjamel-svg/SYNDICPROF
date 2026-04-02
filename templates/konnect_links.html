@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <h2 class="text-white mb-0">
+            <i class="bi bi-link-45deg" style="color:#00C896;"></i> Liens de Paiement Konnect
+        </h2>
+        <a href="{{ url_for('payments') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Retour Encaissements
+        </a>
+    </div>
+</div>
+
+{% if not org.konnect_api_key %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle"></i>
+    Konnect n'est pas encore configuré.
+    <a href="{{ url_for('settings') }}" class="alert-link">Configurer maintenant →</a>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-list-ul" style="color:#00C896;"></i>
+        Historique des liens générés
+        <span class="badge ms-2" style="background:rgba(0,200,150,0.2); color:#00C896;">{{ links|length }}</span>
+    </div>
+    <div class="card-body p-0">
+        {% if links %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Appartement</th>
+                        <th>Mois</th>
+                        <th>Montant</th>
+                        <th>Créé par</th>
+                        <th>Statut</th>
+                        <th>Lien</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lk in links %}
+                    <tr>
+                        <td style="font-size:.82rem; color:#9CA3AF;">
+                            {{ lk.created_at.strftime('%d/%m/%Y %H:%M') }}
+                        </td>
+                        <td>
+                            <strong>{{ lk.apartment.block.name }}</strong>-{{ lk.apartment.number }}
+                        </td>
+                        <td>
+                            <span class="badge" style="background:rgba(99,102,241,0.2); color:#a5b4fc;">
+                                {{ lk.month_target }}
+                            </span>
+                        </td>
+                        <td>
+                            <span style="color:#00C896; font-weight:600;">{{ '{:.2f}'.format(lk.amount) }} DT</span>
+                        </td>
+                        <td>
+                            {% if lk.created_by == 'admin' %}
+                            <span class="badge" style="background:rgba(245,158,11,0.15); color:#fcd34d;">Admin</span>
+                            {% else %}
+                            <span class="badge" style="background:rgba(6,182,212,0.15); color:#67e8f9;">Résident</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if lk.status == 'completed' %}
+                            <span class="badge" style="background:rgba(0,200,150,0.15); color:#00C896;">✅ Payé</span>
+                            {% elif lk.status == 'failed' %}
+                            <span class="badge" style="background:rgba(239,68,68,0.15); color:#f87171;">❌ Échoué</span>
+                            {% else %}
+                            <span class="badge" style="background:rgba(156,163,175,0.15); color:#9CA3AF;">⏳ En attente</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if lk.pay_url and lk.status == 'pending' %}
+                            <button class="btn btn-sm btn-outline-primary"
+                                    onclick="copyLink('{{ lk.pay_url }}', this)"
+                                    title="Copier le lien">
+                                <i class="bi bi-clipboard"></i>
+                            </button>
+                            <a href="{{ lk.pay_url }}" target="_blank" class="btn btn-sm btn-outline-secondary ms-1" title="Ouvrir">
+                                <i class="bi bi-box-arrow-up-right"></i>
+                            </a>
+                            {% else %}
+                            <span style="color:#6B7280; font-size:.8rem;">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-5 text-center" style="color:#9CA3AF;">
+            <i class="bi bi-link-45deg" style="font-size:3rem;"></i>
+            <p class="mt-3 mb-0">Aucun lien généré pour l'instant.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div id="copyToast" class="position-fixed bottom-0 end-0 m-3 p-3 rounded"
+     style="background:#00C896; color:#0A0E1A; font-weight:600; display:none; z-index:9999;">
+    ✅ Lien copié !
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyLink(url, btn) {
+    navigator.clipboard.writeText(url).then(() => {
+        btn.innerHTML = '<i class="bi bi-check-lg"></i>';
+        btn.style.borderColor = '#00C896';
+        btn.style.color = '#00C896';
+        const toast = document.getElementById('copyToast');
+        toast.style.display = 'block';
+        setTimeout(() => {
+            toast.style.display = 'none';
+            btn.innerHTML = '<i class="bi bi-clipboard"></i>';
+            btn.style.borderColor = '';
+            btn.style.color = '';
+        }, 2000);
+    });
+}
+</script>
+{% endblock %}

@@ -521,6 +521,11 @@
             <i class="bi bi-gear"></i> Paramètres
         </a>
 
+        <a class="sidebar-link {% if request.endpoint == 'konnect_links' %}active{% endif %}"
+           href="{{ url_for('konnect_links') }}">
+            <i class="bi bi-credit-card"></i> Liens Konnect
+        </a>
+
         {% endif %}
 
         {% if user.role == 'resident' %}

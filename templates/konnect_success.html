@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 col-lg-5">
+        <div class="card text-center p-4" style="border:2px solid #00C896;">
+
+            {% if kp.status == 'completed' or verified %}
+
+            <div class="mb-4" style="font-size:4rem;">✅</div>
+            <h3 class="fw-bold mb-2" style="color:#00C896;">Paiement confirmé !</h3>
+
+            {% if already_done %}
+            <p class="text-muted mb-3">Ce paiement a déjà été enregistré.</p>
+            {% else %}
+            <p class="text-muted mb-3">Votre paiement a bien été reçu et enregistré.</p>
+            {% endif %}
+
+            <div class="p-3 rounded mb-4" style="background:rgba(0,200,150,0.08); border:1px solid rgba(0,200,150,0.3);">
+                <div class="row g-2 text-start">
+                    <div class="col-6">
+                        <small style="color:#9CA3AF;">Appartement</small>
+                        <p class="mb-0 fw-bold text-white">{{ kp.apartment.block.name }}-{{ kp.apartment.number }}</p>
+                    </div>
+                    <div class="col-6">
+                        <small style="color:#9CA3AF;">Mois payé</small>
+                        <p class="mb-0 fw-bold text-white">{{ kp.month_target }}</p>
+                    </div>
+                    <div class="col-6">
+                        <small style="color:#9CA3AF;">Montant</small>
+                        <p class="mb-0 fw-bold" style="color:#00C896;">{{ '{:.2f}'.format(kp.amount) }} DT</p>
+                    </div>
+                    <div class="col-6">
+                        <small style="color:#9CA3AF;">Référence</small>
+                        <p class="mb-0 fw-bold text-white" style="font-size:.8rem; word-break:break-all;">{{ kp.konnect_payment_ref }}</p>
+                    </div>
+                </div>
+            </div>
+
+            {% else %}
+
+            <div class="mb-4" style="font-size:4rem;">⏳</div>
+            <h3 class="fw-bold mb-2 text-white">Paiement en cours de vérification</h3>
+            <p class="text-muted mb-3">
+                Votre paiement est en cours de traitement. Il sera enregistré automatiquement dès confirmation de Konnect.
+            </p>
+
+            {% endif %}
+
+            {% if user and user.role == 'resident' %}
+            <a href="{{ url_for('residents_menu') }}" class="btn btn-primary btn-lg w-100">
+                <i class="bi bi-person-badge"></i> Retour à mon espace
+            </a>
+            {% elif user %}
+            <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg w-100">
+                <i class="bi bi-speedometer2"></i> Tableau de bord
+            </a>
+            {% else %}
+            <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg w-100">
+                <i class="bi bi-box-arrow-in-right"></i> Se connecter
+            </a>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+{% endblock %}

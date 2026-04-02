@@ -25,7 +25,15 @@
             <h4 class="mb-1 fw-bold" style="color:#ef4444;">
                 ❌ {{ unpaid_count }} mois impayé{% if unpaid_count > 1 %}s{% endif %} — Montant dû : {{ '{:.0f}'.format(apt.monthly_fee * unpaid_count) }} DT
             </h4>
-            <p class="mb-0 small" style="color:#9CA3AF;">Prochain mois à régulariser : <strong style="color:#F9FAFB;">{{ next_month }}</strong></p>
+            <p class="mb-2 small" style="color:#9CA3AF;">Prochain mois à régulariser : <strong style="color:#F9FAFB;">{{ next_month }}</strong></p>
+            {% if konnect_configured %}
+            <form method="POST" action="{{ url_for('konnect_pay') }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-primary mt-1">
+                    <i class="bi bi-credit-card"></i> Payer en ligne — {{ '{:.0f}'.format(apt.monthly_fee) }} DT
+                </button>
+            </form>
+            {% endif %}
         </div>
         {% endif %}
     </div>

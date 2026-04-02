@@ -151,6 +151,23 @@ class SuperAdminSettings(db.Model):
         return s
 
 
+class KonnectPayment(db.Model):
+    """Lien de paiement Konnect généré pour un résident"""
+    __tablename__ = 'konnect_payment'
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
+    apartment_id = db.Column(db.Integer, db.ForeignKey('apartment.id'), nullable=False)
+    month_target = db.Column(db.String(7), nullable=False)   # YYYY-MM
+    amount = db.Column(db.Float, nullable=False)
+    konnect_payment_ref = db.Column(db.String(100), unique=True)
+    pay_url = db.Column(db.String(500))
+    status = db.Column(db.String(20), default='pending')     # pending / completed / failed
+    created_by = db.Column(db.String(20), default='resident')  # resident / admin
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    paid_at = db.Column(db.DateTime)
+    apartment = db.relationship('Apartment', backref='konnect_payments', lazy=True)
+
+
 class UnpaidAlert(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
@@ -221,6 +238,30 @@ def init_db():
                 conn.commit()
     except Exception as e:
         print(f"Migration organization : {e}")
+
+    # Migration : table konnect_payment (db.create_all gère la création)
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS konnect_payment (
+                        id SERIAL PRIMARY KEY,
+                        organization_id INTEGER REFERENCES organization(id),
+                        apartment_id INTEGER REFERENCES apartment(id),
+                        month_target VARCHAR(7) NOT NULL,
+                        amount FLOAT NOT NULL,
+                        konnect_payment_ref VARCHAR(100) UNIQUE,
+                        pay_url VARCHAR(500),
+                        status VARCHAR(20) DEFAULT 'pending',
+                        created_by VARCHAR(20) DEFAULT 'resident',
+                        created_at TIMESTAMP DEFAULT NOW(),
+                        paid_at TIMESTAMP
+                    )
+                """))
+                conn.commit()
+                print("Migration PostgreSQL : table konnect_payment vérifiée.")
+    except Exception as e:
+        print(f"Migration konnect_payment : {e}")
 
     if not User.query.filter_by(email='superadmin@syndicpro.tn').first():
         superadmin = User(

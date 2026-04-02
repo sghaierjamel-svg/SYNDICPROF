@@ -112,9 +112,12 @@ def residents_menu():
                 'paid': paid_entry is not None,
                 'amount': paid_entry.amount if paid_entry else 0,
             })
+    org = current_organization()
+    konnect_configured = bool(org and org.konnect_api_key and org.konnect_wallet_id)
     return render_template('residents.html', user=user, unpaid_count=unpaid_count,
                            next_month=next_month, my_payments=my_payments, credit=credit,
-                           apt=apt, history_6months=history_6months)
+                           apt=apt, history_6months=history_6months,
+                           konnect_configured=konnect_configured)
 
 
 @app.route('/api/dashboard_data')
