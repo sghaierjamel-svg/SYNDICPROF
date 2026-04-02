@@ -14,6 +14,9 @@ import routes.subscription
 import routes.profile
 import routes.settings
 import routes.konnect
+import routes.ai
+import routes.automation
+import routes.access
 
 
 @app.errorhandler(404)

@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="text-white mb-1">
+            <i class="bi bi-lightning-charge" style="color:#00C896;"></i> Automatisation
+        </h2>
+        <p class="text-muted mb-0">Relances groupées WhatsApp et rapport PDF mensuel.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+
+    <!-- ── Relances WhatsApp ── -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-whatsapp" style="color:#25d366;"></i>
+                Relances WhatsApp — {{ current_month }}
+            </div>
+            <div class="card-body">
+                {% if unpaid %}
+                <p class="text-muted small mb-3">
+                    <strong style="color:#F9FAFB;">{{ unpaid|length }}</strong> appartement(s) impayé(s) ce mois.
+                    {% set with_phone = unpaid|selectattr('has_whatsapp')|list %}
+                    <strong style="color:#25d366;">{{ with_phone|length }}</strong> ont un numéro WhatsApp.
+                </p>
+
+                <!-- Liste des impayés -->
+                <div class="table-responsive mb-4" style="max-height:280px; overflow-y:auto;">
+                    <table class="table mb-0" style="font-size:.85rem;">
+                        <thead>
+                            <tr style="color:#9CA3AF; border-bottom:1px solid #374151;">
+                                <th class="border-0 pb-1">Appartement</th>
+                                <th class="border-0 pb-1">Retard</th>
+                                <th class="border-0 pb-1">Résident</th>
+                                <th class="border-0 pb-1">WA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in unpaid %}
+                            <tr style="border-bottom:1px solid #1F2937;">
+                                <td class="border-0 py-1">
+                                    <strong>{{ item.apt.block.name }}-{{ item.apt.number }}</strong>
+                                </td>
+                                <td class="border-0 py-1">
+                                    <span style="color:#ef4444;">{{ item.unpaid_count }} mois</span>
+                                </td>
+                                <td class="border-0 py-1" style="color:#9CA3AF;">
+                                    {{ item.resident.name if item.resident else '—' }}
+                                </td>
+                                <td class="border-0 py-1">
+                                    {% if item.has_whatsapp %}
+                                    <i class="bi bi-whatsapp" style="color:#25d366;"></i>
+                                    {% else %}
+                                    <span style="color:#6B7280;">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if org.whatsapp_enabled and org.whatsapp_token %}
+                <form method="POST" action="{{ url_for('send_reminders') }}"
+                      onsubmit="return confirm('Envoyer les rappels WhatsApp à tous les résidents impayés avec un numéro ? Cette action est irréversible.');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-whatsapp"></i>
+                        Envoyer les rappels ({{ unpaid|selectattr('has_whatsapp')|list|length }} résidents)
+                    </button>
+                </form>
+                {% else %}
+                <div class="alert alert-warning mb-0">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    WhatsApp non configuré.
+                    <a href="{{ url_for('settings') }}" class="alert-link">Configurer →</a>
+                </div>
+                {% endif %}
+
+                {% else %}
+                <div class="p-4 text-center rounded-3" style="background:rgba(0,200,150,0.08); border:1px solid rgba(0,200,150,0.2);">
+                    <i class="bi bi-check-circle" style="font-size:2.5rem; color:#00C896;"></i>
+                    <p class="mt-2 mb-0 fw-bold" style="color:#00C896;">
+                        Tous les appartements ont payé ce mois !
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Rapport PDF ── -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-file-earmark-pdf" style="color:#ef4444;"></i>
+                Rapport PDF Mensuel
+            </div>
+            <div class="card-body d-flex flex-column">
+                <p class="text-muted small mb-4">
+                    Générez un rapport PDF complet du mois en cours : encaissements, impayés, dépenses, solde de trésorerie.
+                    Idéal pour votre comptabilité ou assemblée générale.
+                </p>
+
+                <div class="p-3 rounded mb-4" style="background:#1F2937; border:1px solid #374151;">
+                    <div class="row g-2 text-center">
+                        <div class="col-6">
+                            <p class="mb-0 small" style="color:#9CA3AF;">Mois</p>
+                            <p class="mb-0 fw-bold text-white">{{ current_month }}</p>
+                        </div>
+                        <div class="col-6">
+                            <p class="mb-0 small" style="color:#9CA3AF;">Appartements impayés</p>
+                            <p class="mb-0 fw-bold" style="color:{% if unpaid %}#ef4444{% else %}#00C896{% endif %};">
+                                {{ unpaid|length }} / ...
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <a href="{{ url_for('pdf_report') }}"
+                   class="btn btn-danger mt-auto w-100 btn-lg">
+                    <i class="bi bi-download"></i> Télécharger le rapport PDF
+                </a>
+
+                <p class="text-muted small mt-2 mb-0 text-center">
+                    Format A4 — inclut encaissements, impayés, dépenses
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

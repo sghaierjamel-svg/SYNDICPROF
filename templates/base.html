@@ -526,6 +526,23 @@
             <i class="bi bi-credit-card"></i> Liens Konnect
         </a>
 
+        <div class="sidebar-section">Outils</div>
+
+        <a class="sidebar-link {% if request.endpoint == 'automation' %}active{% endif %}"
+           href="{{ url_for('automation') }}">
+            <i class="bi bi-lightning-charge"></i> Automatisation
+        </a>
+
+        <a class="sidebar-link {% if request.endpoint == 'ai_chat' %}active{% endif %}"
+           href="{{ url_for('ai_chat') }}">
+            <i class="bi bi-robot"></i> Assistant AI
+        </a>
+
+        <a class="sidebar-link {% if request.endpoint == 'access_log' %}active{% endif %}"
+           href="{{ url_for('access_log') }}">
+            <i class="bi bi-door-open"></i> Registre Accès
+        </a>
+
         {% endif %}
 
         {% if user.role == 'resident' %}

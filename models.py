@@ -180,6 +180,20 @@ class UnpaidAlert(db.Model):
     apartment = db.relationship('Apartment', backref='alerts')
 
 
+class AccessLog(db.Model):
+    """Registre des entrées/sorties de la résidence"""
+    __tablename__ = 'access_log'
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
+    visitor_name = db.Column(db.String(120), nullable=False)
+    apartment_id = db.Column(db.Integer, db.ForeignKey('apartment.id'), nullable=True)
+    direction = db.Column(db.String(10), default='entree')   # entree / sortie
+    reason = db.Column(db.String(200))
+    logged_at = db.Column(db.DateTime, default=datetime.utcnow)
+    logged_by = db.Column(db.String(120))
+    apartment = db.relationship('Apartment', backref='access_logs', lazy=True)
+
+
 def init_db():
     """Initialise la base de données multi-tenant"""
     db_dir = os.path.join(BASE_DIR, 'database')
@@ -242,6 +256,27 @@ def init_db():
                 conn.commit()
     except Exception as e:
         print(f"Migration organization : {e}")
+
+    # Migration : table access_log
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS access_log (
+                        id SERIAL PRIMARY KEY,
+                        organization_id INTEGER REFERENCES organization(id),
+                        visitor_name VARCHAR(120) NOT NULL,
+                        apartment_id INTEGER REFERENCES apartment(id),
+                        direction VARCHAR(10) DEFAULT 'entree',
+                        reason VARCHAR(200),
+                        logged_at TIMESTAMP DEFAULT NOW(),
+                        logged_by VARCHAR(120)
+                    )
+                """))
+                conn.commit()
+                print("Migration PostgreSQL : table access_log vérifiée.")
+    except Exception as e:
+        print(f"Migration access_log : {e}")
 
     # Migration : colonne phone sur user
     try:
