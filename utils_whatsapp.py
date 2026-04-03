@@ -43,11 +43,57 @@ def send_whatsapp(org, phone: str, message: str) -> bool:
                 'message': message,
                 'countryCode': '216',
             },
-            timeout=8
+            timeout=10
         )
-        return resp.status_code == 200
+        # Fonnte retourne toujours HTTP 200, même en cas d'erreur.
+        # Le vrai résultat est dans le JSON : {"status": true/false}
+        try:
+            body = resp.json()
+            return bool(body.get('status', False))
+        except Exception:
+            return resp.status_code == 200
     except Exception:
         return False
+
+
+def send_whatsapp_debug(org, phone: str, message: str) -> dict:
+    """
+    Identique à send_whatsapp() mais retourne le détail complet pour diagnostic.
+    Utilisé uniquement par la route /settings/test-whatsapp.
+    """
+    if not org.whatsapp_token:
+        return {'ok': False, 'reason': 'Token Fonnte manquant dans les paramètres.'}
+    if not org.whatsapp_enabled:
+        return {'ok': False, 'reason': 'WhatsApp désactivé — cochez "Activer WhatsApp" et sauvegardez.'}
+    if not phone:
+        return {'ok': False, 'reason': 'Numéro de téléphone admin manquant.'}
+
+    target = _normalize_phone(phone)
+    try:
+        resp = http.post(
+            'https://api.fonnte.com/send',
+            headers={'Authorization': org.whatsapp_token},
+            data={
+                'target': target,
+                'message': message,
+                'countryCode': '216',
+            },
+            timeout=10
+        )
+        try:
+            body = resp.json()
+        except Exception:
+            body = {'raw': resp.text}
+
+        ok = bool(body.get('status', False))
+        reason = body.get('message') or body.get('reason') or body.get('detail') or str(body)
+        return {'ok': ok, 'reason': reason, 'target': target, 'http_status': resp.status_code, 'body': body}
+    except http.exceptions.ConnectionError:
+        return {'ok': False, 'reason': 'Impossible de joindre api.fonnte.com — vérifiez la connexion internet du serveur.'}
+    except http.exceptions.Timeout:
+        return {'ok': False, 'reason': 'Timeout — api.fonnte.com ne répond pas (> 10s).'}
+    except Exception as e:
+        return {'ok': False, 'reason': str(e)}
 
 
 def notify_payment(org, apt, month_paid: str, amount: float, resident=None):

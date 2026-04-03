@@ -37,14 +37,16 @@ def settings():
 @admin_required
 def test_whatsapp():
     org = current_organization()
-    if not org.whatsapp_token or not org.whatsapp_admin_phone:
-        return jsonify({'ok': False, 'message': 'Token ou numéro admin manquant.'})
-    from utils_whatsapp import send_whatsapp
-    ok = send_whatsapp(org, org.whatsapp_admin_phone,
-                       '✅ SyndicPro — Test WhatsApp réussi !')
-    if ok:
+    from utils_whatsapp import send_whatsapp_debug
+    result = send_whatsapp_debug(
+        org,
+        org.whatsapp_admin_phone or '',
+        'Test SyndicPro - WhatsApp connecte avec succes !'
+    )
+    if result['ok']:
         return jsonify({'ok': True, 'message': 'Message de test envoyé ✅'})
-    return jsonify({'ok': False, 'message': 'Échec — vérifiez votre token fonnte et numéro.'})
+    # Retourner l'erreur exacte de Fonnte pour aider au diagnostic
+    return jsonify({'ok': False, 'message': f"Échec : {result['reason']}"})
 
 
 @app.route('/settings/test-konnect')
