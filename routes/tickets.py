@@ -17,9 +17,13 @@ def tickets():
         if not user.apartment_id:
             flash('Vous devez être affecté à un appartement', 'danger')
             return redirect(url_for('tickets'))
-        subject = request.form['subject']
-        message = request.form['message']
+        # HIGH-009 : limiter la taille des champs texte
+        subject  = request.form.get('subject', '').strip()[:200]
+        message  = request.form.get('message', '').strip()[:5000]
         priority = request.form.get('priority', 'normale')
+        if not subject or not message:
+            flash('Sujet et message obligatoires.', 'danger')
+            return redirect(url_for('tickets'))
         ticket = Ticket(
             organization_id=org.id,
             apartment_id=user.apartment_id,

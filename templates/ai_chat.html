@@ -70,6 +70,8 @@
 
 {% block extra_js %}
 <script>
+// HIGH-004 : token CSRF pour les requêtes JSON
+const CSRF_TOKEN = '{{ csrf_token() }}';
 let history = [];
 
 function setQuestion(q) {
@@ -138,7 +140,10 @@ async function sendMessage() {
     try {
         const resp = await fetch('/ai/chat', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': CSRF_TOKEN    // HIGH-004
+            },
             body: JSON.stringify({message: msg, history: history})
         });
         const data = await resp.json();

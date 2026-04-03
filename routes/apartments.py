@@ -26,16 +26,21 @@ def apartments():
             if org.subscription and current_count >= org.subscription.max_apartments:
                 flash(f'Limite atteinte: {org.subscription.max_apartments} appartements max pour votre plan', 'warning')
                 return redirect(url_for('apartments'))
-            number = request.form['apt_number'].strip()
+            number = request.form['apt_number'].strip()[:20]
             block_id = request.form.get('block_id')
             monthly_fee = request.form.get('monthly_fee', 100.0)
             if number and block_id:
                 try:
+                    fee = float(monthly_fee)
+                    # HIGH-006 : validation redevance
+                    if fee <= 0 or fee > 99_999:
+                        flash('Redevance invalide (doit être > 0 et < 100 000 DT).', 'danger')
+                        return redirect(url_for('apartments'))
                     a = Apartment(
                         organization_id=org.id,
                         number=number,
                         block_id=int(block_id),
-                        monthly_fee=float(monthly_fee),
+                        monthly_fee=fee,
                         credit_balance=0.0
                     )
                     db.session.add(a)

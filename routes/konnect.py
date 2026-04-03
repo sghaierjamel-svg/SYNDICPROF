@@ -88,6 +88,15 @@ def konnect_pay():
     apt = Apartment.query.get(user.apartment_id)
     next_month = get_next_unpaid_month(user.apartment_id)
 
+    # BUG-F001 : vérifier qu'aucun paiement n'existe déjà pour ce mois (idempotence)
+    already_paid = Payment.query.filter_by(
+        apartment_id=apt.id,
+        month_paid=next_month
+    ).first()
+    if already_paid:
+        flash(f"Le mois {next_month} est déjà enregistré comme payé.", "info")
+        return redirect(url_for('residents_menu'))
+
     # Réutiliser un lien pending existant pour ce mois
     existing = KonnectPayment.query.filter_by(
         apartment_id=apt.id,
@@ -118,11 +127,16 @@ def konnect_success():
         dest = url_for('residents_menu') if user else url_for('login')
         return redirect(dest)
 
+    # SECURITY-F001 : vérifier que le payment_ref appartient bien à l'organisation de l'utilisateur
     kp = KonnectPayment.query.filter_by(konnect_payment_ref=payment_ref).first()
     if not kp:
         flash("Paiement introuvable.", "danger")
         dest = url_for('residents_menu') if user else url_for('login')
         return redirect(dest)
+
+    if user and user.organization_id and user.organization_id != kp.organization_id:
+        flash("Accès non autorisé.", "danger")
+        return redirect(url_for('login'))
 
     if kp.status == 'completed':
         return render_template('konnect_success.html', kp=kp, already_done=True, user=user)

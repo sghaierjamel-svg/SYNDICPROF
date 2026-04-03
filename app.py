@@ -1,4 +1,5 @@
 from core import app, db
+import os
 import models
 import utils
 import routes.auth
@@ -38,4 +39,6 @@ with app.app_context():
     models.init_db()
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # CRIT-002 : debug=False en production
+    debug = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
+    app.run(debug=debug, host='127.0.0.1', port=int(os.environ.get('PORT', 5000)))

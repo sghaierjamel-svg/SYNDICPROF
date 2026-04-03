@@ -12,18 +12,17 @@ from utils import (current_user, current_organization, login_required,
 def users():
     org = current_organization()
     if request.method == 'POST':
-        email = request.form['email']
-        name = request.form.get('name', '')
+        email = request.form['email'].strip().lower()   # HIGH-011 : normaliser l'email
+        name = request.form.get('name', '').strip()[:120]
         role = request.form.get('role', 'resident')
         password = request.form.get('password', '').strip()
         apt_id = request.form.get('apartment_id') or None
-        # Validation du rôle (sécurité : empêche la création de superadmin)
         if role not in ['admin', 'resident']:
             flash('Rôle invalide.', 'danger')
             return redirect(url_for('users'))
-        # Mot de passe obligatoire
-        if not password or len(password) < 6:
-            flash('Le mot de passe est obligatoire (6 caractères minimum).', 'danger')
+        # MED-013 : minimum 8 caractères
+        if not password or len(password) < 8:
+            flash('Le mot de passe est obligatoire (8 caractères minimum).', 'danger')
             return redirect(url_for('users'))
         try:
             apt_id = int(apt_id) if apt_id else None

@@ -15,9 +15,13 @@ def expenses():
     if request.method == 'POST':
         try:
             amount = float(request.form['amount'])
+            # HIGH-006 : validation montant
+            if amount <= 0 or amount > 9_999_999:
+                flash('Montant invalide (doit être > 0 et < 10 000 000 DT).', 'danger')
+                return redirect(url_for('expenses'))
             expense_date = datetime.strptime(request.form['expense_date'], '%Y-%m-%d').date()
             category = request.form.get('category', 'Autre')
-            description = request.form.get('description', '')
+            description = request.form.get('description', '')[:300]
             e = Expense(
                 organization_id=org.id,
                 amount=amount,

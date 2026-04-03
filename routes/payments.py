@@ -20,10 +20,18 @@ def payments():
 
     if request.method == 'POST':
         try:
+            from datetime import date as date_cls
             apartment_id = int(request.form['apartment_id'])
             amount = float(request.form['amount'])
+            # HIGH-005 : validation montant et date
+            if amount <= 0 or amount > 9_999_999:
+                flash('Montant invalide (doit être > 0 et < 10 000 000 DT).', 'danger')
+                return redirect(url_for('payments'))
             payment_date = datetime.strptime(request.form['payment_date'], '%Y-%m-%d').date()
-            description = request.form.get('description', 'Redevance')
+            if payment_date > date_cls.today():
+                flash('La date de paiement ne peut pas être dans le futur.', 'danger')
+                return redirect(url_for('payments'))
+            description = request.form.get('description', 'Redevance')[:200]
             start_month_str = request.form.get('start_month', '').strip()
 
             apt = Apartment.query.get(apartment_id)

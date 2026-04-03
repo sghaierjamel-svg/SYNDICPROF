@@ -46,7 +46,8 @@ class Subscription(db.Model):
     def is_expired(self):
         if not self.end_date:
             return False
-        return datetime.utcnow() > self.end_date
+        # BUG-F004 : grace period 24h après expiration
+        return datetime.utcnow() > (self.end_date + timedelta(hours=24))
 
     def days_remaining(self):
         if not self.end_date:
@@ -98,7 +99,8 @@ class Apartment(db.Model):
     credit_balance = db.Column(db.Float, default=0.0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     residents = db.relationship('User', backref='apartment', lazy=True)
-    payments = db.relationship('Payment', backref='apartment', lazy=True, cascade='all, delete-orphan')
+    # BUG-F003 : cascade supprimé — supprimer un appartement ne détruit plus l'historique financier
+    payments = db.relationship('Payment', backref='apartment', lazy=True, cascade='save-update, merge')
     tickets = db.relationship('Ticket', backref='apartment', lazy=True)
 
 
@@ -352,14 +354,20 @@ def init_db():
         print(f"Migration announcement : {e}")
 
     if not User.query.filter_by(email='superadmin@syndicpro.tn').first():
+        # CRIT-003 : SUPERADMIN_PASSWORD obligatoire et >= 16 caractères
+        _sa_pwd = os.environ.get('SUPERADMIN_PASSWORD', '')
+        if not _sa_pwd or len(_sa_pwd) < 16:
+            raise RuntimeError(
+                "ERREUR CRITIQUE : SUPERADMIN_PASSWORD doit être défini "
+                "dans les variables d'environnement et contenir >= 16 caractères."
+            )
         superadmin = User(
             email='superadmin@syndicpro.tn',
             name='Super Administrateur',
             role='superadmin',
             organization_id=None
         )
-        superadmin.set_password(os.environ.get('SUPERADMIN_PASSWORD', 'changez-moi'))
+        superadmin.set_password(_sa_pwd)
         db.session.add(superadmin)
         db.session.commit()
         print("Super Admin créé: superadmin@syndicpro.tn")
-        print("Mot de passe défini via variable d'environnement SUPERADMIN_PASSWORD")

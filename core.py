@@ -12,31 +12,32 @@ load_dotenv()
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__)
 
-# Configuration pour Render
+# ── Secrets obligatoires ─────────────────────────────────────────────────────
 _secret_key = os.environ.get('SECRET_KEY')
 if not _secret_key:
     raise RuntimeError("ERREUR CRITIQUE : SECRET_KEY non définie dans les variables d'environnement !")
 app.config['SECRET_KEY'] = _secret_key
+
+# ── Session / Cookies ────────────────────────────────────────────────────────
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
-app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_SECURE']   = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SAMESITE'] = 'Strict'   # MED-014 : Strict au lieu de Lax
 
-# Configuration de la base de données
+# ── Sécurité requêtes ────────────────────────────────────────────────────────
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # HIGH-009 : 5 MB max
+
+# ── Base de données ──────────────────────────────────────────────────────────
 database_url = os.environ.get('DATABASE_URL')
-
-# Si pas de DATABASE_URL (en local), utiliser SQLite
 if not database_url:
     database_dir = os.path.join(BASE_DIR, 'database')
     if not os.path.exists(database_dir):
         os.makedirs(database_dir)
     database_url = 'sqlite:///' + os.path.join(database_dir, 'syndicpro.db')
-
-# Si on utilise PostgreSQL sur Render, corriger l'URL
 if database_url.startswith('postgres://'):
     database_url = database_url.replace('postgres://', 'postgresql://', 1)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+app.config['SQLALCHEMY_DATABASE_URI']      = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -49,3 +50,14 @@ limiter = Limiter(
 )
 
 csrf = CSRFProtect(app)
+
+
+# ── En-têtes de sécurité HTTP (MED-016) ─────────────────────────────────────
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options']        = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection']       = '1; mode=block'
+    response.headers['Referrer-Policy']        = 'strict-origin-when-cross-origin'
+    response.headers['Permissions-Policy']     = 'geolocation=(), microphone=(), camera=()'
+    return response

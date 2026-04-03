@@ -19,6 +19,35 @@ def check_session_timeout():
         session['last_activity'] = datetime.utcnow().isoformat()
 
 
+@app.before_request
+def warn_subscription_expiry():
+    """BUG-F006 : Alerte flash 7 jours avant expiration de l'abonnement."""
+    from flask import request as req
+    # Éviter les boucles infinies sur les routes statiques et de session
+    if req.endpoint in (None, 'static', 'login', 'logout', 'register',
+                        'subscription_status', 'index'):
+        return
+    uid = session.get('user_id')
+    if not uid:
+        return
+    user = User.query.get(uid)
+    if not user or user.role in ('superadmin',):
+        return
+    org = Organization.query.get(user.organization_id) if user.organization_id else None
+    if not org or not org.subscription or not org.subscription.end_date:
+        return
+    days = org.subscription.days_remaining()
+    if 0 < days <= 7 and not session.get('expiry_warned'):
+        flash(
+            f"⚠️ Votre abonnement expire dans {days} jour(s). "
+            "Pensez à le renouveler pour éviter une interruption de service.",
+            "warning"
+        )
+        session['expiry_warned'] = True
+    elif days > 7:
+        session.pop('expiry_warned', None)
+
+
 def current_user():
     uid = session.get('user_id')
     if not uid:
