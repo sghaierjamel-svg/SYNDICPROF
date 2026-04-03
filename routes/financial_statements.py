@@ -14,16 +14,18 @@ import io
 
 # Mapping categories depenses -> comptes SCE tunisiens
 CATEGORY_TO_SCE = {
-    'Eau':          ('612', 'Eau et fournitures - parties communes'),
-    'Electricite':  ('612', 'Energie - parties communes'),
-    'Electricité':  ('612', 'Energie - parties communes'),
-    'Entretien':    ('614', 'Entretien et reparations'),
-    'Réparations':  ('614', 'Entretien et reparations'),
-    'Reparations':  ('614', 'Entretien et reparations'),
-    'Gardiennage':  ('641', 'Remunerations du personnel / gardiennage'),
-    'Assurances':   ('616', "Primes d'assurance immeuble"),
-    'Taxes':        ('635', 'Impots et taxes'),
-    'Autre':        ('65x', "Autres charges d'exploitation"),
+    'Eau':             ('612', 'Eau et fournitures - parties communes'),
+    'Electricite':     ('612', 'Energie - parties communes'),
+    'Electricité':     ('612', 'Energie - parties communes'),
+    'Entretien':       ('614', 'Entretien et reparations'),
+    'Réparations':     ('614', 'Entretien et reparations'),
+    'Reparations':     ('614', 'Entretien et reparations'),
+    'Gardiennage':     ('641', 'Remunerations du personnel / gardiennage'),
+    'Assurances':      ('616', "Primes d'assurance immeuble"),
+    'Taxes':           ('635', 'Impots et taxes'),
+    'Salaire':         ('641', 'Salaires et remunerations du personnel'),
+    'Immobilisation':  ('22x', 'Immobilisations corporelles (valeur achat)'),
+    'Autre':           ('65x', "Autres charges d'exploitation"),
 }
 
 

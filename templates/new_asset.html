@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="text-white mb-1">
+            <i class="bi bi-box-seam"></i> Nouvelle Immobilisation
+        </h2>
+        <p style="color:var(--muted);">
+            Compte SCE <strong style="color:var(--accent);">22x — Immobilisations corporelles</strong>
+            &nbsp;|&nbsp; Enregistrement au bilan (actif non courant)
+        </p>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header" style="background:rgba(0,200,150,0.08);border-bottom:1px solid rgba(0,200,150,0.2);">
+                <i class="bi bi-file-earmark-text" style="color:var(--accent);"></i>
+                <span style="color:var(--accent);font-weight:600;"> Saisie de la facture d'immobilisation</span>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <!-- Libellé du bien -->
+                    <div class="mb-3">
+                        <label class="form-label">Libellé du bien *
+                            <small style="color:var(--muted);">(ex: Tondeuse à gazon, Groupe électrogène...)</small>
+                        </label>
+                        <input class="form-control" name="asset_name" type="text"
+                               placeholder="Ex: Tondeuse à gazon Honda" required>
+                    </div>
+
+                    <div class="row">
+                        <!-- Valeur d'achat -->
+                        <div class="col-sm-6 mb-3">
+                            <label class="form-label">Valeur d'achat (DT) *</label>
+                            <input class="form-control" name="amount" type="number"
+                                   step="0.001" placeholder="0.000" required
+                                   value="{{ prefill_amount }}">
+                        </div>
+                        <!-- Date d'achat -->
+                        <div class="col-sm-6 mb-3">
+                            <label class="form-label">Date d'achat *</label>
+                            <input class="form-control" name="expense_date" type="date" required
+                                   value="{{ prefill_date }}">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- Fournisseur -->
+                        <div class="col-sm-6 mb-3">
+                            <label class="form-label">Fournisseur</label>
+                            <input class="form-control" name="supplier" type="text"
+                                   placeholder="Nom du fournisseur">
+                        </div>
+                        <!-- N° facture -->
+                        <div class="col-sm-6 mb-3">
+                            <label class="form-label">N° de facture</label>
+                            <input class="form-control" name="invoice_number" type="text"
+                                   placeholder="Ex: FAC-2024-001">
+                        </div>
+                    </div>
+
+                    <!-- Durée d'amortissement -->
+                    <div class="mb-3">
+                        <label class="form-label">Durée d'amortissement
+                            <small style="color:var(--muted);">(années)</small>
+                        </label>
+                        <select class="form-select" name="duration_years">
+                            <option value="3">3 ans — Matériel informatique, outillage léger</option>
+                            <option value="5" selected>5 ans — Matériel et équipement courant (tondeuse...)</option>
+                            <option value="10">10 ans — Installations, agencements</option>
+                            <option value="20">20 ans — Constructions, gros équipements</option>
+                        </select>
+                        <small class="form-text" style="color:var(--muted);">
+                            Taux linéaire SCE : 3 ans = 33,3% / 5 ans = 20% / 10 ans = 10% / 20 ans = 5%
+                        </small>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="mb-4">
+                        <label class="form-label">Notes / observations</label>
+                        <textarea class="form-control" name="notes" rows="2"
+                                  placeholder="Ex: Garantie 2 ans, installé le ..."></textarea>
+                    </div>
+
+                    <!-- Récapitulatif automatique -->
+                    <div id="recap" class="p-3 mb-4 rounded" style="background:rgba(31,41,55,0.8);border:1px solid var(--border);display:none;">
+                        <div class="mb-1" style="color:var(--accent);font-weight:600;font-size:.9rem;">
+                            <i class="bi bi-calculator"></i> Récapitulatif comptable
+                        </div>
+                        <div class="row" style="font-size:.85rem;color:var(--text);">
+                            <div class="col-sm-6">
+                                Valeur brute : <strong id="r_valeur">—</strong>
+                            </div>
+                            <div class="col-sm-6">
+                                Dotation annuelle : <strong id="r_dotation" style="color:var(--accent);">—</strong>
+                            </div>
+                            <div class="col-sm-6 mt-1">
+                                Durée : <strong id="r_duree">—</strong>
+                            </div>
+                            <div class="col-sm-6 mt-1">
+                                Taux : <strong id="r_taux" style="color:var(--accent);">—</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('expenses') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Annuler
+                        </a>
+                        <button type="submit" class="btn btn-success flex-grow-1">
+                            <i class="bi bi-check-circle"></i> Enregistrer l'immobilisation
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Info comptable -->
+        <div class="card mt-3" style="border-color:rgba(0,200,150,0.2);">
+            <div class="card-body py-3" style="font-size:.82rem;color:var(--muted);">
+                <i class="bi bi-info-circle" style="color:var(--accent);"></i>
+                <strong style="color:var(--accent);">Comptabilisation SCE (Loi 96-112) :</strong>
+                L'immobilisation est enregistrée en <strong>actif non courant (22x)</strong> au bilan.
+                La dotation aux amortissements annuelle (681) sera calculée automatiquement
+                et apparaîtra dans vos états financiers.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const amountInput   = document.querySelector('[name="amount"]');
+const durationSel   = document.querySelector('[name="duration_years"]');
+const recap         = document.getElementById('recap');
+
+function updateRecap() {
+    const val = parseFloat(amountInput.value);
+    const dur = parseInt(durationSel.value);
+    if (!val || isNaN(val)) { recap.style.display = 'none'; return; }
+    recap.style.display = 'block';
+    const taux = (1 / dur * 100).toFixed(1);
+    const dotation = (val / dur).toFixed(3);
+    document.getElementById('r_valeur').textContent   = val.toFixed(3) + ' DT';
+    document.getElementById('r_dotation').textContent = dotation + ' DT / an';
+    document.getElementById('r_duree').textContent    = dur + ' ans';
+    document.getElementById('r_taux').textContent     = taux + ' %';
+}
+
+amountInput.addEventListener('input', updateRecap);
+durationSel.addEventListener('change', updateRecap);
+updateRecap();
+</script>
+{% endblock %}

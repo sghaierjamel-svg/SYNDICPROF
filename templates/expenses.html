@@ -32,7 +32,7 @@
 
                     <div class="mb-3">
                         <label class="form-label">Catégorie</label>
-                        <select class="form-select" name="category">
+                        <select class="form-select" name="category" id="categorySelect">
                             <option value="Eau">Eau</option>
                             <option value="Électricité">Électricité</option>
                             <option value="Entretien">Entretien</option>
@@ -40,8 +40,16 @@
                             <option value="Gardiennage">Gardiennage</option>
                             <option value="Assurances">Assurances</option>
                             <option value="Taxes">Taxes</option>
+                            <option value="Salaire">Salaire</option>
+                            <optgroup label="─────────────────">
+                                <option value="Immobilisation">Immobilisation (matériel, équipement...)</option>
+                            </optgroup>
                             <option value="Autre">Autre</option>
                         </select>
+                        <div id="immoHint" class="mt-2 p-2 rounded" style="display:none;background:rgba(0,200,150,0.08);border:1px solid rgba(0,200,150,0.3);">
+                            <i class="bi bi-info-circle" style="color:var(--accent);"></i>
+                            <small style="color:var(--accent);">Une immobilisation ouvre un formulaire de saisie de facture détaillée.</small>
+                        </div>
                     </div>
 
                     <div class="mb-3">
@@ -50,7 +58,7 @@
                                   placeholder="Ex: Facture mensuelle..."></textarea>
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-100">
+                    <button type="submit" class="btn btn-primary w-100" id="submitBtn">
                         <i class="bi bi-save"></i> Enregistrer la Dépense
                     </button>
                 </form>
@@ -146,8 +154,33 @@
 
 {% block extra_js %}
 <script>
-// Date du jour par défaut
 const today = new Date().toISOString().split('T')[0];
 document.querySelector('input[name="expense_date"]').value = today;
+
+const catSelect = document.getElementById('categorySelect');
+const immoHint  = document.getElementById('immoHint');
+const submitBtn = document.getElementById('submitBtn');
+const form      = catSelect.closest('form');
+
+catSelect.addEventListener('change', function () {
+    if (this.value === 'Immobilisation') {
+        immoHint.style.display = 'block';
+        submitBtn.innerHTML = '<i class="bi bi-box-arrow-up-right"></i> Saisir la facture d\'immobilisation';
+        submitBtn.classList.replace('btn-primary', 'btn-success');
+    } else {
+        immoHint.style.display = 'none';
+        submitBtn.innerHTML = '<i class="bi bi-save"></i> Enregistrer la Dépense';
+        submitBtn.classList.replace('btn-success', 'btn-primary');
+    }
+});
+
+form.addEventListener('submit', function (e) {
+    if (catSelect.value === 'Immobilisation') {
+        e.preventDefault();
+        const amount = form.querySelector('[name="amount"]').value;
+        const date   = form.querySelector('[name="expense_date"]').value;
+        window.location.href = `/expense/nouvelle-immobilisation?amount=${encodeURIComponent(amount)}&date=${encodeURIComponent(date)}`;
+    }
+});
 </script>
 {% endblock %}
