@@ -143,11 +143,24 @@
                                 <td class="px-3 py-1" style="color:var(--muted);">Immobilisations incorporelles (nettes)</td>
                                 <td class="px-3 py-1 text-end" style="color:var(--muted);">0,000</td>
                             </tr>
+                            {% if immos_detail %}
+                                {% for immo in immos_detail %}
+                                <tr>
+                                    <td class="px-3 py-1" style="color:var(--muted);font-size:0.72rem;">22x</td>
+                                    <td class="px-3 py-1" style="color:var(--text);font-size:0.83rem;">
+                                        {{ immo.description.split('|')[0].replace('Bien:','').strip() }}
+                                        <span style="color:var(--muted);font-size:0.72rem;"> — {{ immo.date.strftime('%d/%m/%Y') }}</span>
+                                    </td>
+                                    <td class="px-3 py-1 text-end" style="color:var(--text);">{{ "%.3f"|format(immo.montant) }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
                             <tr>
                                 <td class="px-3 py-1" style="color:var(--muted);font-size:0.72rem;">22x</td>
                                 <td class="px-3 py-1" style="color:var(--muted);">Immobilisations corporelles (nettes)</td>
                                 <td class="px-3 py-1 text-end" style="color:var(--muted);">0,000</td>
                             </tr>
+                            {% endif %}
                             <tr style="background:var(--border);font-weight:700;">
                                 <td class="px-3 py-2" colspan="2" style="color:var(--green);">TOTAL ACTIFS NON COURANTS</td>
                                 <td class="px-3 py-2 text-end" style="color:var(--green);">{{ "%.3f"|format(total_actif_non_courant) }}</td>

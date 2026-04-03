@@ -56,11 +56,17 @@ def _compute_financial_data(org, year):
     year_payments = [p for p in all_payments if p.payment_date.year == year]
     year_expenses = [e for e in all_expenses if e.expense_date.year == year]
 
+    # Séparer immobilisations (22x) des charges courantes (6xx)
+    all_immos   = [e for e in all_expenses  if e.category == 'Immobilisation']
+    year_immos  = [e for e in year_expenses if e.category == 'Immobilisation']
+    all_charges = [e for e in all_expenses  if e.category != 'Immobilisation']
+    year_charges= [e for e in year_expenses if e.category != 'Immobilisation']
+
     # ── BILAN — ACTIF ─────────────────────────────────────────────────────────
 
-    # 511/530 — Liquidités : trésorerie nette cumulée (tous exercices)
+    # 511/530 — Liquidités : trésorerie nette cumulée (tous décaissements inclus)
     total_encaisse_cumul = sum(p.amount for p in all_payments)
-    total_depenses_cumul = sum(e.amount for e in all_expenses)
+    total_depenses_cumul = sum(e.amount for e in all_expenses)  # immos incluses car argent sorti
     tresorerie_nette = total_encaisse_cumul - total_depenses_cumul
     liquidites = max(0.0, tresorerie_nette)
 
@@ -91,8 +97,17 @@ def _compute_financial_data(org, year):
             total_creances += montant_du
 
     total_actif_courant = liquidites + total_creances
-    # Pas d'actifs non courants trackés dans SyndicPro
-    total_actif_non_courant = 0.0
+
+    # 22x — Immobilisations corporelles (valeur brute cumulée tous exercices)
+    total_immobilisations = sum(e.amount for e in all_immos)
+    immos_detail = []
+    for e in sorted(all_immos, key=lambda x: x.expense_date, reverse=True):
+        immos_detail.append({
+            'date': e.expense_date,
+            'description': e.description or e.category,
+            'montant': e.amount,
+        })
+    total_actif_non_courant = total_immobilisations
     total_actif = total_actif_courant + total_actif_non_courant
 
     # ── BILAN — PASSIF & CAPITAUX PROPRES ────────────────────────────────────
@@ -119,14 +134,14 @@ def _compute_financial_data(org, year):
     # 106 — Fonds de roulement / Capitaux propres = Actif - Passif externe
     fonds_roulement = total_actif - total_passif_courant - total_passif_non_courant
 
-    # Résultat de l'exercice sélectionné
+    # Résultat de l'exercice sélectionné (hors immobilisations — ce sont des actifs, pas des charges)
     produits_exercice = sum(p.amount for p in year_payments)
-    charges_exercice = sum(e.amount for e in year_expenses)
+    charges_exercice = sum(e.amount for e in year_charges)
     resultat_exercice = produits_exercice - charges_exercice
 
-    # Résultats reportés = résultat cumulé hors exercice en cours
+    # Résultats reportés = résultat cumulé hors exercice en cours (hors immobilisations)
     produits_anterieurs = sum(p.amount for p in all_payments if p.payment_date.year != year)
-    charges_anterieures = sum(e.amount for e in all_expenses if e.expense_date.year != year)
+    charges_anterieures = sum(e.amount for e in all_charges if e.expense_date.year != year)
     resultats_reportes = produits_anterieurs - charges_anterieures
 
     # Recalcul capitaux propres pour équilibre bilanciel
@@ -144,9 +159,9 @@ def _compute_financial_data(org, year):
     # Cotisations appelées théoriques (ce qui aurait dû être encaissé)
     cotisations_appelees = sum(apt.monthly_fee * 12 for apt in apartments)
 
-    # Charges par catégorie SCE
+    # Charges par catégorie SCE (immobilisations exclues — elles sont au bilan, pas en charges)
     charges_par_compte = {}
-    for e in year_expenses:
+    for e in year_charges:
         cat = e.category or 'Autre'
         compte, libelle = CATEGORY_TO_SCE.get(cat, ('65x', "Autres charges d'exploitation"))
         key = (compte, libelle)
@@ -195,6 +210,8 @@ def _compute_financial_data(org, year):
         'liquidites': liquidites,
         'total_creances': total_creances,
         'creances_detail': creances_detail,
+        'total_immobilisations': total_immobilisations,
+        'immos_detail': immos_detail,
         'total_actif_courant': total_actif_courant,
         'total_actif_non_courant': total_actif_non_courant,
         'total_actif': total_actif,
@@ -355,8 +372,13 @@ def etats_financiers_pdf():
 
     sub_title("A — ACTIFS NON COURANTS")
     row("Immobilisations incorporelles (nettes)", "21x", 0.0, indent=1)
-    row("Immobilisations corporelles (nettes)", "22x", 0.0, indent=1)
-    row("Immobilisations financières", "27x", 0.0, indent=1)
+    if data['immos_detail']:
+        for immo in data['immos_detail']:
+            libelle = immo['description'].split('|')[0].replace('Bien:', '').strip()
+            row(_s(libelle[:45]), "22x", immo['montant'], indent=2)
+    else:
+        row("Immobilisations corporelles (nettes)", "22x", 0.0, indent=1)
+    row("Immobilisations financieres", "27x", 0.0, indent=1)
     separator()
     total_row("TOTAL ACTIFS NON COURANTS", data['total_actif_non_courant'])
 
