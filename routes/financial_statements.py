@@ -12,17 +12,36 @@ from dateutil.relativedelta import relativedelta
 import io
 
 
-# Mapping catégories dépenses → comptes SCE tunisiens
+# Mapping categories depenses -> comptes SCE tunisiens
 CATEGORY_TO_SCE = {
-    'Eau':          ('612', 'Eau et fournitures — parties communes'),
-    'Électricité':  ('612', 'Énergie — parties communes'),
-    'Entretien':    ('614', 'Entretien et réparations'),
-    'Réparations':  ('614', 'Entretien et réparations'),
-    'Gardiennage':  ('641', 'Rémunérations du personnel / gardiennage'),
+    'Eau':          ('612', 'Eau et fournitures - parties communes'),
+    'Electricite':  ('612', 'Energie - parties communes'),
+    'Electricité':  ('612', 'Energie - parties communes'),
+    'Entretien':    ('614', 'Entretien et reparations'),
+    'Réparations':  ('614', 'Entretien et reparations'),
+    'Reparations':  ('614', 'Entretien et reparations'),
+    'Gardiennage':  ('641', 'Remunerations du personnel / gardiennage'),
     'Assurances':   ('616', "Primes d'assurance immeuble"),
-    'Taxes':        ('635', 'Impôts et taxes'),
+    'Taxes':        ('635', 'Impots et taxes'),
     'Autre':        ('65x', "Autres charges d'exploitation"),
 }
+
+
+def _s(text):
+    """Sanitise un texte pour fpdf2 Helvetica.
+    Remplace uniquement les caractères hors Latin-1 (U+0100+).
+    Les accents français (é, è, à, ç...) sont dans Latin-1 et restent intacts.
+    """
+    if not text:
+        return ''
+    return (str(text)
+        .replace('\u2014', '-').replace('\u2013', '-')  # tirets longs -> -
+        .replace('\u2019', "'").replace('\u2018', "'")  # apostrophes courbes -> '
+        .replace('\u201c', '"').replace('\u201d', '"')  # guillemets courbes -> "
+        .replace('\u2192', '>').replace('\u2190', '<')  # fleches -> > <
+        .replace('\u2500', '-').replace('\u2502', '|')  # box drawing -> - |
+        .encode('latin-1', errors='replace').decode('latin-1')
+    )
 
 
 def _compute_financial_data(org, year):
@@ -64,7 +83,7 @@ def _compute_financial_data(org, year):
             resident = apt.residents[0] if apt.residents else None
             creances_detail.append({
                 'apt': f"{apt.block.name}-{apt.number}",
-                'resident': resident.name if resident else '—',
+                'resident': resident.name if resident else '-',
                 'montant': montant_du,
             })
             total_creances += montant_du
@@ -84,7 +103,7 @@ def _compute_financial_data(org, year):
             resident = apt.residents[0] if apt.residents else None
             trop_percus_detail.append({
                 'apt': f"{apt.block.name}-{apt.number}",
-                'resident': resident.name if resident else '—',
+                'resident': resident.name if resident else '-',
                 'montant': apt.credit_balance,
             })
             total_trop_percus += apt.credit_balance
@@ -266,11 +285,11 @@ def etats_financiers_pdf():
         pdf.set_xy(0, 13)
         pdf.set_font('Helvetica', '', 9)
         pdf.set_text_color(MUTED_R, MUTED_G, MUTED_B)
-        pdf.cell(0, 5, f"{org.name}  —  {title}  —  Exercice {year}", ln=True, align='C')
+        pdf.cell(0, 5, _s(f"{org.name}  -  {title}  -  Exercice {year}"), ln=True, align='C')
         pdf.set_xy(0, 20)
         pdf.set_font('Helvetica', '', 7)
         pdf.cell(0, 4,
-                 f"Conforme au Système Comptable des Entreprises (SCE) — Loi n° 96-112 du 30/12/1996",
+                 _s("Conforme au Systeme Comptable des Entreprises (SCE) - Loi n 96-112 du 30/12/1996"),
                  ln=True, align='C')
         pdf.ln(4)
 
@@ -278,13 +297,13 @@ def etats_financiers_pdf():
         pdf.set_fill_color(HEADER_R, HEADER_G, HEADER_B)
         pdf.set_text_color(GREEN_R, GREEN_G, GREEN_B)
         pdf.set_font('Helvetica', 'B', 10)
-        pdf.cell(0, 8, f"  {text}", ln=True, fill=True)
+        pdf.cell(0, 8, _s(f"  {text}"), ln=True, fill=True)
         pdf.ln(1)
 
     def sub_title(text):
         pdf.set_text_color(GREEN_R, GREEN_G, GREEN_B)
         pdf.set_font('Helvetica', 'B', 9)
-        pdf.cell(0, 6, f"    {text}", ln=True)
+        pdf.cell(0, 6, _s(f"    {text}"), ln=True)
 
     def row(label, compte, montant, bold=False, indent=0, color=None):
         pdf.set_text_color(WHITE_R, WHITE_G, WHITE_B)
@@ -293,8 +312,8 @@ def etats_financiers_pdf():
         else:
             pdf.set_font('Helvetica', '', 8)
         spaces = '    ' * indent
-        pdf.cell(20, 6, f"  {compte}", ln=False)
-        pdf.cell(120, 6, f"  {spaces}{label}", ln=False)
+        pdf.cell(20, 6, _s(f"  {compte}"), ln=False)
+        pdf.cell(120, 6, _s(f"  {spaces}{label}"), ln=False)
         if color:
             pdf.set_text_color(*color)
         if montant >= 0:
@@ -315,7 +334,7 @@ def etats_financiers_pdf():
             pdf.set_fill_color(31, 41, 55)
         pdf.set_text_color(GREEN_R, GREEN_G, GREEN_B)
         pdf.set_font('Helvetica', 'B', 9)
-        pdf.cell(140, 7, f"  {label}", ln=False, fill=bg)
+        pdf.cell(140, 7, _s(f"  {label}"), ln=False, fill=bg)
         color = (RED_R, RED_G, RED_B) if montant < 0 else (GREEN_R, GREEN_G, GREEN_B)
         pdf.set_text_color(*color)
         pdf.cell(40, 7, f"{montant:,.3f} DT", ln=True, align='R', fill=bg)
@@ -389,8 +408,8 @@ def etats_financiers_pdf():
     pdf.ln(6)
     pdf.set_text_color(MUTED_R, MUTED_G, MUTED_B)
     pdf.set_font('Helvetica', 'I', 7)
-    pdf.cell(0, 4, "Note : Les montants en parenthèses ( ) sont négatifs (déficit).", ln=True, align='C')
-    pdf.cell(0, 4, f"Arrêté au {data['generated_at'].strftime('%d/%m/%Y à %H:%M')}  —  SyndicPro, {org.name}", ln=True, align='C')
+    pdf.cell(0, 4, "Note : Les montants en parentheses ( ) sont negatifs (deficit).", ln=True, align='C')
+    pdf.cell(0, 4, _s(f"Arrete au {data['generated_at'].strftime('%d/%m/%Y')}  -  SyndicPro, {org.name}"), ln=True, align='C')
 
     # ══════════════════════════════════════════════════════════════════════════
     # PAGE 2 — ÉTAT DE RÉSULTAT
@@ -456,7 +475,7 @@ def etats_financiers_pdf():
         "Principe de la partie double respecté (Total Actif = Total Passif).",
         align='J')
     pdf.ln(2)
-    pdf.cell(0, 4, f"Arrêté au {data['generated_at'].strftime('%d/%m/%Y à %H:%M')}  —  SyndicPro, {org.name}", ln=True, align='C')
+    pdf.cell(0, 4, _s(f"Arrete au {data['generated_at'].strftime('%d/%m/%Y')}  -  SyndicPro, {org.name}"), ln=True, align='C')
 
     # ══════════════════════════════════════════════════════════════════════════
     # PAGE 3 — TABLEAU DE FLUX DE TRÉSORERIE
@@ -533,8 +552,8 @@ def etats_financiers_pdf():
     pdf.ln(6)
     pdf.set_text_color(MUTED_R, MUTED_G, MUTED_B)
     pdf.set_font('Helvetica', 'I', 7)
-    pdf.cell(0, 4, f"Document généré le {data['generated_at'].strftime('%d/%m/%Y à %H:%M')}  —  SyndicPro, {org.name}", ln=True, align='C')
-    pdf.cell(0, 4, "Ce document est produit à titre informatif et de gestion interne. Il ne remplace pas un bilan certifié par un expert-comptable agréé.", ln=True, align='C')
+    pdf.cell(0, 4, _s(f"Document genere le {data['generated_at'].strftime('%d/%m/%Y')}  -  SyndicPro, {org.name}"), ln=True, align='C')
+    pdf.cell(0, 4, "Ce document est produit a titre informatif et de gestion interne. Il ne remplace pas un bilan certifie par un expert-comptable agree.", ln=True, align='C')
 
     # ── Export PDF ────────────────────────────────────────────────────────────
     pdf_bytes = pdf.output()

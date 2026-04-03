@@ -239,7 +239,7 @@ def pdf_report():
     pdf.ln(8)
     pdf.set_font('Helvetica', 'I', 8)
     pdf.set_text_color(150, 150, 150)
-    pdf.cell(0, 6, f"Généré par SyndicPro le {date.today().strftime('%d/%m/%Y')} — www.syndicpro.tn", align='C')
+    pdf.cell(0, 6, f"Genere par SyndicPro le {date.today().strftime('%d/%m/%Y')} - www.syndicpro.tn", align='C')
 
     buf = io.BytesIO(pdf.output())
     buf.seek(0)
