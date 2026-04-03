@@ -82,47 +82,47 @@
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-sm mb-0" style="color:var(--text);">
                         <thead>
-                            <tr>
-                                <th>Nom</th>
-                                <th class="d-none d-md-table-cell">Email</th>
-                                <th>Rôle</th>
-                                <th class="d-none d-lg-table-cell">WhatsApp</th>
-                                <th class="d-none d-sm-table-cell">Appartement</th>
-                                <th>Actions</th>
+                            <tr style="background:var(--border2);font-size:0.78rem;color:var(--muted);">
+                                <th class="px-3 py-2">Nom</th>
+                                <th class="px-3 py-2 d-none d-md-table-cell">Email</th>
+                                <th class="px-3 py-2">Rôle</th>
+                                <th class="px-3 py-2 d-none d-lg-table-cell">WhatsApp</th>
+                                <th class="px-3 py-2 d-none d-sm-table-cell">Appartement</th>
+                                <th class="px-3 py-2">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for u in users %}
-                            <tr>
-                                <td>
-                                    <strong>{{ u.name or '—' }}</strong>
-                                    <div class="d-md-none text-muted" style="font-size:0.75rem;">{{ u.email }}</div>
+                            <tr style="background:{% if loop.index % 2 == 0 %}rgba(31,41,55,0.5){% else %}transparent{% endif %};border-bottom:1px solid var(--border);">
+                                <td class="px-3 py-2">
+                                    <strong style="color:var(--text);">{{ u.name or '—' }}</strong>
+                                    <div class="d-md-none" style="font-size:0.75rem;color:var(--muted);">{{ u.email }}</div>
                                 </td>
-                                <td class="cell-email d-none d-md-table-cell">{{ u.email }}</td>
-                                <td>
+                                <td class="px-3 py-2 d-none d-md-table-cell" style="color:var(--muted);font-size:0.85rem;">{{ u.email }}</td>
+                                <td class="px-3 py-2">
                                     <span class="badge {% if u.role == 'admin' %}bg-danger{% else %}bg-primary{% endif %}">
                                         {{ u.role|upper }}
                                     </span>
                                 </td>
-                                <td class="d-none d-lg-table-cell">
+                                <td class="px-3 py-2 d-none d-lg-table-cell">
                                     {% if u.phone %}
-                                    <span style="color:#25d366; font-size:.82rem;">
+                                    <span style="color:#25d366;font-size:.82rem;">
                                         <i class="bi bi-whatsapp"></i> {{ u.phone }}
                                     </span>
                                     {% else %}
-                                    <span class="text-muted">—</span>
+                                    <span style="color:var(--muted);">—</span>
                                     {% endif %}
                                 </td>
-                                <td class="d-none d-sm-table-cell">
+                                <td class="px-3 py-2 d-none d-sm-table-cell">
                                     {% if u.apartment_id %}
                                         <span class="badge bg-secondary">{{ u.apartment.block.name }}-{{ u.apartment.number }}</span>
                                     {% else %}
-                                        <span class="text-muted">—</span>
+                                        <span style="color:var(--muted);">—</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td class="px-3 py-2">
                                     {% if u.id != user.id %}
                                     <form method="post" action="{{ url_for('delete_user', user_id=u.id) }}"
                                           onsubmit="return confirm('Confirmer la suppression de {{ u.name }} ?');">
@@ -138,7 +138,7 @@
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="5" class="text-center text-muted">
+                                <td colspan="6" class="px-3 py-3 text-center" style="color:var(--muted);">
                                     Aucun utilisateur
                                 </td>
                             </tr>

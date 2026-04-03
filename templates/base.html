@@ -29,6 +29,17 @@
             margin: 0;
         }
 
+        /* ── TABLES — override Bootstrap fond blanc ── */
+        .table { color: var(--text) !important; --bs-table-bg: transparent; --bs-table-color: var(--text); }
+        .table > :not(caption) > * > * { background-color: transparent !important; color: var(--text); border-bottom-color: var(--border); }
+        .table-hover > tbody > tr:hover > * { background-color: rgba(0,200,150,0.06) !important; color: var(--text); }
+        .table thead th { background-color: var(--border2) !important; color: var(--muted) !important; border-bottom: 2px solid var(--border2); }
+        .table-dark thead th { background-color: var(--border2) !important; color: var(--muted) !important; }
+        .table-bordered > :not(caption) > * > * { border-color: var(--border) !important; }
+        .table-warning > * { background-color: rgba(245,158,11,0.15) !important; color: var(--text) !important; }
+        .table-primary > * { background-color: rgba(0,200,150,0.12) !important; color: var(--text) !important; }
+        .text-muted { color: var(--muted) !important; }
+
         /* ── SIDEBAR ── */
         .sidebar {
             position: fixed;
@@ -507,6 +518,11 @@
 
         <a class="sidebar-link" href="{{ url_for('export_excel') }}">
             <i class="bi bi-file-earmark-spreadsheet"></i> Export Excel
+        </a>
+
+        <a class="sidebar-link {% if request.endpoint == 'etats_financiers' %}active{% endif %}"
+           href="{{ url_for('etats_financiers') }}">
+            <i class="bi bi-bank"></i> États Financiers
         </a>
 
         <div class="sidebar-section">Compte</div>

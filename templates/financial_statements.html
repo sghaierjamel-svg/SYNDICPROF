@@ -1,0 +1,722 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="mb-1" style="color:var(--green);font-weight:800;">
+            <i class="bi bi-bank me-2"></i>États Financiers
+        </h4>
+        <p class="mb-0" style="color:var(--muted);font-size:0.85rem;">
+            Conformes au Système Comptable des Entreprises (SCE) — Loi tunisienne n° 96-112 du 30/12/1996
+        </p>
+    </div>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+        <form method="GET" class="d-flex align-items-center gap-2">
+            <select name="year" class="form-select form-select-sm" onchange="this.form.submit()" style="background:var(--card-bg);color:var(--text);border-color:var(--border);width:110px;">
+                {% for y in available_years %}
+                <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-sm" style="background:var(--border);color:var(--text);">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+        </form>
+        <a href="{{ url_for('etats_financiers_pdf', year=selected_year) }}"
+           class="btn btn-sm" style="background:var(--green);color:#000;font-weight:700;">
+            <i class="bi bi-file-earmark-pdf me-1"></i>Télécharger PDF
+        </a>
+    </div>
+</div>
+
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{# Résumé en cartes KPI #}
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card h-100" style="background:var(--card-bg);border:1px solid var(--border);">
+            <div class="card-body p-3">
+                <div style="color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;">Trésorerie nette</div>
+                <div class="mt-1" style="font-size:1.3rem;font-weight:800;color:{% if tresorerie_nette >= 0 %}var(--green){% else %}#EF4444{% endif %};">
+                    {{ "%.3f"|format(tresorerie_nette) }} DT
+                </div>
+                <div style="color:var(--muted);font-size:0.72rem;">Compte 511/530</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card h-100" style="background:var(--card-bg);border:1px solid var(--border);">
+            <div class="card-body p-3">
+                <div style="color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;">Résultat {{ selected_year }}</div>
+                <div class="mt-1" style="font-size:1.3rem;font-weight:800;color:{% if resultat_exercice >= 0 %}var(--green){% else %}#EF4444{% endif %};">
+                    {{ "%+.3f"|format(resultat_exercice) }} DT
+                </div>
+                <div style="color:var(--muted);font-size:0.72rem;">{% if resultat_exercice >= 0 %}Excédent{% else %}Déficit{% endif %} de gestion</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card h-100" style="background:var(--card-bg);border:1px solid var(--border);">
+            <div class="card-body p-3">
+                <div style="color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;">Créances (411)</div>
+                <div class="mt-1" style="font-size:1.3rem;font-weight:800;color:{% if total_creances > 0 %}#F59E0B{% else %}var(--green){% endif %};">
+                    {{ "%.3f"|format(total_creances) }} DT
+                </div>
+                <div style="color:var(--muted);font-size:0.72rem;">Impayés copropriétaires</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card h-100" style="background:var(--card-bg);border:1px solid var(--border);">
+            <div class="card-body p-3">
+                <div style="color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;">Taux de recouvrement</div>
+                <div class="mt-1" style="font-size:1.3rem;font-weight:800;color:{% if taux_recouvrement >= 80 %}var(--green){% elif taux_recouvrement >= 60 %}#F59E0B{% else %}#EF4444{% endif %};">
+                    {{ "%.1f"|format(taux_recouvrement) }} %
+                </div>
+                <div style="color:var(--muted);font-size:0.72rem;">Exercice {{ selected_year }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{# Navigation onglets #}
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+<ul class="nav nav-tabs mb-4" style="border-bottom-color:var(--border);">
+    <li class="nav-item">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#bilan"
+                style="color:var(--muted);background:transparent;border-color:transparent;">
+            <i class="bi bi-bar-chart-steps me-1"></i>Bilan
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#resultat"
+                style="color:var(--muted);background:transparent;border-color:transparent;">
+            <i class="bi bi-graph-up me-1"></i>État de Résultat
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#flux"
+                style="color:var(--muted);background:transparent;border-color:transparent;">
+            <i class="bi bi-arrow-left-right me-1"></i>Flux de Trésorerie
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#annexes"
+                style="color:var(--muted);background:transparent;border-color:transparent;">
+            <i class="bi bi-list-ul me-1"></i>Annexes
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content">
+
+{# ─── ONGLET BILAN ──────────────────────────────────────────────────────────── #}
+<div class="tab-pane fade show active" id="bilan">
+    <div class="row g-4">
+
+        {# ACTIF #}
+        <div class="col-12 col-lg-6">
+            <div class="card" style="background:var(--card-bg);border:1px solid var(--border);">
+                <div class="card-header py-2 px-3" style="background:var(--border);border-bottom:1px solid var(--border2);">
+                    <span style="color:var(--green);font-weight:700;font-size:0.85rem;">
+                        <i class="bi bi-arrow-up-circle me-1"></i>ACTIF
+                    </span>
+                    <span class="float-end" style="color:var(--muted);font-size:0.75rem;">Au 31/12/{{ selected_year }}</span>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0" style="color:var(--text);">
+                        <thead>
+                            <tr style="background:var(--border2);font-size:0.72rem;color:var(--muted);">
+                                <th class="px-3 py-2">Compte</th>
+                                <th class="px-3 py-2">Rubrique</th>
+                                <th class="px-3 py-2 text-end">Montant (DT)</th>
+                            </tr>
+                        </thead>
+                        <tbody style="font-size:0.8rem;">
+                            <tr style="background:rgba(0,200,150,0.05);">
+                                <td class="px-3 py-2" colspan="3" style="color:var(--green);font-weight:700;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.05em;">
+                                    A — Actifs non courants
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="px-3 py-1" style="color:var(--muted);font-size:0.72rem;">21x</td>
+                                <td class="px-3 py-1" style="color:var(--muted);">Immobilisations incorporelles (nettes)</td>
+                                <td class="px-3 py-1 text-end" style="color:var(--muted);">0,000</td>
+                            </tr>
+                            <tr>
+                                <td class="px-3 py-1" style="color:var(--muted);font-size:0.72rem;">22x</td>
+                                <td class="px-3 py-1" style="color:var(--muted);">Immobilisations corporelles (nettes)</td>
+                                <td class="px-3 py-1 text-end" style="color:var(--muted);">0,000</td>
+                            </tr>
+                            <tr style="background:var(--border);font-weight:700;">
+                                <td class="px-3 py-2" colspan="2" style="color:var(--green);">TOTAL ACTIFS NON COURANTS</td>
+                                <td class="px-3 py-2 text-end" style="color:var(--green);">{{ "%.3f"|format(total_actif_non_courant) }}</td>
+                            </tr>
+
+                            <tr style="background:rgba(0,200,150,0.05);">
+                                <td class="px-3 py-2" colspan="3" style="color:var(--green);font-weight:700;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.05em;">
+                                    B — Actifs courants
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="px-3 py-1" style="color:var(--muted);font-size:0.72rem;">411</td>
+                                <td class="px-3 py-1">Créances copropriétaires (charges impayées)</td>
+                                <td class="px-3 py-1 text-end" style="color:{% if total_creances > 0 %}#F59E0B{% else %}var(--green){% endif %};">
+                                    {{ "%.3f"|format(total_creances) }}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="px-3 py-1" style="color:var(--muted);font-size:0.72rem;">511</td>
+                                <td class="px-3 py-1">Liquidités et équivalents (Banque/Caisse)</td>
+                                <td class="px-3 py-1 text-end" style="color:var(--green);">{{ "%.3f"|format(liquidites) }}</td>
+                            </tr>
+                            <tr style="background:var(--border);font-weight:700;">
+                                <td class="px-3 py-2" colspan="2" style="color:var(--green);">TOTAL ACTIFS COURANTS</td>
+                                <td class="px-3 py-2 text-end" style="color:var(--green);">{{ "%.3f"|format(total_actif_courant) }}</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr style="background:var(--green);">
+                                <td class="px-3 py-2" colspan="2" style="color:#000;font-weight:800;">TOTAL ACTIF</td>
+                                <td class="px-3 py-2 text-end" style="color:#000;font-weight:800;">{{ "%.3f"|format(total_actif) }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {# PASSIF #}
+        <div class="col-12 col-lg-6">
+            <div class="card" style="background:var(--card-bg);border:1px solid var(--border);">
+                <div class="card-header py-2 px-3" style="background:var(--border);border-bottom:1px solid var(--border2);">
+                    <span style="color:var(--green);font-weight:700;font-size:0.85rem;">
+                        <i class="bi bi-arrow-down-circle me-1"></i>PASSIF ET CAPITAUX PROPRES
+                    </span>
+                    <span class="float-end" style="color:var(--muted);font-size:0.75rem;">Au 31/12/{{ selected_year }}</span>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0" style="color:var(--text);">
+                        <thead>
+                            <tr style="background:var(--border2);font-size:0.72rem;color:var(--muted);">
+                                <th class="px-3 py-2">Compte</th>
+                                <th class="px-3 py-2">Rubrique</th>
+                                <th class="px-3 py-2 text-end">Montant (DT)</th>
+                            </tr>
+                        </thead>
+                        <tbody style="font-size:0.8rem;">
+                            <tr style="background:rgba(0,200,150,0.05);">
+                                <td class="px-3 py-2" colspan="3" style="color:var(--green);font-weight:700;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.05em;">
+                                    C — Capitaux propres
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="px-3 py-1" style="color:var(--muted);font-size:0.72rem;">106</td>
+                                <td class="px-3 py-1">Fonds de roulement courant</td>
+                                <td class="px-3 py-1 text-end">{{ "%.3f"|format(fonds_roulement_courant) }}</td>
+                            </tr>
+                            <tr>
+                                <td class="px-3 py-1" style="color:var(--muted);font-size:0.72rem;">11x</td>
+                                <td class="px-3 py-1">Résultats reportés (exercices antérieurs)</td>
+                                <td class="px-3 py-1 text-end" style="color:{% if resultats_reportes >= 0 %}var(--green){% else %}#EF4444{% endif %};">
+                                    {{ "%+.3f"|format(resultats_reportes) }}
+                                </td>
+                            </tr>
+                            <tr style="font-weight:700;">
+                                <td class="px-3 py-1" style="color:var(--muted);font-size:0.72rem;">12x</td>
+                                <td class="px-3 py-1">Résultat de l'exercice {{ selected_year }}</td>
+                                <td class="px-3 py-1 text-end" style="color:{% if resultat_exercice >= 0 %}var(--green){% else %}#EF4444{% endif %};">
+                                    {{ "%+.3f"|format(resultat_exercice) }}
+                                </td>
+                            </tr>
+                            <tr style="background:var(--border);font-weight:700;">
+                                <td class="px-3 py-2" colspan="2" style="color:var(--green);">TOTAL CAPITAUX PROPRES</td>
+                                <td class="px-3 py-2 text-end" style="color:{% if total_capitaux_propres >= 0 %}var(--green){% else %}#EF4444{% endif %};">
+                                    {{ "%.3f"|format(total_capitaux_propres) }}
+                                </td>
+                            </tr>
+
+                            <tr style="background:rgba(0,200,150,0.05);">
+                                <td class="px-3 py-2" colspan="3" style="color:var(--green);font-weight:700;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.05em;">
+                                    D — Passifs non courants
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="px-3 py-1" style="color:var(--muted);font-size:0.72rem;">16x</td>
+                                <td class="px-3 py-1" style="color:var(--muted);">Emprunts et dettes financières long terme</td>
+                                <td class="px-3 py-1 text-end" style="color:var(--muted);">0,000</td>
+                            </tr>
+                            <tr style="background:var(--border);font-weight:700;">
+                                <td class="px-3 py-2" colspan="2" style="color:var(--green);">TOTAL PASSIFS NON COURANTS</td>
+                                <td class="px-3 py-2 text-end" style="color:var(--green);">0,000</td>
+                            </tr>
+
+                            <tr style="background:rgba(0,200,150,0.05);">
+                                <td class="px-3 py-2" colspan="3" style="color:var(--green);font-weight:700;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.05em;">
+                                    E — Passifs courants
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="px-3 py-1" style="color:var(--muted);font-size:0.72rem;">401</td>
+                                <td class="px-3 py-1" style="color:var(--muted);">Fournisseurs et comptes rattachés</td>
+                                <td class="px-3 py-1 text-end" style="color:var(--muted);">0,000</td>
+                            </tr>
+                            <tr>
+                                <td class="px-3 py-1" style="color:var(--muted);font-size:0.72rem;">419</td>
+                                <td class="px-3 py-1">Trop-perçus copropriétaires (avances)</td>
+                                <td class="px-3 py-1 text-end" style="color:{% if total_trop_percus > 0 %}#F59E0B{% else %}var(--muted){% endif %};">
+                                    {{ "%.3f"|format(total_trop_percus) }}
+                                </td>
+                            </tr>
+                            {% if decouvert > 0 %}
+                            <tr>
+                                <td class="px-3 py-1" style="color:var(--muted);font-size:0.72rem;">56x</td>
+                                <td class="px-3 py-1" style="color:#EF4444;">Concours bancaires / Découvert</td>
+                                <td class="px-3 py-1 text-end" style="color:#EF4444;">{{ "%.3f"|format(decouvert) }}</td>
+                            </tr>
+                            {% endif %}
+                            <tr style="background:var(--border);font-weight:700;">
+                                <td class="px-3 py-2" colspan="2" style="color:var(--green);">TOTAL PASSIFS COURANTS</td>
+                                <td class="px-3 py-2 text-end" style="color:var(--green);">{{ "%.3f"|format(total_passif_courant) }}</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr style="background:var(--green);">
+                                <td class="px-3 py-2" colspan="2" style="color:#000;font-weight:800;">TOTAL PASSIF</td>
+                                <td class="px-3 py-2 text-end" style="color:#000;font-weight:800;">{{ "%.3f"|format(total_passif) }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Vérification équilibre #}
+    {% set ecart = total_actif - total_passif %}
+    <div class="mt-3 p-3 rounded" style="background:{% if ecart|abs < 0.01 %}rgba(0,200,150,0.1);border:1px solid var(--green){% else %}rgba(239,68,68,0.1);border:1px solid #EF4444{% endif %};">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-{% if ecart|abs < 0.01 %}check-circle-fill{% else %}exclamation-triangle-fill{% endif %}"
+               style="color:{% if ecart|abs < 0.01 %}var(--green){% else %}#EF4444{% endif %};"></i>
+            <span style="font-size:0.82rem;font-weight:600;color:{% if ecart|abs < 0.01 %}var(--green){% else %}#EF4444{% endif %};">
+                {% if ecart|abs < 0.01 %}
+                    Bilan équilibré — Total Actif = Total Passif ({{ "%.3f"|format(total_actif) }} DT)
+                {% else %}
+                    Écart d'équilibre : {{ "%.3f"|format(ecart) }} DT — vérifier les données
+                {% endif %}
+            </span>
+        </div>
+    </div>
+
+    <p class="mt-3" style="color:var(--muted);font-size:0.75rem;">
+        <i class="bi bi-info-circle me-1"></i>
+        Référentiel : SCE — Loi n° 96-112 du 30/12/1996 &amp; Décret n° 96-2459. Plan comptable classes 1–7. NCT 01 (Norme comptable générale).
+    </p>
+</div>
+
+{# ─── ONGLET ÉTAT DE RÉSULTAT ───────────────────────────────────────────────── #}
+<div class="tab-pane fade" id="resultat">
+    <div class="row g-4">
+        <div class="col-12 col-lg-7">
+            <div class="card" style="background:var(--card-bg);border:1px solid var(--border);">
+                <div class="card-header py-2 px-3" style="background:var(--border);">
+                    <span style="color:var(--green);font-weight:700;font-size:0.85rem;">
+                        <i class="bi bi-graph-up me-1"></i>ÉTAT DE RÉSULTAT — Exercice {{ selected_year }}
+                    </span>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0" style="color:var(--text);">
+                        <thead>
+                            <tr style="background:var(--border2);font-size:0.72rem;color:var(--muted);">
+                                <th class="px-3 py-2">Compte</th>
+                                <th class="px-3 py-2">Rubrique</th>
+                                <th class="px-3 py-2 text-end">Montant (DT)</th>
+                            </tr>
+                        </thead>
+                        <tbody style="font-size:0.8rem;">
+                            <tr style="background:rgba(0,200,150,0.05);">
+                                <td class="px-3 py-2" colspan="3" style="color:var(--green);font-weight:700;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.05em;">
+                                    PRODUITS D'EXPLOITATION
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="px-3 py-1" style="color:var(--muted);font-size:0.72rem;">706</td>
+                                <td class="px-3 py-1">Cotisations / charges communes encaissées</td>
+                                <td class="px-3 py-1 text-end" style="color:var(--green);">{{ "%.3f"|format(cotisations_encaissees) }}</td>
+                            </tr>
+                            <tr>
+                                <td class="px-3 py-1" style="color:var(--muted);font-size:0.72rem;">74x</td>
+                                <td class="px-3 py-1" style="color:var(--muted);">Autres produits d'exploitation</td>
+                                <td class="px-3 py-1 text-end" style="color:var(--muted);">0,000</td>
+                            </tr>
+                            <tr style="background:var(--border);font-weight:700;">
+                                <td class="px-3 py-2" colspan="2" style="color:var(--green);">TOTAL PRODUITS</td>
+                                <td class="px-3 py-2 text-end" style="color:var(--green);">{{ "%.3f"|format(total_produits) }}</td>
+                            </tr>
+
+                            <tr style="background:rgba(239,68,68,0.05);">
+                                <td class="px-3 py-2" colspan="3" style="color:#EF4444;font-weight:700;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.05em;">
+                                    CHARGES D'EXPLOITATION
+                                </td>
+                            </tr>
+                            {% for c in charges_sce %}
+                            <tr>
+                                <td class="px-3 py-1" style="color:var(--muted);font-size:0.72rem;">{{ c.compte }}</td>
+                                <td class="px-3 py-1">{{ c.libelle }}</td>
+                                <td class="px-3 py-1 text-end" style="color:#EF4444;">{{ "%.3f"|format(c.montant) }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td class="px-3 py-2" colspan="3" style="color:var(--muted);font-style:italic;">Aucune charge pour cet exercice</td>
+                            </tr>
+                            {% endfor %}
+                            <tr style="background:var(--border);font-weight:700;">
+                                <td class="px-3 py-2" colspan="2" style="color:#EF4444;">TOTAL CHARGES</td>
+                                <td class="px-3 py-2 text-end" style="color:#EF4444;">{{ "%.3f"|format(total_charges) }}</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr style="background:{% if resultat_net >= 0 %}rgba(0,200,150,0.2){% else %}rgba(239,68,68,0.2){% endif %};">
+                                <td class="px-3 py-3" colspan="2"
+                                    style="color:{% if resultat_net >= 0 %}var(--green){% else %}#EF4444{% endif %};font-weight:800;font-size:0.9rem;">
+                                    {% if resultat_net >= 0 %}EXCÉDENT{% else %}DÉFICIT{% endif %} DE GESTION
+                                </td>
+                                <td class="px-3 py-3 text-end"
+                                    style="color:{% if resultat_net >= 0 %}var(--green){% else %}#EF4444{% endif %};font-weight:800;font-size:0.9rem;">
+                                    {{ "%+.3f"|format(resultat_net) }}
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-5">
+            <div class="card mb-3" style="background:var(--card-bg);border:1px solid var(--border);">
+                <div class="card-header py-2 px-3" style="background:var(--border);">
+                    <span style="color:var(--green);font-weight:700;font-size:0.82rem;">Indicateurs de l'exercice</span>
+                </div>
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span style="color:var(--muted);font-size:0.8rem;">Cotisations appelées théoriques</span>
+                        <span style="font-size:0.8rem;">{{ "%.3f"|format(cotisations_appelees) }} DT</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span style="color:var(--muted);font-size:0.8rem;">Cotisations encaissées réelles</span>
+                        <span style="color:var(--green);font-size:0.8rem;">{{ "%.3f"|format(cotisations_encaissees) }} DT</span>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span style="color:var(--muted);font-size:0.78rem;">Taux de recouvrement</span>
+                            <span style="color:{% if taux_recouvrement >= 80 %}var(--green){% elif taux_recouvrement >= 60 %}#F59E0B{% else %}#EF4444{% endif %};font-size:0.78rem;font-weight:700;">
+                                {{ "%.1f"|format(taux_recouvrement) }} %
+                            </span>
+                        </div>
+                        <div class="progress" style="height:6px;background:var(--border2);">
+                            <div class="progress-bar" style="width:{{ [taux_recouvrement, 100]|min }}%;background:{% if taux_recouvrement >= 80 %}var(--green){% elif taux_recouvrement >= 60 %}#F59E0B{% else %}#EF4444{% endif %};"></div>
+                        </div>
+                    </div>
+                    <hr style="border-color:var(--border);">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span style="color:var(--muted);font-size:0.8rem;">Nb appartements</span>
+                        <span style="font-size:0.8rem;">{{ nb_apartments }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span style="color:var(--muted);font-size:0.8rem;">Charges / Appartement / An</span>
+                        <span style="font-size:0.8rem;">
+                            {% if nb_apartments > 0 %}{{ "%.3f"|format(total_charges / nb_apartments) }} DT{% else %}—{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            {# Répartition des charges #}
+            {% if charges_sce %}
+            <div class="card" style="background:var(--card-bg);border:1px solid var(--border);">
+                <div class="card-header py-2 px-3" style="background:var(--border);">
+                    <span style="color:var(--green);font-weight:700;font-size:0.82rem;">Répartition des charges</span>
+                </div>
+                <div class="card-body p-3">
+                    <canvas id="chargesChart" height="180"></canvas>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{# ─── ONGLET FLUX DE TRÉSORERIE ─────────────────────────────────────────────── #}
+<div class="tab-pane fade" id="flux">
+    <div class="card mb-4" style="background:var(--card-bg);border:1px solid var(--border);">
+        <div class="card-header py-2 px-3" style="background:var(--border);">
+            <span style="color:var(--green);font-weight:700;font-size:0.85rem;">
+                <i class="bi bi-arrow-left-right me-1"></i>TABLEAU DE FLUX DE TRÉSORERIE — Exercice {{ selected_year }}
+            </span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm mb-0" style="color:var(--text);">
+                    <thead>
+                        <tr style="background:var(--border2);font-size:0.72rem;color:var(--muted);">
+                            <th class="px-3 py-2">Mois</th>
+                            <th class="px-3 py-2 text-end">Encaissements</th>
+                            <th class="px-3 py-2 text-end">Décaissements</th>
+                            <th class="px-3 py-2 text-end">Flux net</th>
+                            <th class="px-3 py-2 text-end">Cumul</th>
+                        </tr>
+                    </thead>
+                    <tbody style="font-size:0.8rem;">
+                        {% set total_enc = namespace(v=0) %}
+                        {% set total_dec = namespace(v=0) %}
+                        {% for f in flux_mensuel %}
+                        {% set total_enc.v = total_enc.v + f.encaissements %}
+                        {% set total_dec.v = total_dec.v + f.decaissements %}
+                        <tr style="{% if loop.index % 2 == 0 %}background:rgba(31,41,55,0.5);{% endif %}">
+                            <td class="px-3 py-2">{{ f.mois_label }} {{ selected_year }}</td>
+                            <td class="px-3 py-2 text-end" style="color:var(--green);">{{ "%.3f"|format(f.encaissements) }}</td>
+                            <td class="px-3 py-2 text-end" style="color:#EF4444;">{{ "%.3f"|format(f.decaissements) }}</td>
+                            <td class="px-3 py-2 text-end" style="color:{% if f.flux_net >= 0 %}var(--green){% else %}#EF4444{% endif %};font-weight:{% if f.flux_net != 0 %}700{% else %}400{% endif %};">
+                                {{ "%+.3f"|format(f.flux_net) }}
+                            </td>
+                            <td class="px-3 py-2 text-end" style="color:{% if f.cumul >= 0 %}var(--green){% else %}#EF4444{% endif %};">
+                                {{ "%.3f"|format(f.cumul) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr style="background:var(--green);">
+                            <td class="px-3 py-2" style="color:#000;font-weight:800;">TOTAL {{ selected_year }}</td>
+                            <td class="px-3 py-2 text-end" style="color:#000;font-weight:800;">{{ "%.3f"|format(total_enc.v) }}</td>
+                            <td class="px-3 py-2 text-end" style="color:#000;font-weight:800;">{{ "%.3f"|format(total_dec.v) }}</td>
+                            <td class="px-3 py-2 text-end" style="color:#000;font-weight:800;">{{ "%+.3f"|format(total_enc.v - total_dec.v) }}</td>
+                            <td class="px-3 py-2 text-end" style="color:#000;font-weight:800;">{{ "%.3f"|format(total_enc.v - total_dec.v) }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="background:var(--card-bg);border:1px solid var(--border);">
+        <div class="card-body p-3">
+            <canvas id="fluxChart" height="100"></canvas>
+        </div>
+    </div>
+</div>
+
+{# ─── ONGLET ANNEXES ────────────────────────────────────────────────────────── #}
+<div class="tab-pane fade" id="annexes">
+    <div class="row g-4">
+        {# Détail créances #}
+        <div class="col-12 col-lg-6">
+            <div class="card" style="background:var(--card-bg);border:1px solid var(--border);">
+                <div class="card-header py-2 px-3" style="background:var(--border);">
+                    <span style="color:#F59E0B;font-weight:700;font-size:0.82rem;">
+                        <i class="bi bi-exclamation-triangle me-1"></i>Annexe 1 — Créances copropriétaires (Compte 411)
+                    </span>
+                </div>
+                <div class="card-body p-0">
+                    {% if creances_detail %}
+                    <table class="table table-sm mb-0" style="color:var(--text);font-size:0.78rem;">
+                        <thead>
+                            <tr style="background:var(--border2);color:var(--muted);">
+                                <th class="px-3 py-2">Appartement</th>
+                                <th class="px-3 py-2">Résident</th>
+                                <th class="px-3 py-2 text-end">Montant dû</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in creances_detail %}
+                            <tr>
+                                <td class="px-3 py-1">{{ c.apt }}</td>
+                                <td class="px-3 py-1" style="color:var(--muted);">{{ c.resident }}</td>
+                                <td class="px-3 py-1 text-end" style="color:#F59E0B;font-weight:700;">{{ "%.3f"|format(c.montant) }} DT</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr style="background:var(--border);font-weight:700;">
+                                <td class="px-3 py-2" colspan="2" style="color:#F59E0B;">TOTAL CRÉANCES</td>
+                                <td class="px-3 py-2 text-end" style="color:#F59E0B;">{{ "%.3f"|format(total_creances) }} DT</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    {% else %}
+                    <div class="p-4 text-center" style="color:var(--green);">
+                        <i class="bi bi-check-circle fs-2 mb-2 d-block"></i>
+                        Aucune créance — tous les copropriétaires sont à jour
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {# Détail trop-perçus #}
+        <div class="col-12 col-lg-6">
+            <div class="card" style="background:var(--card-bg);border:1px solid var(--border);">
+                <div class="card-header py-2 px-3" style="background:var(--border);">
+                    <span style="color:var(--green);font-weight:700;font-size:0.82rem;">
+                        <i class="bi bi-plus-circle me-1"></i>Annexe 2 — Trop-perçus copropriétaires (Compte 419)
+                    </span>
+                </div>
+                <div class="card-body p-0">
+                    {% if trop_percus_detail %}
+                    <table class="table table-sm mb-0" style="color:var(--text);font-size:0.78rem;">
+                        <thead>
+                            <tr style="background:var(--border2);color:var(--muted);">
+                                <th class="px-3 py-2">Appartement</th>
+                                <th class="px-3 py-2">Résident</th>
+                                <th class="px-3 py-2 text-end">Crédit disponible</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in trop_percus_detail %}
+                            <tr>
+                                <td class="px-3 py-1">{{ t.apt }}</td>
+                                <td class="px-3 py-1" style="color:var(--muted);">{{ t.resident }}</td>
+                                <td class="px-3 py-1 text-end" style="color:var(--green);">{{ "%.3f"|format(t.montant) }} DT</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr style="background:var(--border);font-weight:700;">
+                                <td class="px-3 py-2" colspan="2" style="color:var(--green);">TOTAL TROP-PERÇUS</td>
+                                <td class="px-3 py-2 text-end" style="color:var(--green);">{{ "%.3f"|format(total_trop_percus) }} DT</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    {% else %}
+                    <div class="p-4 text-center" style="color:var(--muted);">
+                        <i class="bi bi-dash-circle fs-2 mb-2 d-block"></i>
+                        Aucun trop-perçu enregistré
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {# Note de référentiel comptable #}
+        <div class="col-12">
+            <div class="card" style="background:var(--card-bg);border:1px solid var(--border);">
+                <div class="card-header py-2 px-3" style="background:var(--border);">
+                    <span style="color:var(--green);font-weight:700;font-size:0.82rem;">
+                        <i class="bi bi-book me-1"></i>Note de référentiel — Conformité SCE Tunisie
+                    </span>
+                </div>
+                <div class="card-body p-3" style="font-size:0.8rem;color:var(--muted);line-height:1.7;">
+                    <p><strong style="color:var(--text);">Base légale :</strong>
+                    Système Comptable des Entreprises (SCE), instauré par la <strong style="color:var(--text);">Loi n° 96-112 du 30 décembre 1996</strong>
+                    et son Décret d'application n° 96-2459 portant approbation du cadre conceptuel de la comptabilité.</p>
+                    <p><strong style="color:var(--text);">Normes appliquées :</strong> NCT 01 (Norme comptable générale),
+                    Plan comptable classes 1 à 7 conforme au référentiel tunisien.</p>
+                    <p><strong style="color:var(--text);">Principes respectés :</strong>
+                    Partie double (Total Actif = Total Passif), prudence, permanence des méthodes,
+                    spécialisation des exercices, continuité d'exploitation.</p>
+                    <p><strong style="color:var(--text);">Comptes principaux utilisés :</strong>
+                    106 (Fonds de roulement), 11x (Résultats reportés), 12x (Résultat exercice),
+                    411 (Créances copropriétaires), 419 (Trop-perçus), 511 (Banque),
+                    606–641 (Charges), 706 (Cotisations).</p>
+                    <p class="mb-0" style="color:var(--muted);font-style:italic;">
+                        <i class="bi bi-exclamation-circle me-1"></i>
+                        Ces états financiers sont produits automatiquement à des fins de gestion interne.
+                        Pour une comptabilité certifiée, consultez un Expert-Comptable agréé membre de l'OECT
+                        (Ordre des Experts Comptables de Tunisie — <em>oect.org.tn</em>).
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>{# fin tab-content #}
+
+<script>
+// Activation des onglets Bootstrap
+document.querySelectorAll('[data-bs-toggle="tab"]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('[data-bs-toggle="tab"]').forEach(b => {
+            b.classList.remove('active');
+            b.style.color = 'var(--muted)';
+            b.style.borderColor = 'transparent';
+            b.style.background = 'transparent';
+        });
+        this.classList.add('active');
+        this.style.color = 'var(--green)';
+        this.style.borderColor = 'var(--green) var(--green) var(--card-bg)';
+        this.style.background = 'var(--card-bg)';
+        const target = document.querySelector(this.dataset.bsTarget);
+        document.querySelectorAll('.tab-pane').forEach(p => {
+            p.classList.remove('show', 'active');
+        });
+        target.classList.add('show', 'active');
+        if (this.dataset.bsTarget === '#flux') renderFluxChart();
+        if (this.dataset.bsTarget === '#resultat') renderChargesChart();
+    });
+});
+
+// Activer le premier onglet
+document.querySelector('[data-bs-toggle="tab"]').dispatchEvent(new Event('click'));
+
+// ── Graphique Répartition des charges ──────────────────────────────────────
+function renderChargesChart() {
+    const ctx = document.getElementById('chargesChart');
+    if (!ctx || ctx.dataset.rendered) return;
+    ctx.dataset.rendered = '1';
+    const labels = [{% for c in charges_sce %}"{{ c.libelle|truncate(25, true, '...') }}"{% if not loop.last %},{% endif %}{% endfor %}];
+    const values = [{% for c in charges_sce %}{{ c.montant }}{% if not loop.last %},{% endif %}{% endfor %}];
+    const colors = ['#00C896','#0EA5E9','#F59E0B','#EF4444','#8B5CF6','#EC4899','#14B8A6','#F97316'];
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{ data: values, backgroundColor: colors.slice(0, values.length), borderWidth: 0 }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#9CA3AF', font: { size: 10 }, boxWidth: 12 } },
+                tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.raw.toFixed(3)} DT` } }
+            }
+        }
+    });
+}
+
+// ── Graphique Flux de trésorerie ────────────────────────────────────────────
+function renderFluxChart() {
+    const ctx = document.getElementById('fluxChart');
+    if (!ctx || ctx.dataset.rendered) return;
+    ctx.dataset.rendered = '1';
+    const labels = [{% for f in flux_mensuel %}"{{ f.mois_label }}"{% if not loop.last %},{% endif %}{% endfor %}];
+    const encaissements = [{% for f in flux_mensuel %}{{ f.encaissements }}{% if not loop.last %},{% endif %}{% endfor %}];
+    const decaissements = [{% for f in flux_mensuel %}{{ f.decaissements }}{% if not loop.last %},{% endif %}{% endfor %}];
+    const cumul = [{% for f in flux_mensuel %}{{ f.cumul }}{% if not loop.last %},{% endif %}{% endfor %}];
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                { label: 'Encaissements', data: encaissements, backgroundColor: 'rgba(0,200,150,0.7)', borderRadius: 4 },
+                { label: 'Décaissements', data: decaissements, backgroundColor: 'rgba(239,68,68,0.7)', borderRadius: 4 },
+                { label: 'Cumul', data: cumul, type: 'line', borderColor: '#F59E0B', backgroundColor: 'transparent',
+                  borderWidth: 2, pointRadius: 3, tension: 0.4, yAxisID: 'y1' }
+            ]
+        },
+        options: {
+            responsive: true,
+            interaction: { mode: 'index' },
+            scales: {
+                x: { ticks: { color: '#9CA3AF', font: { size: 10 } }, grid: { color: 'rgba(31,41,55,0.8)' } },
+                y: { ticks: { color: '#9CA3AF', font: { size: 10 } }, grid: { color: 'rgba(31,41,55,0.8)' } },
+                y1: { position: 'right', ticks: { color: '#F59E0B', font: { size: 10 } }, grid: { drawOnChartArea: false } }
+            },
+            plugins: {
+                legend: { labels: { color: '#9CA3AF', font: { size: 10 } } },
+                tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${ctx.raw.toFixed(3)} DT` } }
+            }
+        }
+    });
+}
+</script>
+{% endblock %}
