@@ -1,4 +1,5 @@
-from flask import render_template, request, redirect, url_for, flash, jsonify
+from flask import render_template, request, redirect, url_for, flash, jsonify, send_file
+import io
 from core import app, db
 from models import Apartment, Payment, User
 from utils import (current_user, current_organization, login_required,
@@ -173,6 +174,99 @@ def edit_payment(payment_id):
         flash('Encaissement modifié', 'success')
         return redirect(url_for('payments'))
     return render_template('edit_payment.html', payment=p, apartments=apartments, user=current_user())
+
+
+@app.route('/payment/<int:payment_id>/recu.pdf')
+@login_required
+@subscription_required
+def payment_receipt(payment_id):
+    """Reçu PDF d'un paiement — accessible par le résident concerné et les admins."""
+    from fpdf import FPDF
+    org = current_organization()
+    user = current_user()
+    p = Payment.query.filter_by(id=payment_id, organization_id=org.id).first_or_404()
+    # Sécurité : résident ne peut télécharger que ses propres reçus
+    if user.role == 'resident' and p.apartment_id != user.apartment_id:
+        flash('Accès non autorisé.', 'danger')
+        from flask import redirect
+        return redirect(url_for('residents_menu'))
+
+    apt = p.apartment
+    resident = apt.residents[0] if apt.residents else None
+
+    def _s(t):
+        if not t: return ''
+        return (str(t)
+            .replace('\u2014', '-').replace('\u2013', '-')
+            .replace('\u2019', "'").replace('\u2018', "'")
+            .encode('latin-1', errors='replace').decode('latin-1'))
+
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
+
+    # En-tête
+    pdf.set_fill_color(10, 14, 26)
+    pdf.rect(0, 0, 210, 297, 'F')
+    pdf.set_fill_color(17, 24, 39)
+    pdf.rect(0, 0, 210, 35, 'F')
+    pdf.set_xy(0, 6)
+    pdf.set_text_color(0, 200, 150)
+    pdf.set_font('Helvetica', 'B', 20)
+    pdf.cell(0, 10, 'SyndicPro', ln=True, align='C')
+    pdf.set_font('Helvetica', '', 10)
+    pdf.set_text_color(156, 163, 175)
+    pdf.cell(0, 5, _s(org.name), ln=True, align='C')
+    pdf.ln(8)
+
+    # Titre reçu
+    pdf.set_fill_color(0, 200, 150)
+    pdf.set_text_color(10, 14, 26)
+    pdf.set_font('Helvetica', 'B', 13)
+    pdf.cell(0, 10, f'  RECU DE PAIEMENT  N° {p.id:05d}', ln=True, fill=True)
+    pdf.ln(6)
+
+    def line(label, value, accent=False):
+        pdf.set_font('Helvetica', 'B', 9)
+        pdf.set_text_color(156, 163, 175)
+        pdf.cell(60, 7, _s(label))
+        pdf.set_font('Helvetica', '', 9)
+        pdf.set_text_color(0, 200, 150) if accent else pdf.set_text_color(249, 250, 251)
+        pdf.cell(0, 7, _s(str(value)), ln=True)
+        pdf.set_text_color(249, 250, 251)
+
+    line('Appartement :', f"{apt.block.name}-{apt.number}")
+    line('Resident :', resident.name if resident else '-')
+    line('Mois paye :', p.month_paid)
+    line('Date de paiement :', p.payment_date.strftime('%d/%m/%Y'))
+    if p.description:
+        line('Description :', p.description)
+    pdf.ln(4)
+    pdf.set_draw_color(55, 65, 81)
+    pdf.set_line_width(0.3)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(4)
+
+    # Montant
+    pdf.set_fill_color(17, 74, 57)
+    pdf.set_text_color(0, 200, 150)
+    pdf.set_font('Helvetica', 'B', 14)
+    pdf.cell(0, 12, f'  MONTANT PAYE : {p.amount:.3f} DT', ln=True, fill=True)
+    if p.credit_used and p.credit_used > 0:
+        pdf.set_font('Helvetica', '', 8)
+        pdf.set_text_color(156, 163, 175)
+        pdf.cell(0, 5, f'  (dont {p.credit_used:.3f} DT de credit reporte)', ln=True)
+
+    pdf.ln(10)
+    pdf.set_font('Helvetica', 'I', 7)
+    pdf.set_text_color(156, 163, 175)
+    pdf.cell(0, 4, _s(f'Document genere le {datetime.now().strftime("%d/%m/%Y")} - SyndicPro, {org.name}'), ln=True, align='C')
+    pdf.cell(0, 4, 'Ce recu est emis par le syndic de copropriete et vaut justificatif de paiement.', ln=True, align='C')
+
+    buf = io.BytesIO(pdf.output())
+    buf.seek(0)
+    filename = f"Recu_{apt.block.name}{apt.number}_{p.month_paid}.pdf"
+    return send_file(buf, mimetype='application/pdf', as_attachment=True, download_name=filename)
 
 
 @app.route('/payment/delete/<int:payment_id>', methods=['POST'])

@@ -18,6 +18,7 @@ import routes.ai
 import routes.automation
 import routes.access
 import routes.financial_statements
+import routes.announcements
 
 
 @app.errorhandler(404)

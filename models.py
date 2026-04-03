@@ -180,6 +180,18 @@ class UnpaidAlert(db.Model):
     apartment = db.relationship('Apartment', backref='alerts')
 
 
+class Announcement(db.Model):
+    """Annonces publiées par l'admin, visibles par les résidents"""
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    pinned = db.Column(db.Boolean, default=False)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    author = db.relationship('User', backref='announcements', lazy=True)
+
+
 class AccessLog(db.Model):
     """Registre des entrées/sorties de la résidence"""
     __tablename__ = 'access_log'
@@ -318,6 +330,26 @@ def init_db():
                 print("Migration PostgreSQL : table konnect_payment vérifiée.")
     except Exception as e:
         print(f"Migration konnect_payment : {e}")
+
+    # Migration : table announcement
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS announcement (
+                        id SERIAL PRIMARY KEY,
+                        organization_id INTEGER REFERENCES organization(id),
+                        title VARCHAR(200) NOT NULL,
+                        body TEXT NOT NULL,
+                        pinned BOOLEAN DEFAULT FALSE,
+                        created_by_id INTEGER REFERENCES "user"(id),
+                        created_at TIMESTAMP DEFAULT NOW()
+                    )
+                """))
+                conn.commit()
+                print("Migration PostgreSQL : table announcement verifiee.")
+    except Exception as e:
+        print(f"Migration announcement : {e}")
 
     if not User.query.filter_by(email='superadmin@syndicpro.tn').first():
         superadmin = User(

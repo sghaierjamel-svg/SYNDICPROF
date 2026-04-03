@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SyndicPro V2 — Documentation complète</title>
+<style>
+  :root {
+    --green: #00C896;
+    --bg: #0A0E1A;
+    --card: #111827;
+    --border: #1F2937;
+    --text: #F9FAFB;
+    --muted: #9CA3AF;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--bg); color: var(--text);
+    line-height: 1.7; padding: 0;
+  }
+  /* SIDEBAR */
+  .sidebar {
+    position: fixed; top: 0; left: 0; width: 260px; height: 100vh;
+    background: var(--card); border-right: 1px solid var(--border);
+    overflow-y: auto; padding: 1.5rem 1rem;
+  }
+  .sidebar-logo {
+    color: var(--green); font-size: 1.4rem; font-weight: 800;
+    letter-spacing: 1px; margin-bottom: 1.5rem; display: block;
+    text-decoration: none;
+  }
+  .sidebar-logo span { font-size: .8rem; color: var(--muted); font-weight: 400; display: block; }
+  .sidebar ul { list-style: none; }
+  .sidebar ul li { margin-bottom: .3rem; }
+  .sidebar ul li a {
+    color: var(--muted); text-decoration: none; font-size: .88rem;
+    display: block; padding: .4rem .75rem; border-radius: 8px;
+    transition: all .2s;
+  }
+  .sidebar ul li a:hover { background: var(--border); color: var(--text); }
+  .sidebar-section {
+    font-size: .7rem; text-transform: uppercase; letter-spacing: .1em;
+    color: #374151; padding: .75rem .5rem .25rem; font-weight: 700;
+  }
+  /* MAIN */
+  .main { margin-left: 260px; padding: 2.5rem 3rem; max-width: 1100px; }
+  h1 { font-size: 2.2rem; color: var(--green); margin-bottom: .5rem; }
+  h1 .sub { font-size: 1rem; color: var(--muted); font-weight: 400; }
+  h2 {
+    font-size: 1.4rem; color: var(--text);
+    border-left: 4px solid var(--green); padding-left: .75rem;
+    margin: 2.5rem 0 1rem;
+  }
+  h3 { font-size: 1.05rem; color: var(--green); margin: 1.5rem 0 .5rem; }
+  p { color: var(--muted); margin-bottom: .75rem; }
+  /* TABLE */
+  table {
+    width: 100%; border-collapse: collapse;
+    margin-bottom: 1.25rem; font-size: .9rem;
+  }
+  thead th {
+    background: var(--border); color: var(--muted);
+    text-transform: uppercase; font-size: .75rem; letter-spacing: .05em;
+    padding: .65rem 1rem; text-align: left;
+  }
+  tbody td {
+    padding: .6rem 1rem; border-bottom: 1px solid var(--border);
+    color: var(--text); vertical-align: top;
+  }
+  tbody tr:hover { background: rgba(255,255,255,.02); }
+  /* BADGE */
+  .badge {
+    display: inline-block; padding: .2rem .6rem; border-radius: 6px;
+    font-size: .75rem; font-weight: 600;
+  }
+  .badge-green  { background: rgba(0,200,150,.15); color: var(--green); }
+  .badge-red    { background: rgba(239,68,68,.15);  color: #f87171; }
+  .badge-yellow { background: rgba(245,158,11,.15); color: #fcd34d; }
+  .badge-blue   { background: rgba(99,102,241,.15); color: #a5b4fc; }
+  .badge-gray   { background: rgba(156,163,175,.15);color: #9CA3AF; }
+  /* CARD */
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem;
+  }
+  .card-title { color: var(--green); font-weight: 700; margin-bottom: .5rem; }
+  /* CODE */
+  code {
+    background: #1F2937; color: #67e8f9;
+    padding: .15rem .45rem; border-radius: 4px; font-size: .85rem;
+  }
+  pre {
+    background: #1F2937; border: 1px solid var(--border);
+    border-radius: 10px; padding: 1rem 1.25rem;
+    overflow-x: auto; margin-bottom: 1rem;
+  }
+  pre code { background: none; padding: 0; color: #a5f3fc; }
+  /* ALERT */
+  .alert {
+    border-radius: 10px; padding: .75rem 1.1rem;
+    margin-bottom: 1rem; font-size: .9rem;
+  }
+  .alert-info    { background: rgba(6,182,212,.1);   border: 1px solid rgba(6,182,212,.3);   color: #67e8f9; }
+  .alert-warning { background: rgba(245,158,11,.1);  border: 1px solid rgba(245,158,11,.3);  color: #fcd34d; }
+  .alert-success { background: rgba(0,200,150,.1);   border: 1px solid rgba(0,200,150,.3);   color: #6ee7b7; }
+  /* DIVIDER */
+  hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+  /* PRINT */
+  @media print {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 1rem; }
+  }
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <a class="sidebar-logo" href="#">SyndicPro <span>V2 — Documentation</span></a>
+  <ul>
+    <li class="sidebar-section">Général</li>
+    <li><a href="#architecture">Architecture</a></li>
+    <li><a href="#modeles">Modèles de données</a></li>
+    <li><a href="#routes">Routes API</a></li>
+
+    <li class="sidebar-section">Fonctionnalités</li>
+    <li><a href="#auth">Authentification</a></li>
+    <li><a href="#copropriete">Copropriété</a></li>
+    <li><a href="#paiements">Encaissements</a></li>
+    <li><a href="#depenses">Dépenses</a></li>
+    <li><a href="#rapports">Rapports & Exports</a></li>
+    <li><a href="#tickets">Tickets support</a></li>
+    <li><a href="#alertes">Alertes impayés</a></li>
+    <li><a href="#konnect">Paiement Konnect</a></li>
+    <li><a href="#whatsapp">WhatsApp</a></li>
+    <li><a href="#ai">Assistant AI</a></li>
+    <li><a href="#automation">Automatisation</a></li>
+    <li><a href="#acces">Registre Accès</a></li>
+    <li><a href="#parametres">Paramètres</a></li>
+    <li><a href="#resident">Espace Résident</a></li>
+    <li><a href="#superadmin">SuperAdmin</a></li>
+
+    <li class="sidebar-section">Technique</li>
+    <li><a href="#securite">Sécurité</a></li>
+    <li><a href="#tests">Tests</a></li>
+    <li><a href="#deploiement">Déploiement</a></li>
+    <li><a href="#variables">Variables d'env.</a></li>
+  </ul>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+  <h1>SyndicPro <span class="sub">— Documentation complète V2 · Avril 2026</span></h1>
+  <p>Application SaaS de gestion de syndic de copropriété, marché tunisien.<br>
+  Site en production : <code>www.syndicpro.tn</code></p>
+
+  <div class="alert alert-info">
+    Cette documentation couvre toutes les fonctionnalités implémentées au 2 avril 2026.
+    Dernière mise à jour : Phase 9 complète.
+  </div>
+
+  <hr>
+
+  <!-- ARCHITECTURE -->
+  <h2 id="architecture">Architecture générale</h2>
+
+  <table>
+    <thead><tr><th>Composant</th><th>Technologie</th><th>Rôle</th></tr></thead>
+    <tbody>
+      <tr><td>Backend</td><td>Flask 3.0 (Python)</td><td>Serveur web, logique métier, API</td></tr>
+      <tr><td>Base de données</td><td>PostgreSQL (Supabase)</td><td>Stockage persistant multi-tenant</td></tr>
+      <tr><td>ORM</td><td>SQLAlchemy 3.1</td><td>Accès base de données</td></tr>
+      <tr><td>Frontend</td><td>Bootstrap 5 + Jinja2</td><td>Interface utilisateur responsive</td></tr>
+      <tr><td>Déploiement</td><td>Render</td><td>Hébergement cloud, auto-deploy</td></tr>
+      <tr><td>Versioning</td><td>GitHub (branche main)</td><td>Push master → deploy automatique</td></tr>
+      <tr><td>Paiements</td><td>Konnect</td><td>Paiements en ligne résidents</td></tr>
+      <tr><td>WhatsApp</td><td>fonnte.com</td><td>Notifications automatiques</td></tr>
+      <tr><td>IA</td><td>Claude Haiku (Anthropic)</td><td>Assistant administrateur</td></tr>
+      <tr><td>PDF</td><td>fpdf2</td><td>Rapport mensuel</td></tr>
+      <tr><td>Excel</td><td>pandas + openpyxl</td><td>Export comptable</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Multi-tenant</h3>
+  <p>Chaque syndic client = 1 enregistrement <code>Organization</code>. Toutes les tables ont un champ
+  <code>organization_id</code> qui isole les données. Un utilisateur ne peut jamais accéder aux données
+  d'une autre organisation.</p>
+
+  <h3>Structure des fichiers</h3>
+  <pre><code>app.py               Point d'entrée (import de tous les modules routes/)
+core.py              Config Flask, DB, limiter
+models.py            Tous les modèles SQLAlchemy + init_db() avec migrations
+utils.py             Helpers : current_user, login_required, calculs impayés
+utils_whatsapp.py    Service WhatsApp (fonnte.com)
+routes/
+  auth.py            Login, logout, register
+  dashboard.py       Tableau de bord + espace résident
+  apartments.py      CRUD appartements
+  payments.py        Encaissements
+  expenses.py        Dépenses
+  reports.py         Trésorerie, comptable, export Excel
+  tickets.py         Tickets support
+  users.py           Gestion utilisateurs + alertes
+  superadmin.py      Dashboard superadmin
+  subscription.py    Statut abonnement
+  profile.py         Changement mot de passe
+  settings.py        Paramètres Konnect + WhatsApp
+  konnect.py         Paiement en ligne Konnect
+  ai.py              Assistant Claude AI
+  automation.py      Relances + PDF
+  access.py          Registre des accès
+templates/           Tous les fichiers HTML (Jinja2)
+tests/               Tests pytest
+requirements.txt     Dépendances Python</code></pre>
+
+  <!-- MODELES -->
+  <h2 id="modeles">Modèles de données</h2>
+
+  <table>
+    <thead><tr><th>Modèle</th><th>Table</th><th>Description</th><th>Champs clés</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>Organization</code></td><td>organization</td>
+        <td>Un syndic client</td>
+        <td>name, slug, email, phone, address, is_active, konnect_api_key, konnect_wallet_id, whatsapp_enabled, whatsapp_token, whatsapp_admin_phone</td>
+      </tr>
+      <tr>
+        <td><code>Subscription</code></td><td>subscription</td>
+        <td>Abonnement de l'organisation</td>
+        <td>plan (trial/starter/pro/enterprise), status, start_date, end_date, monthly_price, max_apartments</td>
+      </tr>
+      <tr>
+        <td><code>User</code></td><td>user</td>
+        <td>Utilisateur (admin, résident, superadmin)</td>
+        <td>email, name, password_hash, role, phone, apartment_id, organization_id</td>
+      </tr>
+      <tr>
+        <td><code>Block</code></td><td>block</td>
+        <td>Bloc de la résidence (A, B, C…)</td>
+        <td>name, organization_id</td>
+      </tr>
+      <tr>
+        <td><code>Apartment</code></td><td>apartment</td>
+        <td>Appartement</td>
+        <td>number, block_id, monthly_fee, credit_balance, organization_id</td>
+      </tr>
+      <tr>
+        <td><code>Payment</code></td><td>payment</td>
+        <td>Encaissement enregistré</td>
+        <td>apartment_id, amount, payment_date, month_paid, description, credit_used</td>
+      </tr>
+      <tr>
+        <td><code>Expense</code></td><td>expense</td>
+        <td>Dépense de la résidence</td>
+        <td>amount, expense_date, category, description</td>
+      </tr>
+      <tr>
+        <td><code>Ticket</code></td><td>ticket</td>
+        <td>Ticket support résident</td>
+        <td>subject, message, status, priority, admin_response, user_id, apartment_id</td>
+      </tr>
+      <tr>
+        <td><code>UnpaidAlert</code></td><td>unpaid_alert</td>
+        <td>Alerte impayé générée</td>
+        <td>apartment_id, months_unpaid, alert_date, email_sent</td>
+      </tr>
+      <tr>
+        <td><code>KonnectPayment</code></td><td>konnect_payment</td>
+        <td>Lien de paiement en ligne</td>
+        <td>apartment_id, month_target, amount, konnect_payment_ref, pay_url, status, created_by, paid_at</td>
+      </tr>
+      <tr>
+        <td><code>AccessLog</code></td><td>access_log</td>
+        <td>Registre entrées/sorties</td>
+        <td>visitor_name, apartment_id, direction, reason, logged_at, logged_by</td>
+      </tr>
+      <tr>
+        <td><code>SuperAdminSettings</code></td><td>super_admin_settings</td>
+        <td>Paramètres globaux Konnect SyndicPro</td>
+        <td>konnect_api_key, konnect_wallet_id</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ROUTES -->
+  <h2 id="routes">Toutes les routes</h2>
+
+  <table>
+    <thead><tr><th>Méthode</th><th>Route</th><th>Rôle requis</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-blue">GET</span></td><td><code>/</code></td><td>Public</td><td>Page d'accueil / redirection</td></tr>
+      <tr><td><span class="badge badge-blue">GET POST</span></td><td><code>/login</code></td><td>Public</td><td>Connexion</td></tr>
+      <tr><td><span class="badge badge-blue">GET</span></td><td><code>/logout</code></td><td>Connecté</td><td>Déconnexion</td></tr>
+      <tr><td><span class="badge badge-blue">GET POST</span></td><td><code>/register</code></td><td>Public</td><td>Inscription (crée org + admin + essai)</td></tr>
+      <tr><td><span class="badge badge-blue">GET</span></td><td><code>/dashboard</code></td><td>Connecté</td><td>Tableau de bord principal</td></tr>
+      <tr><td><span class="badge badge-blue">GET</span></td><td><code>/residents</code></td><td>Connecté</td><td>Espace résident</td></tr>
+      <tr><td><span class="badge badge-blue">GET POST</span></td><td><code>/apartments</code></td><td>Admin</td><td>Liste + création appartements</td></tr>
+      <tr><td><span class="badge badge-blue">GET POST</span></td><td><code>/apartment/edit/&lt;id&gt;</code></td><td>Admin</td><td>Modifier appartement</td></tr>
+      <tr><td><span class="badge badge-red">POST</span></td><td><code>/apartment/delete/&lt;id&gt;</code></td><td>Admin</td><td>Supprimer appartement</td></tr>
+      <tr><td><span class="badge badge-blue">GET POST</span></td><td><code>/payments</code></td><td>Admin</td><td>Encaissements + formulaire ajout</td></tr>
+      <tr><td><span class="badge badge-blue">GET POST</span></td><td><code>/payment/edit/&lt;id&gt;</code></td><td>Admin</td><td>Modifier encaissement</td></tr>
+      <tr><td><span class="badge badge-red">POST</span></td><td><code>/payment/delete/&lt;id&gt;</code></td><td>Admin</td><td>Supprimer encaissement</td></tr>
+      <tr><td><span class="badge badge-blue">GET POST</span></td><td><code>/expenses</code></td><td>Admin</td><td>Dépenses + formulaire ajout</td></tr>
+      <tr><td><span class="badge badge-blue">GET POST</span></td><td><code>/expense/edit/&lt;id&gt;</code></td><td>Admin</td><td>Modifier dépense</td></tr>
+      <tr><td><span class="badge badge-red">POST</span></td><td><code>/expense/delete/&lt;id&gt;</code></td><td>Admin</td><td>Supprimer dépense</td></tr>
+      <tr><td><span class="badge badge-blue">GET POST</span></td><td><code>/users</code></td><td>Admin</td><td>Gestion utilisateurs</td></tr>
+      <tr><td><span class="badge badge-red">POST</span></td><td><code>/user/delete/&lt;id&gt;</code></td><td>Admin</td><td>Supprimer utilisateur</td></tr>
+      <tr><td><span class="badge badge-blue">GET POST</span></td><td><code>/tickets</code></td><td>Connecté</td><td>Liste + création tickets</td></tr>
+      <tr><td><span class="badge badge-blue">GET POST</span></td><td><code>/ticket/&lt;id&gt;</code></td><td>Connecté</td><td>Détail + réponse admin</td></tr>
+      <tr><td><span class="badge badge-red">POST</span></td><td><code>/ticket/delete/&lt;id&gt;</code></td><td>Admin</td><td>Supprimer ticket</td></tr>
+      <tr><td><span class="badge badge-blue">GET</span></td><td><code>/alerts</code></td><td>Admin</td><td>Alertes impayés</td></tr>
+      <tr><td><span class="badge badge-red">POST</span></td><td><code>/alert/mark_sent/&lt;id&gt;</code></td><td>Admin</td><td>Marquer alerte envoyée</td></tr>
+      <tr><td><span class="badge badge-blue">GET</span></td><td><code>/tresorerie</code></td><td>Admin</td><td>Rapport trésorerie mensuel</td></tr>
+      <tr><td><span class="badge badge-blue">GET</span></td><td><code>/comptable</code></td><td>Admin</td><td>Vue comptable</td></tr>
+      <tr><td><span class="badge badge-blue">GET</span></td><td><code>/export_excel</code></td><td>Admin</td><td>Télécharger Excel</td></tr>
+      <tr><td><span class="badge badge-blue">GET POST</span></td><td><code>/settings</code></td><td>Admin</td><td>Paramètres Konnect + WhatsApp</td></tr>
+      <tr><td><span class="badge badge-blue">GET</span></td><td><code>/settings/test-konnect</code></td><td>Admin</td><td>Test connexion Konnect (JSON)</td></tr>
+      <tr><td><span class="badge badge-blue">GET</span></td><td><code>/settings/test-whatsapp</code></td><td>Admin</td><td>Test envoi WhatsApp (JSON)</td></tr>
+      <tr><td><span class="badge badge-blue">GET</span></td><td><code>/subscription</code></td><td>Admin</td><td>Statut abonnement</td></tr>
+      <tr><td><span class="badge badge-blue">GET POST</span></td><td><code>/profile/change-password</code></td><td>Connecté</td><td>Changer son mot de passe</td></tr>
+      <tr><td><span class="badge badge-red">POST</span></td><td><code>/konnect/pay</code></td><td>Résident</td><td>Initier paiement en ligne</td></tr>
+      <tr><td><span class="badge badge-blue">GET</span></td><td><code>/konnect/success</code></td><td>Public</td><td>Callback succès Konnect</td></tr>
+      <tr><td><span class="badge badge-blue">GET</span></td><td><code>/konnect/fail</code></td><td>Public</td><td>Callback échec Konnect</td></tr>
+      <tr><td><span class="badge badge-red">POST</span></td><td><code>/konnect/admin/generate-link</code></td><td>Admin</td><td>Générer lien partager (JSON)</td></tr>
+      <tr><td><span class="badge badge-blue">GET</span></td><td><code>/konnect/links</code></td><td>Admin</td><td>Historique liens Konnect</td></tr>
+      <tr><td><span class="badge badge-blue">GET</span></td><td><code>/ai</code></td><td>Admin</td><td>Page assistant IA</td></tr>
+      <tr><td><span class="badge badge-red">POST</span></td><td><code>/ai/chat</code></td><td>Admin</td><td>Envoyer message à Claude (JSON)</td></tr>
+      <tr><td><span class="badge badge-blue">GET</span></td><td><code>/automation</code></td><td>Admin</td><td>Tableau de bord automatisation</td></tr>
+      <tr><td><span class="badge badge-red">POST</span></td><td><code>/automation/send-reminders</code></td><td>Admin</td><td>Envoyer relances WhatsApp</td></tr>
+      <tr><td><span class="badge badge-blue">GET</span></td><td><code>/automation/pdf-report</code></td><td>Admin</td><td>Télécharger rapport PDF</td></tr>
+      <tr><td><span class="badge badge-blue">GET POST</span></td><td><code>/access</code></td><td>Admin</td><td>Registre accès résidence</td></tr>
+      <tr><td><span class="badge badge-red">POST</span></td><td><code>/access/delete/&lt;id&gt;</code></td><td>Admin</td><td>Supprimer entrée accès</td></tr>
+      <tr><td><span class="badge badge-blue">GET</span></td><td><code>/api/next_unpaid/&lt;apt_id&gt;</code></td><td>Connecté</td><td>Prochain mois impayé (JSON)</td></tr>
+      <tr><td><span class="badge badge-blue">GET</span></td><td><code>/api/dashboard_data</code></td><td>Connecté</td><td>Données graphique 12 mois (JSON)</td></tr>
+      <tr><td><span class="badge badge-blue">GET</span></td><td><code>/superadmin</code></td><td>SuperAdmin</td><td>Dashboard toutes les organisations</td></tr>
+      <tr><td><span class="badge badge-blue">GET</span></td><td><code>/superadmin/organization/&lt;id&gt;</code></td><td>SuperAdmin</td><td>Détail organisation</td></tr>
+      <tr><td><span class="badge badge-red">POST</span></td><td><code>/superadmin/organization/&lt;id&gt;/toggle</code></td><td>SuperAdmin</td><td>Activer / désactiver</td></tr>
+      <tr><td><span class="badge badge-red">POST</span></td><td><code>/superadmin/organization/&lt;id&gt;/update-limits</code></td><td>SuperAdmin</td><td>Modifier limite appartements</td></tr>
+      <tr><td><span class="badge badge-red">POST</span></td><td><code>/superadmin/organization/&lt;id&gt;/update-plan</code></td><td>SuperAdmin</td><td>Modifier plan + prix</td></tr>
+      <tr><td><span class="badge badge-red">POST</span></td><td><code>/superadmin/subscription/&lt;id&gt;/extend</code></td><td>SuperAdmin</td><td>Prolonger abonnement</td></tr>
+      <tr><td><span class="badge badge-blue">GET POST</span></td><td><code>/superadmin/settings</code></td><td>SuperAdmin</td><td>Paramètres Konnect SyndicPro</td></tr>
+      <tr><td><span class="badge badge-blue">GET POST</span></td><td><code>/superadmin/change-password</code></td><td>SuperAdmin</td><td>Changer mot de passe superadmin</td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- AUTHENTIFICATION -->
+  <h2 id="auth">1. Authentification &amp; Comptes</h2>
+
+  <h3>Inscription</h3>
+  <p>Route <code>POST /register</code> — Crée simultanément :</p>
+  <ul style="color:var(--muted); padding-left:1.5rem; margin-bottom:1rem;">
+    <li>1 Organisation (avec slug unique auto-généré)</li>
+    <li>1 abonnement <strong>trial</strong> de 30 jours</li>
+    <li>1 compte admin avec le mot de passe saisi</li>
+  </ul>
+  <p>Règles mot de passe : min 8 caractères + 1 majuscule + 1 chiffre.</p>
+
+  <h3>Connexion</h3>
+  <p>Rate limiting : 5 tentatives par minute. Session permanente avec timeout 30 min.
+  Vérification organisation active au login.</p>
+
+  <h3>3 rôles</h3>
+  <table>
+    <thead><tr><th>Rôle</th><th>Accès</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-red">superadmin</span></td><td>Gestion de toutes les organisations SyndicPro</td></tr>
+      <tr><td><span class="badge badge-yellow">admin</span></td><td>Gestion complète de sa résidence</td></tr>
+      <tr><td><span class="badge badge-blue">resident</span></td><td>Espace personnel : paiements, tickets, profil</td></tr>
+    </tbody>
+  </table>
+
+  <!-- COPROPRIETE -->
+  <h2 id="copropriete">2. Gestion de la copropriété</h2>
+
+  <h3>Appartements</h3>
+  <p>CRUD complet. Chaque appartement appartient à un <strong>Bloc</strong> (ex : Bloc A).
+  Champs : numéro, redevance mensuelle, crédit automatique.</p>
+
+  <h3>Système de crédit automatique</h3>
+  <div class="card">
+    <div class="card-title">Comment ça fonctionne</div>
+    <p>Si le montant payé ne couvre pas exactement un nombre de mois entiers, le surplus est conservé
+    en <strong>crédit</strong> sur l'appartement et déduit automatiquement du prochain paiement.</p>
+    <p><strong>Exemple :</strong> Redevance 100 DT/mois — Paiement 350 DT → 3 mois payés + 50 DT crédit.<br>
+    Paiement suivant 80 DT → Total disponible 130 DT → 1 mois payé + 30 DT crédit.</p>
+  </div>
+
+  <!-- PAIEMENTS -->
+  <h2 id="paiements">3. Encaissements</h2>
+  <table>
+    <thead><tr><th>Fonctionnalité</th><th>Détail</th></tr></thead>
+    <tbody>
+      <tr><td>Enregistrer un paiement</td><td>Appartement + montant + date + mois (optionnel)</td></tr>
+      <tr><td>Mode automatique</td><td>Démarre au premier mois impayé chronologiquement</td></tr>
+      <tr><td>Mode manuel</td><td>Choix libre du mois de départ</td></tr>
+      <tr><td>Multi-mois</td><td>Un paiement couvre plusieurs mois si montant suffisant</td></tr>
+      <tr><td>Anti-doublon</td><td>Vérifie qu'un mois n'est pas déjà payé avant d'enregistrer</td></tr>
+      <tr><td>Crédit</td><td>Surplus automatiquement conservé et réutilisé</td></tr>
+      <tr><td>Notification WhatsApp</td><td>Envoyée à l'admin à chaque enregistrement</td></tr>
+      <tr><td>Modifier / Supprimer</td><td>Disponible pour chaque encaissement</td></tr>
+    </tbody>
+  </table>
+
+  <!-- DEPENSES -->
+  <h2 id="depenses">4. Dépenses</h2>
+  <p>CRUD complet. Champs : montant, date, catégorie, description.
+  Intégrées dans tous les rapports trésorerie.</p>
+
+  <!-- RAPPORTS -->
+  <h2 id="rapports">5. Rapports &amp; Exports</h2>
+  <table>
+    <thead><tr><th>Rapport</th><th>Route</th><th>Contenu</th></tr></thead>
+    <tbody>
+      <tr><td>Trésorerie</td><td><code>/tresorerie</code></td><td>Tableau mensuel 12 mois : encaissé / dépensé / solde</td></tr>
+      <tr><td>Comptable</td><td><code>/comptable</code></td><td>Vue détaillée pour comptabilité</td></tr>
+      <tr><td>Export Excel</td><td><code>/export_excel</code></td><td>Fichier .xlsx complet (pandas + openpyxl)</td></tr>
+      <tr><td>Rapport PDF</td><td><code>/automation/pdf-report</code></td><td>PDF A4 mensuel : résumé, encaissements, impayés, dépenses</td></tr>
+      <tr><td>Graphique dashboard</td><td><code>/api/dashboard_data</code></td><td>JSON 12 mois pour Chart.js</td></tr>
+    </tbody>
+  </table>
+
+  <!-- TICKETS -->
+  <h2 id="tickets">6. Tickets support</h2>
+  <table>
+    <thead><tr><th>Rôle</th><th>Actions disponibles</th></tr></thead>
+    <tbody>
+      <tr><td>Résident</td><td>Créer ticket (sujet, message, priorité), voir ses tickets</td></tr>
+      <tr><td>Admin</td><td>Voir tous les tickets, répondre, changer le statut</td></tr>
+    </tbody>
+  </table>
+  <p>Statuts : <code>ouvert</code> / <code>en_cours</code> / <code>fermé</code><br>
+  Priorités : <code>normale</code> / <code>haute</code> / <code>urgente</code></p>
+  <p>Notifications WhatsApp : admin notifié à la création → résident notifié à la réponse.</p>
+
+  <!-- ALERTES -->
+  <h2 id="alertes">7. Alertes impayés</h2>
+  <p>Détection automatique des résidents avec retard. Marquage "envoyé" pour suivre les relances.
+  Les 5 dernières alertes sont visibles sur le tableau de bord admin.</p>
+
+  <!-- KONNECT -->
+  <h2 id="konnect">8. Paiement en ligne Konnect</h2>
+
+  <h3>Flux résident</h3>
+  <ol style="color:var(--muted); padding-left:1.5rem; margin-bottom:1rem;">
+    <li>Résident voit le bouton "Payer en ligne" (si mois impayés + Konnect configuré)</li>
+    <li>Clic → POST /konnect/pay → appel API Konnect → redirection vers page paiement</li>
+    <li>Après paiement → Konnect redirige vers /konnect/success?payment_ref=xxx</li>
+    <li>Vérification API Konnect → enregistrement automatique dans Payment si confirmé</li>
+    <li>Notification WhatsApp admin + résident</li>
+  </ol>
+
+  <h3>Flux admin</h3>
+  <p>Génération de liens partageables depuis la page Encaissements. Historique complet sur <code>/konnect/links</code>.</p>
+
+  <table>
+    <thead><tr><th>Statut lien</th><th>Signification</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-gray">pending</span></td><td>Lien généré, paiement non encore effectué</td></tr>
+      <tr><td><span class="badge badge-green">completed</span></td><td>Paiement confirmé par Konnect, enregistré en base</td></tr>
+      <tr><td><span class="badge badge-red">failed</span></td><td>Paiement échoué ou annulé</td></tr>
+    </tbody>
+  </table>
+
+  <!-- WHATSAPP -->
+  <h2 id="whatsapp">9. Notifications WhatsApp</h2>
+  <p>Service : <strong>fonnte.com</strong> — API REST avec token par organisation.</p>
+  <table>
+    <thead><tr><th>Événement</th><th>Destinataire</th><th>Condition</th></tr></thead>
+    <tbody>
+      <tr><td>Paiement manuel enregistré</td><td>Admin</td><td>WhatsApp activé + token + numéro admin</td></tr>
+      <tr><td>Paiement Konnect confirmé</td><td>Admin + Résident</td><td>Résident doit avoir un numéro dans son profil</td></tr>
+      <tr><td>Nouveau ticket créé</td><td>Admin</td><td>WhatsApp activé</td></tr>
+      <tr><td>Admin répond au ticket</td><td>Résident</td><td>Résident doit avoir un numéro</td></tr>
+      <tr><td>Relances groupées</td><td>Résidents impayés</td><td>Déclenchement manuel depuis /automation</td></tr>
+    </tbody>
+  </table>
+  <p>Normalisation automatique : <code>20123456</code> → <code>21620123456</code></p>
+
+  <!-- AI -->
+  <h2 id="ai">10. Assistant Claude AI</h2>
+  <div class="card">
+    <div class="card-title">Configuration requise</div>
+    <p>Variable d'environnement <code>ANTHROPIC_API_KEY</code> à ajouter sur Render.<br>
+    Compte séparé de Claude Pro — créer sur <code>console.anthropic.com</code>.</p>
+  </div>
+  <p>Modèle utilisé : <strong>claude-haiku-4-5</strong> (rapide, économique ~$0.001/conversation).</p>
+  <p>Contexte injecté en temps réel à chaque requête :</p>
+  <ul style="color:var(--muted); padding-left:1.5rem; margin-bottom:1rem;">
+    <li>Nombre d'appartements payés/impayés du mois</li>
+    <li>Liste détaillée des impayés avec résidents</li>
+    <li>Solde trésorerie (historique complet)</li>
+    <li>Nombre de tickets ouverts</li>
+  </ul>
+  <p>Historique de conversation : 10 derniers échanges conservés côté navigateur.</p>
+
+  <!-- AUTOMATION -->
+  <h2 id="automation">11. Automatisation</h2>
+  <table>
+    <thead><tr><th>Fonctionnalité</th><th>Route</th><th>Détail</th></tr></thead>
+    <tbody>
+      <tr><td>Relances WhatsApp groupées</td><td>POST /automation/send-reminders</td><td>Envoie un rappel à tous les résidents impayés du mois avec un numéro WhatsApp</td></tr>
+      <tr><td>Rapport PDF mensuel</td><td>GET /automation/pdf-report</td><td>Téléchargement immédiat PDF A4 : résumé, encaissements, impayés, dépenses</td></tr>
+    </tbody>
+  </table>
+  <p>Le tableau de bord <code>/automation</code> affiche la liste des impayés avec indicateur WhatsApp disponible.</p>
+
+  <!-- ACCES -->
+  <h2 id="acces">12. Registre des accès</h2>
+  <p>Journal numérique des entrées et sorties de la résidence. Accessible uniquement aux admins.</p>
+  <table>
+    <thead><tr><th>Champ</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Nom visiteur</td><td>Obligatoire</td></tr>
+      <tr><td>Direction</td><td>Entrée / Sortie</td></tr>
+      <tr><td>Appartement visité</td><td>Optionnel (liste des appartements)</td></tr>
+      <tr><td>Motif</td><td>Optionnel (livraison, technicien, famille…)</td></tr>
+      <tr><td>Horodatage</td><td>Automatique</td></tr>
+      <tr><td>Agent</td><td>Nom de l'admin qui a enregistré</td></tr>
+    </tbody>
+  </table>
+  <p>Historique : 100 dernières entrées affichées.</p>
+
+  <!-- PARAMETRES -->
+  <h2 id="parametres">13. Paramètres syndic</h2>
+  <table>
+    <thead><tr><th>Section</th><th>Champs</th><th>Test disponible</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Konnect</td>
+        <td>Clé API + Wallet ID</td>
+        <td>Oui — bouton "Tester la connexion"</td>
+      </tr>
+      <tr>
+        <td>WhatsApp</td>
+        <td>Activation (toggle) + Token fonnte + Numéro admin</td>
+        <td>Oui — bouton "Envoyer un message test"</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- RESIDENT -->
+  <h2 id="resident">14. Espace résident</h2>
+  <p>Accessible via <code>/residents</code> pour les utilisateurs avec rôle <code>resident</code>.</p>
+  <ul style="color:var(--muted); padding-left:1.5rem; margin-bottom:1rem;">
+    <li>Statut clair : à jour ✅ ou nombre de mois impayés avec montant dû</li>
+    <li>Bouton "Payer en ligne" (si Konnect configuré et mois impayés)</li>
+    <li>Informations appartement : numéro, redevance, prochain mois dû, crédit disponible</li>
+    <li>Historique des 6 derniers mois (payé / impayé)</li>
+    <li>Accès aux tickets</li>
+    <li>Changement de mot de passe</li>
+  </ul>
+
+  <!-- SUPERADMIN -->
+  <h2 id="superadmin">15. SuperAdmin</h2>
+  <p>Accessible uniquement avec le compte <code>superadmin@syndicpro.tn</code>.
+  Mot de passe défini via variable d'environnement <code>SUPERADMIN_PASSWORD</code>.</p>
+  <table>
+    <thead><tr><th>Fonctionnalité</th><th>Détail</th></tr></thead>
+    <tbody>
+      <tr><td>Dashboard</td><td>Liste toutes les organisations + revenu mensuel total</td></tr>
+      <tr><td>Détail organisation</td><td>Nombre d'appartements, utilisateurs, état abonnement</td></tr>
+      <tr><td>Activer / désactiver</td><td>Bloque ou débloque l'accès d'un syndic</td></tr>
+      <tr><td>Prolonger abonnement</td><td>+N jours depuis aujourd'hui ou depuis la date de fin</td></tr>
+      <tr><td>Modifier le plan</td><td>trial / starter / pro / enterprise + prix mensuel</td></tr>
+      <tr><td>Limites appartements</td><td>Nombre maximum d'appartements autorisés</td></tr>
+      <tr><td>Konnect SyndicPro</td><td>Ses propres clés pour percevoir les abonnements</td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- SECURITE -->
+  <h2 id="securite">Sécurité</h2>
+  <table>
+    <thead><tr><th>Mesure</th><th>Implémentation</th></tr></thead>
+    <tbody>
+      <tr><td>CSRF</td><td>Flask-WTF sur toutes les routes POST</td></tr>
+      <tr><td>Rate limiting</td><td>Flask-Limiter : /login 5/min, /register 3/min</td></tr>
+      <tr><td>Isolation multi-tenant</td><td>Chaque requête filtre par organization_id</td></tr>
+      <tr><td>Validation des rôles</td><td>Whitelist ['admin', 'resident'] — pas de superadmin créable</td></tr>
+      <tr><td>Cookies session</td><td>Secure + HttpOnly + SameSite + timeout 30 min</td></tr>
+      <tr><td>Mots de passe</td><td>Werkzeug hash (bcrypt), min 8 car + majuscule + chiffre</td></tr>
+      <tr><td>DELETE → POST</td><td>Toutes les suppressions utilisent POST + CSRF token</td></tr>
+      <tr><td>Organisation désactivée</td><td>Bloquée au login, pas d'accès possible</td></tr>
+    </tbody>
+  </table>
+
+  <!-- TESTS -->
+  <h2 id="tests">Tests</h2>
+  <p>Fichier : <code>tests/test_basic.py</code> — 18 tests pytest — <span class="badge badge-green">18/18 verts</span></p>
+  <pre><code>venv/bin/pytest tests/ -v</code></pre>
+  <table>
+    <thead><tr><th>Catégorie</th><th>Tests</th></tr></thead>
+    <tbody>
+      <tr><td>Pages publiques</td><td>login, register, index</td></tr>
+      <tr><td>Sécurité routes</td><td>13 routes protégées → 302 si non connecté</td></tr>
+      <tr><td>Modèles</td><td>User (hash mdp), Subscription (expiration), Organization (création)</td></tr>
+      <tr><td>WhatsApp</td><td>Envoi bloqué si désactivé, normalisation numéro tunisien</td></tr>
+    </tbody>
+  </table>
+
+  <!-- DEPLOIEMENT -->
+  <h2 id="deploiement">Déploiement</h2>
+  <p>Push vers GitHub → Render redémarre automatiquement.</p>
+  <pre><code>git push origin master:main</code></pre>
+  <p>Fichier de démarrage Render : <code>gunicorn app:app</code></p>
+
+  <!-- VARIABLES -->
+  <h2 id="variables">Variables d'environnement</h2>
+  <table>
+    <thead><tr><th>Variable</th><th>Obligatoire</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>DATABASE_URL</code></td><td><span class="badge badge-red">Oui</span></td><td>URL PostgreSQL Supabase</td></tr>
+      <tr><td><code>SECRET_KEY</code></td><td><span class="badge badge-red">Oui</span></td><td>Clé secrète Flask (sessions, CSRF)</td></tr>
+      <tr><td><code>SUPERADMIN_PASSWORD</code></td><td><span class="badge badge-red">Oui</span></td><td>Mot de passe du compte superadmin</td></tr>
+      <tr><td><code>ANTHROPIC_API_KEY</code></td><td><span class="badge badge-yellow">Recommandé</span></td><td>Clé API Claude (assistant IA)</td></tr>
+      <tr><td><code>BASE_URL</code></td><td><span class="badge badge-gray">Optionnel</span></td><td>URL de base pour les callbacks Konnect (défaut: https://www.syndicpro.tn)</td></tr>
+    </tbody>
+  </table>
+
+  <hr>
+  <p style="text-align:center; color:var(--muted); font-size:.85rem; padding-bottom:2rem;">
+    SyndicPro V2 — Documentation générée le 2 avril 2026 — www.syndicpro.tn
+  </p>
+
+</main>
+</body>
+</html>

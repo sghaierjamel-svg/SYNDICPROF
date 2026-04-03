@@ -51,6 +51,38 @@ def users():
     return render_template('users.html', users=users_list, apartments=apartments, user=current_user())
 
 
+@app.route('/user/edit/<int:user_id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+@subscription_required
+def edit_user(user_id):
+    org = current_organization()
+    u = User.query.filter_by(id=user_id, organization_id=org.id).first_or_404()
+    apartments = Apartment.query.filter_by(organization_id=org.id).all()
+    if request.method == 'POST':
+        u.name  = request.form.get('name', '').strip()
+        u.email = request.form.get('email', '').strip()
+        u.phone = request.form.get('phone', '').strip() or None
+        new_role = request.form.get('role', u.role)
+        if new_role in ['admin', 'resident']:
+            u.role = new_role
+        apt_id = request.form.get('apartment_id') or None
+        try:
+            u.apartment_id = int(apt_id) if apt_id else None
+        except ValueError:
+            u.apartment_id = None
+        new_pwd = request.form.get('new_password', '').strip()
+        if new_pwd:
+            if len(new_pwd) < 6:
+                flash('Mot de passe trop court (6 caractères min).', 'danger')
+                return redirect(url_for('edit_user', user_id=user_id))
+            u.set_password(new_pwd)
+        db.session.commit()
+        flash('Utilisateur mis à jour.', 'success')
+        return redirect(url_for('users'))
+    return render_template('edit_user.html', u=u, apartments=apartments, user=current_user())
+
+
 @app.route('/user/delete/<int:user_id>', methods=['POST'])
 @login_required
 @admin_required

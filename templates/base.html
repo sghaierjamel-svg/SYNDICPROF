@@ -525,6 +525,11 @@
             <i class="bi bi-bank"></i> États Financiers
         </a>
 
+        <a class="sidebar-link {% if request.endpoint == 'announcements' %}active{% endif %}"
+           href="{{ url_for('announcements') }}">
+            <i class="bi bi-megaphone"></i> Tableau d'affichage
+        </a>
+
         <div class="sidebar-section">Compte</div>
 
         <a class="sidebar-link {% if request.endpoint == 'subscription_status' %}active{% endif %}"

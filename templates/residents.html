@@ -2,112 +2,218 @@
 
 {% block content %}
 <div class="row mb-3">
-    <div class="col-12">
-        <h2 class="text-white mb-0">
-            <i class="bi bi-person"></i> Mon Espace Résident
-        </h2>
+    <div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h2 class="text-white mb-0"><i class="bi bi-person-circle"></i> Mon Espace</h2>
+        <span style="color:var(--muted);font-size:.85rem;">
+            {{ user.name or user.email }}
+            {% if apt %}&nbsp;|&nbsp;<span style="color:var(--accent);">{{ apt.block.name }}-{{ apt.number }}</span>{% endif %}
+        </span>
     </div>
 </div>
 
 {% if user.apartment_id and apt %}
 
-<!-- BLOC 1 — Statut principal -->
-<div class="row mb-4">
+<!-- STATUT PAIEMENT -->
+<div class="row mb-3">
     <div class="col-12">
         {% if unpaid_count == 0 %}
-        <div class="p-4 rounded-3" style="background:rgba(0,200,150,0.12); border:2px solid #00C896;">
-            <h4 class="mb-0 fw-bold" style="color:#00C896;">
-                ✅ Vous êtes à jour — Merci !
-            </h4>
+        <div class="p-3 rounded-3" style="background:rgba(0,200,150,0.12);border:2px solid #00C896;">
+            <h5 class="mb-0 fw-bold" style="color:#00C896;">✅ Vous êtes à jour — Merci !</h5>
         </div>
         {% else %}
-        <div class="p-4 rounded-3" style="background:rgba(239,68,68,0.12); border:2px solid #ef4444;">
-            <h4 class="mb-1 fw-bold" style="color:#ef4444;">
-                ❌ {{ unpaid_count }} mois impayé{% if unpaid_count > 1 %}s{% endif %} — Montant dû : {{ '{:.0f}'.format(apt.monthly_fee * unpaid_count) }} DT
-            </h4>
-            <p class="mb-2 small" style="color:#9CA3AF;">Prochain mois à régulariser : <strong style="color:#F9FAFB;">{{ next_month }}</strong></p>
-            {% if konnect_configured %}
-            <form method="POST" action="{{ url_for('konnect_pay') }}" class="d-inline">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-primary mt-1">
-                    <i class="bi bi-credit-card"></i> Payer en ligne — {{ '{:.0f}'.format(apt.monthly_fee) }} DT
-                </button>
-            </form>
-            {% endif %}
+        <div class="p-3 rounded-3" style="background:rgba(239,68,68,0.12);border:2px solid #ef4444;">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <h5 class="mb-1 fw-bold" style="color:#ef4444;">
+                        ❌ {{ unpaid_count }} mois impayé{% if unpaid_count > 1 %}s{% endif %}
+                        — {{ '{:.0f}'.format(apt.monthly_fee * unpaid_count) }} DT dus
+                    </h5>
+                    <p class="mb-0 small" style="color:#9CA3AF;">
+                        Prochain mois : <strong style="color:#F9FAFB;">{{ next_month }}</strong>
+                    </p>
+                </div>
+                {% if konnect_configured %}
+                <form method="POST" action="{{ url_for('konnect_pay') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-credit-card"></i> Payer {{ '{:.0f}'.format(apt.monthly_fee) }} DT
+                    </button>
+                </form>
+                {% endif %}
+            </div>
         </div>
         {% endif %}
     </div>
 </div>
 
-<!-- BLOC 2 — Informations appartement -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card" style="background:#111827; border:1px solid #1F2937; border-radius:14px;">
-            <div class="card-body p-4">
-                <h5 class="fw-bold mb-3 text-white"><i class="bi bi-house-door"></i> Mon appartement</h5>
-                <div class="row g-3">
-                    <div class="col-md-3 col-6">
-                        <p class="mb-0 small" style="color:#9CA3AF;">Appartement</p>
-                        <p class="mb-0 fw-bold text-white">{{ apt.block.name }}-{{ apt.number }}</p>
+<!-- KPIs -->
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+        <div class="card text-center py-3">
+            <div style="font-size:1.4rem;font-weight:700;color:var(--accent);">{{ '{:.0f}'.format(apt.monthly_fee) }} DT</div>
+            <div style="font-size:.75rem;color:var(--muted);">Redevance / mois</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center py-3">
+            <div style="font-size:1.4rem;font-weight:700;color:{% if unpaid_count == 0 %}var(--accent){% else %}#ef4444{% endif %};">{{ unpaid_count }}</div>
+            <div style="font-size:.75rem;color:var(--muted);">Mois impayés</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center py-3">
+            <div style="font-size:1.4rem;font-weight:700;color:var(--accent);">{{ '{:.0f}'.format(annual_total) }} DT</div>
+            <div style="font-size:.75rem;color:var(--muted);">Payé en {{ current_year }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center py-3">
+            <div style="font-size:1.4rem;font-weight:700;color:{% if credit > 0 %}var(--accent){% else %}var(--muted){% endif %};">{{ '{:.2f}'.format(credit) }} DT</div>
+            <div style="font-size:.75rem;color:var(--muted);">Crédit disponible</div>
+        </div>
+    </div>
+</div>
+
+<!-- 3 COLONNES : historique + tickets + annonces -->
+<div class="row g-3 mb-3">
+
+    <!-- Historique 6 mois -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-clock-history"></i> 6 derniers mois</span>
+                <button class="btn btn-sm btn-outline-secondary" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#fullHistory">
+                    Tout voir
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0" style="font-size:.83rem;">
+                    <tbody>
+                        {% for h in history_6months %}
+                        <tr style="border-bottom:1px solid var(--border);background:{% if h.paid %}rgba(0,200,150,0.04){% else %}rgba(239,68,68,0.04){% endif %};">
+                            <td class="px-3 py-2">{{ h.label }}</td>
+                            <td class="px-2 py-2">
+                                {% if h.paid %}<span style="color:#00C896;font-weight:600;">✅</span>
+                                {% else %}<span style="color:#ef4444;font-weight:600;">❌</span>{% endif %}
+                            </td>
+                            <td class="px-2 py-2 text-end" style="color:var(--muted);">
+                                {% if h.paid %}{{ '{:.0f}'.format(h.amount) }} DT{% endif %}
+                            </td>
+                            <td class="px-2 py-2 text-end">
+                                {% if h.paid and h.payment_id %}
+                                <a href="{{ url_for('payment_receipt', payment_id=h.payment_id) }}"
+                                   class="btn btn-sm btn-outline-secondary" title="Reçu PDF">
+                                    <i class="bi bi-download"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mes tickets -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-ticket"></i> Mes tickets</span>
+                <a href="{{ url_for('tickets') }}" class="btn btn-sm btn-outline-secondary">Tout voir</a>
+            </div>
+            <div class="card-body p-0">
+                {% if my_tickets %}
+                {% for t in my_tickets %}
+                <a href="{{ url_for('ticket_detail', ticket_id=t.id) }}"
+                   class="d-block px-3 py-2 text-decoration-none"
+                   style="border-bottom:1px solid var(--border);color:var(--text);">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span style="font-size:.84rem;">{{ t.subject[:35] }}{% if t.subject|length > 35 %}…{% endif %}</span>
+                        <span class="badge ms-2 {% if t.status == 'ouvert' %}bg-danger{% elif t.status == 'en_cours' %}bg-warning text-dark{% else %}bg-success{% endif %}" style="font-size:.7rem;">
+                            {{ t.status|replace('_',' ')|upper }}
+                        </span>
                     </div>
-                    <div class="col-md-3 col-6">
-                        <p class="mb-0 small" style="color:#9CA3AF;">Redevance mensuelle</p>
-                        <p class="mb-0 fw-bold text-white">{{ '{:.0f}'.format(apt.monthly_fee) }} DT</p>
-                    </div>
-                    <div class="col-md-3 col-6">
-                        <p class="mb-0 small" style="color:#9CA3AF;">Prochain mois à payer</p>
-                        <p class="mb-0 fw-bold text-white">{{ next_month if next_month else '—' }}</p>
-                    </div>
-                    {% if credit > 0 %}
-                    <div class="col-md-3 col-6">
-                        <p class="mb-0 small" style="color:#9CA3AF;">Crédit disponible</p>
-                        <p class="mb-0 fw-bold" style="color:#00C896;">{{ '{:.2f}'.format(credit) }} DT</p>
+                    {% if t.admin_response %}
+                    <div style="font-size:.75rem;color:var(--accent);margin-top:2px;">
+                        <i class="bi bi-reply"></i> Réponse disponible
                     </div>
                     {% endif %}
+                </a>
+                {% endfor %}
+                {% else %}
+                <div class="p-3 text-center" style="color:var(--muted);font-size:.85rem;">Aucun ticket</div>
+                {% endif %}
+                <div class="p-2">
+                    <a href="{{ url_for('tickets') }}" class="btn btn-sm btn-primary w-100">
+                        <i class="bi bi-plus"></i> Nouveau ticket
+                    </a>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Annonces -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header"><i class="bi bi-megaphone"></i> Annonces du syndic</div>
+            <div class="card-body p-0">
+                {% if announcements %}
+                {% for a in announcements %}
+                <div class="px-3 py-2" style="border-bottom:1px solid var(--border);{% if a.pinned %}background:rgba(0,200,150,0.04);{% endif %}">
+                    <div style="font-size:.84rem;font-weight:600;color:var(--text);">
+                        {% if a.pinned %}<i class="bi bi-pin-angle-fill" style="color:var(--accent);"></i> {% endif %}
+                        {{ a.title }}
+                    </div>
+                    <div style="font-size:.78rem;color:var(--muted);margin-top:2px;white-space:pre-wrap;">{{ a.body[:120] }}{% if a.body|length > 120 %}…{% endif %}</div>
+                    <div style="font-size:.72rem;color:var(--muted);margin-top:3px;">{{ a.created_at.strftime('%d/%m/%Y') }}</div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="p-3 text-center" style="color:var(--muted);font-size:.85rem;">Aucune annonce</div>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
 
-<!-- BLOC 3 — Historique 6 derniers mois -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card" style="background:#111827; border:1px solid #1F2937; border-radius:14px;">
-            <div class="card-body p-4">
-                <h5 class="fw-bold mb-3 text-white"><i class="bi bi-clock-history"></i> Historique des 6 derniers mois</h5>
-                <div class="table-responsive">
-                    <table class="table mb-0" style="color:#F9FAFB;">
-                        <thead>
-                            <tr style="color:#9CA3AF; font-size:.85rem; border-bottom:1px solid #1F2937;">
-                                <th class="border-0 pb-2">Mois</th>
-                                <th class="border-0 pb-2">Statut</th>
-                                <th class="border-0 pb-2">Montant payé</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for h in history_6months %}
-                            <tr style="border-bottom:1px solid #1F2937; background:{% if h.paid %}rgba(0,200,150,0.06){% else %}rgba(239,68,68,0.06){% endif %};">
-                                <td class="border-0 py-2">{{ h.label }}</td>
-                                <td class="border-0 py-2">
-                                    {% if h.paid %}
-                                    <span style="color:#00C896; font-weight:600;">✅ Payé</span>
-                                    {% else %}
-                                    <span style="color:#ef4444; font-weight:600;">❌ Impayé</span>
-                                    {% endif %}
-                                </td>
-                                <td class="border-0 py-2">
-                                    {% if h.paid %}
-                                    <span style="color:#00C896;">{{ '{:.0f}'.format(h.amount) }} DT</span>
-                                    {% else %}
-                                    <span style="color:#6B7280;">—</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+<!-- HISTORIQUE COMPLET -->
+<div class="collapse mb-3" id="fullHistory">
+    <div class="card">
+        <div class="card-header">
+            <i class="bi bi-list-ul"></i> Historique complet
+            <span class="badge bg-secondary ms-2">{{ all_payments|length }} paiements</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table mb-0" style="font-size:.83rem;">
+                    <thead>
+                        <tr style="background:var(--border2);font-size:.75rem;color:var(--muted);">
+                            <th class="px-3 py-2">Mois</th>
+                            <th class="px-3 py-2">Date</th>
+                            <th class="px-3 py-2 text-end">Montant</th>
+                            <th class="px-3 py-2 text-end">Reçu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in all_payments %}
+                        <tr style="border-bottom:1px solid var(--border);">
+                            <td class="px-3 py-2" style="font-weight:600;color:var(--text);">{{ p.month_paid }}</td>
+                            <td class="px-3 py-2" style="color:var(--muted);">{{ p.payment_date.strftime('%d/%m/%Y') }}</td>
+                            <td class="px-3 py-2 text-end" style="color:var(--accent);font-weight:600;">{{ '{:.3f}'.format(p.amount) }} DT</td>
+                            <td class="px-3 py-2 text-end">
+                                <a href="{{ url_for('payment_receipt', payment_id=p.id) }}"
+                                   class="btn btn-sm btn-outline-secondary" title="Reçu PDF">
+                                    <i class="bi bi-file-earmark-pdf"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="text-center px-3 py-3" style="color:var(--muted);">Aucun paiement enregistré</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -119,20 +225,37 @@
 </div>
 {% endif %}
 
-<!-- BLOC 4 — Actions rapides -->
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex gap-3 flex-wrap">
-            <a href="{{ url_for('tickets') }}" class="btn btn-primary btn-lg">
-                🎫 Créer un ticket
-            </a>
-            <a href="{{ url_for('tickets') }}" class="btn btn-outline-secondary btn-lg">
-                📋 Mes tickets
-            </a>
-            <a href="{{ url_for('change_password') }}" class="btn btn-outline-secondary btn-lg">
-                <i class="bi bi-shield-lock"></i> Changer mon mot de passe
-            </a>
-        </div>
+<!-- MON PROFIL -->
+<div class="card mt-2">
+    <div class="card-header"><i class="bi bi-person-gear"></i> Mon profil</div>
+    <div class="card-body">
+        <form method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="update_profile">
+            <div class="row g-3">
+                <div class="col-sm-4">
+                    <label class="form-label">Nom complet</label>
+                    <input class="form-control" name="name" value="{{ user.name or '' }}" placeholder="Votre nom">
+                </div>
+                <div class="col-sm-4">
+                    <label class="form-label">Email</label>
+                    <input class="form-control" value="{{ user.email }}" disabled style="color:var(--muted);">
+                </div>
+                <div class="col-sm-4">
+                    <label class="form-label"><i class="bi bi-whatsapp" style="color:#25d366;"></i> WhatsApp</label>
+                    <input class="form-control" name="phone" type="tel"
+                           value="{{ user.phone or '' }}" placeholder="+216 20 000 000">
+                </div>
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Enregistrer
+                    </button>
+                    <a href="{{ url_for('change_password') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-shield-lock"></i> Changer mot de passe
+                    </a>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
 

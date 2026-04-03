@@ -1,6 +1,6 @@
-from flask import render_template, redirect, url_for, flash, jsonify
-from core import app
-from models import Block, Apartment, Payment, Expense, Ticket, UnpaidAlert
+from flask import render_template, redirect, url_for, flash, jsonify, request
+from core import app, db
+from models import Block, Apartment, Payment, Expense, Ticket, UnpaidAlert, Announcement, User
 from utils import (current_user, current_organization, login_required,
                    subscription_required, get_unpaid_months_count,
                    get_next_unpaid_month, last_n_months, get_month_name)
@@ -83,40 +83,84 @@ def dashboard():
                          taux_recouvrement=taux_recouvrement)
 
 
-@app.route('/residents')
+@app.route('/residents', methods=['GET', 'POST'])
 @login_required
 @subscription_required
 def residents_menu():
     user = current_user()
+    org = current_organization()
+
+    # ── Mise à jour profil résident ──────────────────────────────────────────
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'update_profile':
+            new_name  = request.form.get('name', '').strip()
+            new_phone = request.form.get('phone', '').strip()
+            if new_name:
+                user.name = new_name
+            user.phone = new_phone or None
+            db.session.commit()
+            flash('Profil mis à jour.', 'success')
+        return redirect(url_for('residents_menu'))
+
     unpaid_count = 0
-    next_month = None
-    my_payments = []
-    credit = 0.0
+    next_month   = None
+    credit       = 0.0
+    apt          = None
+    all_payments = []
     history_6months = []
-    apt = None
+    annual_total = 0.0
+    my_tickets   = []
+    months_fr = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+                 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+
     if user.apartment_id:
         unpaid_count = get_unpaid_months_count(user.apartment_id)
-        next_month = get_next_unpaid_month(user.apartment_id)
-        my_payments = Payment.query.filter_by(apartment_id=user.apartment_id).order_by(Payment.payment_date.desc()).limit(10).all()
-        apt = Apartment.query.get(user.apartment_id)
+        next_month   = get_next_unpaid_month(user.apartment_id)
+        apt          = Apartment.query.get(user.apartment_id)
         if apt:
             credit = apt.credit_balance
-        paid_months = {p.month_paid for p in my_payments}
-        months_fr = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-                     'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+
+        # Historique complet trié par date
+        all_payments = Payment.query.filter_by(apartment_id=user.apartment_id)\
+            .order_by(Payment.payment_date.desc()).all()
+
+        # Récapitulatif annuel (année en cours)
+        current_year = date.today().year
+        annual_total = sum(p.amount for p in all_payments if p.payment_date.year == current_year)
+
+        # Historique 6 derniers mois (pour la vue rapide)
+        paid_months_set = {p.month_paid for p in all_payments}
         for (y, m) in last_n_months(6):
-            month_str = f"{y}-{m:02d}"
-            paid_entry = next((p for p in my_payments if p.month_paid == month_str), None)
+            month_str  = f"{y}-{m:02d}"
+            paid_entry = next((p for p in all_payments if p.month_paid == month_str), None)
             history_6months.append({
-                'label': f"{months_fr[m-1]} {y}",
-                'paid': paid_entry is not None,
+                'label':  f"{months_fr[m-1]} {y}",
+                'paid':   paid_entry is not None,
                 'amount': paid_entry.amount if paid_entry else 0,
+                'payment_id': paid_entry.id if paid_entry else None,
             })
-    org = current_organization()
+
+        my_tickets = Ticket.query.filter_by(apartment_id=user.apartment_id)\
+            .order_by(Ticket.created_at.desc()).limit(5).all()
+
+    # Annonces (5 dernières, épinglées en premier)
+    announcements = Announcement.query.filter_by(organization_id=org.id)\
+        .order_by(Announcement.pinned.desc(), Announcement.created_at.desc()).limit(5).all()
+
     konnect_configured = bool(org and org.konnect_api_key and org.konnect_wallet_id)
-    return render_template('residents.html', user=user, unpaid_count=unpaid_count,
-                           next_month=next_month, my_payments=my_payments, credit=credit,
-                           apt=apt, history_6months=history_6months,
+    current_year = date.today().year
+
+    return render_template('residents.html',
+                           user=user, org=org,
+                           unpaid_count=unpaid_count, next_month=next_month,
+                           credit=credit, apt=apt,
+                           all_payments=all_payments,
+                           history_6months=history_6months,
+                           annual_total=annual_total,
+                           current_year=current_year,
+                           my_tickets=my_tickets,
+                           announcements=announcements,
                            konnect_configured=konnect_configured)
 
 
