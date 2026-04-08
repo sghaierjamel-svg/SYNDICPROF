@@ -17,6 +17,9 @@ class Organization(db.Model):
     # Paramètres Konnect (paiements résidents → compte du syndic)
     konnect_api_key = db.Column(db.String(200))
     konnect_wallet_id = db.Column(db.String(100))
+    # Paramètres Flouci (alternative à Konnect)
+    flouci_app_token = db.Column(db.String(200))
+    flouci_app_secret = db.Column(db.String(200))
     # Paramètres WhatsApp
     whatsapp_enabled = db.Column(db.Boolean, default=False)
     whatsapp_admin_phone = db.Column(db.String(20))
@@ -137,6 +140,8 @@ class Ticket(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     admin_response = db.Column(db.Text)
+    photo_data = db.Column(db.Text, nullable=True)   # base64 encodé
+    photo_mime = db.Column(db.String(30), nullable=True)  # image/jpeg etc.
     user = db.relationship('User', backref='tickets')
 
 
@@ -173,6 +178,23 @@ class KonnectPayment(db.Model):
     apartment = db.relationship('Apartment', backref='konnect_payments', lazy=True)
 
 
+class FlouciPayment(db.Model):
+    """Lien de paiement Flouci généré pour un résident"""
+    __tablename__ = 'flouci_payment'
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
+    apartment_id = db.Column(db.Integer, db.ForeignKey('apartment.id'), nullable=False)
+    month_target = db.Column(db.String(7), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    flouci_payment_id = db.Column(db.String(100), unique=True)
+    pay_url = db.Column(db.String(500))
+    status = db.Column(db.String(20), default='pending')   # pending / completed / failed
+    created_by = db.Column(db.String(20), default='resident')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    paid_at = db.Column(db.DateTime)
+    apartment = db.relationship('Apartment', backref='flouci_payments', lazy=True)
+
+
 class UnpaidAlert(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
@@ -193,6 +215,58 @@ class Announcement(db.Model):
     created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     author = db.relationship('User', backref='announcements', lazy=True)
+
+
+class DirectMessage(db.Model):
+    """Messagerie directe admin ↔ résident (par appartement)"""
+    __tablename__ = 'direct_message'
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
+    apartment_id = db.Column(db.Integer, db.ForeignKey('apartment.id'), nullable=False)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    read_at = db.Column(db.DateTime, nullable=True)
+    sender = db.relationship('User', backref='sent_messages', lazy=True)
+    apartment = db.relationship('Apartment', backref='messages', lazy=True)
+
+
+class AssemblyGeneral(db.Model):
+    """Assemblée Générale de copropriété"""
+    __tablename__ = 'assembly_general'
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    meeting_date = db.Column(db.DateTime, nullable=False)
+    location = db.Column(db.String(200))
+    status = db.Column(db.String(20), default='ouverte')  # ouverte / cloturee
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    items = db.relationship('AGItem', backref='assembly', lazy=True, cascade='all, delete-orphan')
+    author = db.relationship('User', backref='assemblies', lazy=True)
+
+
+class AGItem(db.Model):
+    """Point à l'ordre du jour d'une AG"""
+    __tablename__ = 'ag_item'
+    id = db.Column(db.Integer, primary_key=True)
+    assembly_id = db.Column(db.Integer, db.ForeignKey('assembly_general.id'), nullable=False)
+    question = db.Column(db.String(500), nullable=False)
+    order_num = db.Column(db.Integer, default=1)
+    votes = db.relationship('AGVote', backref='item', lazy=True, cascade='all, delete-orphan')
+
+
+class AGVote(db.Model):
+    """Vote d'un résident sur un point de l'ordre du jour"""
+    __tablename__ = 'ag_vote'
+    id = db.Column(db.Integer, primary_key=True)
+    item_id = db.Column(db.Integer, db.ForeignKey('ag_item.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    apartment_id = db.Column(db.Integer, db.ForeignKey('apartment.id'), nullable=False)
+    vote = db.Column(db.String(15), nullable=False)  # pour / contre / abstention
+    voted_at = db.Column(db.DateTime, default=datetime.utcnow)
+    __table_args__ = (db.UniqueConstraint('item_id', 'user_id', name='uq_ag_vote_user'),)
 
 
 class AnnouncementRead(db.Model):
@@ -263,6 +337,8 @@ def init_db():
                     'whatsapp_enabled': 'BOOLEAN DEFAULT FALSE',
                     'whatsapp_admin_phone': 'VARCHAR(20)',
                     'whatsapp_token': 'VARCHAR(200)',
+                    'flouci_app_token': 'VARCHAR(200)',
+                    'flouci_app_secret': 'VARCHAR(200)',
                 }
                 for col, col_type in pg_cols.items():
                     conn.execute(db.text(
@@ -280,6 +356,8 @@ def init_db():
                     'whatsapp_enabled': 'BOOLEAN DEFAULT 0',
                     'whatsapp_admin_phone': 'VARCHAR(20)',
                     'whatsapp_token': 'VARCHAR(200)',
+                    'flouci_app_token': 'VARCHAR(200)',
+                    'flouci_app_secret': 'VARCHAR(200)',
                 }
                 for col, col_type in sqlite_cols.items():
                     if col not in cols:
@@ -355,6 +433,30 @@ def init_db():
     except Exception as e:
         print(f"Migration konnect_payment : {e}")
 
+    # Migration : table flouci_payment
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS flouci_payment (
+                        id SERIAL PRIMARY KEY,
+                        organization_id INTEGER REFERENCES organization(id),
+                        apartment_id INTEGER REFERENCES apartment(id),
+                        month_target VARCHAR(7) NOT NULL,
+                        amount FLOAT NOT NULL,
+                        flouci_payment_id VARCHAR(100) UNIQUE,
+                        pay_url VARCHAR(500),
+                        status VARCHAR(20) DEFAULT 'pending',
+                        created_by VARCHAR(20) DEFAULT 'resident',
+                        created_at TIMESTAMP DEFAULT NOW(),
+                        paid_at TIMESTAMP
+                    )
+                """))
+                conn.commit()
+                print("Migration PostgreSQL : table flouci_payment vérifiée.")
+    except Exception as e:
+        print(f"Migration flouci_payment : {e}")
+
     # Migration : table announcement
     try:
         with db.engine.connect() as conn:
@@ -374,6 +476,84 @@ def init_db():
                 print("Migration PostgreSQL : table announcement verifiee.")
     except Exception as e:
         print(f"Migration announcement : {e}")
+
+    # Migration : colonnes photo sur ticket
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS photo_data TEXT"))
+                conn.execute(db.text("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS photo_mime VARCHAR(30)"))
+                conn.commit()
+            else:
+                result = conn.execute(db.text("PRAGMA table_info(ticket)"))
+                cols = [row[1] for row in result]
+                if 'photo_data' not in cols:
+                    conn.execute(db.text("ALTER TABLE ticket ADD COLUMN photo_data TEXT"))
+                if 'photo_mime' not in cols:
+                    conn.execute(db.text("ALTER TABLE ticket ADD COLUMN photo_mime VARCHAR(30)"))
+                conn.commit()
+    except Exception as e:
+        print(f"Migration ticket photo : {e}")
+
+    # Migration : table direct_message
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS direct_message (
+                        id SERIAL PRIMARY KEY,
+                        organization_id INTEGER REFERENCES organization(id),
+                        apartment_id INTEGER REFERENCES apartment(id),
+                        sender_id INTEGER REFERENCES "user"(id),
+                        body TEXT NOT NULL,
+                        created_at TIMESTAMP DEFAULT NOW(),
+                        read_at TIMESTAMP
+                    )
+                """))
+                conn.commit()
+    except Exception as e:
+        print(f"Migration direct_message : {e}")
+
+    # Migration : tables AG
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS assembly_general (
+                        id SERIAL PRIMARY KEY,
+                        organization_id INTEGER REFERENCES organization(id),
+                        title VARCHAR(200) NOT NULL,
+                        description TEXT,
+                        meeting_date TIMESTAMP NOT NULL,
+                        location VARCHAR(200),
+                        status VARCHAR(20) DEFAULT 'ouverte',
+                        created_at TIMESTAMP DEFAULT NOW(),
+                        created_by_id INTEGER REFERENCES "user"(id)
+                    )
+                """))
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS ag_item (
+                        id SERIAL PRIMARY KEY,
+                        assembly_id INTEGER REFERENCES assembly_general(id) ON DELETE CASCADE,
+                        question VARCHAR(500) NOT NULL,
+                        order_num INTEGER DEFAULT 1
+                    )
+                """))
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS ag_vote (
+                        id SERIAL PRIMARY KEY,
+                        item_id INTEGER REFERENCES ag_item(id) ON DELETE CASCADE,
+                        user_id INTEGER REFERENCES "user"(id),
+                        apartment_id INTEGER REFERENCES apartment(id),
+                        vote VARCHAR(15) NOT NULL,
+                        voted_at TIMESTAMP DEFAULT NOW(),
+                        CONSTRAINT uq_ag_vote_user UNIQUE (item_id, user_id)
+                    )
+                """))
+                conn.commit()
+                print("Migration PostgreSQL : tables AG créées.")
+    except Exception as e:
+        print(f"Migration AG : {e}")
 
     # Migration : table announcement_read
     try:
@@ -403,7 +583,8 @@ def init_db():
                 tables = [
                     'organization', 'subscription', '"user"', 'block', 'apartment',
                     'payment', 'expense', 'ticket', 'super_admin_settings',
-                    'konnect_payment', 'unpaid_alert', 'announcement', 'announcement_read', 'access_log'
+                    'konnect_payment', 'flouci_payment', 'unpaid_alert', 'announcement', 'announcement_read', 'access_log',
+                    'direct_message', 'assembly_general', 'ag_item', 'ag_vote'
                 ]
                 for table in tables:
                     conn.execute(db.text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY"))

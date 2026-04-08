@@ -68,6 +68,63 @@
         </div>
     </div>
 
+    <!-- ── FLOUCI ── -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-phone" style="color:#00C896;"></i>
+                <span>Paiement en ligne — Flouci</span>
+                {% if org.flouci_app_token and org.flouci_app_secret %}
+                <span class="badge bg-success ms-auto">Configuré</span>
+                {% else %}
+                <span class="badge bg-secondary ms-auto">Non configuré</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-4">
+                    Alternative à Konnect — vos résidents paient via portefeuille Flouci, carte bancaire ou e-DINAR.<br>
+                    Créez votre compte marchand sur
+                    <a href="https://flouci.com" target="_blank" style="color:#00C896;">flouci.com</a>
+                    puis copiez votre App Token et App Secret ici.
+                </p>
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="section" value="flouci">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">App Token (clé publique)</label>
+                            <input type="text" name="flouci_app_token" class="form-control"
+                                   placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                                   value="{{ org.flouci_app_token or '' }}"
+                                   autocomplete="off">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">App Secret (clé privée)</label>
+                            <input type="password" name="flouci_app_secret" class="form-control"
+                                   placeholder="Votre App Secret"
+                                   value="{{ org.flouci_app_secret or '' }}"
+                                   autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Enregistrer
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="btnTestFlouci">
+                            <i class="bi bi-plug"></i> Tester la connexion
+                        </button>
+                        {% if org.flouci_app_token and org.flouci_app_secret %}
+                        <a href="{{ url_for('flouci_links') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-list-ul"></i> Voir les liens Flouci
+                        </a>
+                        {% endif %}
+                    </div>
+                </form>
+                <div id="flouciTestResult" class="mt-3" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- ── WHATSAPP ── -->
     <div class="col-12">
         <div class="card">
@@ -191,6 +248,33 @@ document.getElementById('btnTestWhatsapp').addEventListener('click', function() 
         .finally(() => {
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-whatsapp"></i> Envoyer un message test';
+        });
+});
+
+document.getElementById('btnTestFlouci').addEventListener('click', function() {
+    const btn = this;
+    const result = document.getElementById('flouciTestResult');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Test en cours...';
+    result.style.display = 'none';
+
+    fetch('{{ url_for("test_flouci") }}')
+        .then(r => r.json())
+        .then(data => {
+            result.style.display = 'block';
+            if (data.ok) {
+                result.innerHTML = '<div class="alert alert-success mb-0"><i class="bi bi-check-circle"></i> ' + data.message + '</div>';
+            } else {
+                result.innerHTML = '<div class="alert alert-danger mb-0"><i class="bi bi-x-circle"></i> ' + data.message + '</div>';
+            }
+        })
+        .catch(() => {
+            result.style.display = 'block';
+            result.innerHTML = '<div class="alert alert-danger mb-0">Erreur réseau.</div>';
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-plug"></i> Tester la connexion';
         });
 });
 </script>

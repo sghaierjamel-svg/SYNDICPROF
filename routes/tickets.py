@@ -1,10 +1,11 @@
-from flask import render_template, request, redirect, url_for, flash
+from flask import render_template, request, redirect, url_for, flash, Response
 from core import app, db
 from models import Ticket, User
 from utils import (current_user, current_organization, login_required,
                    admin_required, subscription_required)
 from datetime import datetime
 from utils_whatsapp import notify_ticket_created, notify_ticket_response
+import base64
 
 
 @app.route('/tickets', methods=['GET', 'POST'])

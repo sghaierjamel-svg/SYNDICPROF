@@ -32,7 +32,15 @@
                         Prochain mois : <strong style="color:#F9FAFB;">{{ next_month }}</strong>
                     </p>
                 </div>
-                {% if konnect_configured %}
+                <div class="d-flex gap-2 flex-wrap">
+                {% if flouci_configured %}
+                <form method="POST" action="{{ url_for('flouci_pay') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-credit-card"></i> Payer {{ '{:.0f}'.format(apt.monthly_fee) }} DT via Flouci
+                    </button>
+                </form>
+                {% elif konnect_configured %}
                 <form method="POST" action="{{ url_for('konnect_pay') }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-primary">
@@ -40,6 +48,7 @@
                     </button>
                 </form>
                 {% endif %}
+                </div>
             </div>
         </div>
         {% endif %}

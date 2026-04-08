@@ -153,6 +153,7 @@ def residents_menu():
         .order_by(Announcement.pinned.desc(), Announcement.created_at.desc()).limit(5).all()
 
     konnect_configured = bool(org and org.konnect_api_key and org.konnect_wallet_id)
+    flouci_configured  = bool(org and org.flouci_app_token and org.flouci_app_secret)
     current_year = date.today().year
 
     return render_template('residents.html',
@@ -165,7 +166,8 @@ def residents_menu():
                            current_year=current_year,
                            my_tickets=my_tickets,
                            announcements=announcements,
-                           konnect_configured=konnect_configured)
+                           konnect_configured=konnect_configured,
+                           flouci_configured=flouci_configured)
 
 
 @app.route('/api/dashboard_data')

@@ -20,6 +20,12 @@ def settings():
             db.session.commit()
             flash('Paramètres Konnect enregistrés.', 'success')
 
+        elif section == 'flouci':
+            org.flouci_app_token = request.form.get('flouci_app_token', '').strip()
+            org.flouci_app_secret = request.form.get('flouci_app_secret', '').strip()
+            db.session.commit()
+            flash('Paramètres Flouci enregistrés.', 'success')
+
         elif section == 'whatsapp':
             org.whatsapp_enabled = request.form.get('whatsapp_enabled') == 'on'
             org.whatsapp_admin_phone = request.form.get('whatsapp_admin_phone', '').strip()
@@ -47,6 +53,43 @@ def test_whatsapp():
         return jsonify({'ok': True, 'message': 'Message de test envoyé ✅'})
     # Retourner l'erreur exacte de Fonnte pour aider au diagnostic
     return jsonify({'ok': False, 'message': f"Échec : {result['reason']}"})
+
+
+@app.route('/settings/test-flouci')
+@login_required
+@admin_required
+def test_flouci():
+    org = current_organization()
+    if not org.flouci_app_token or not org.flouci_app_secret:
+        return jsonify({'ok': False, 'message': 'App Token ou App Secret manquant.'})
+    try:
+        # Flouci n'a pas d'endpoint /me — on teste en générant un paiement de 0,001 DT
+        # et on vérifie que la réponse est cohérente (pas d'erreur d'authentification)
+        resp = http.post(
+            'https://api.flouci.com/payment/generate',
+            json={
+                'app_token': org.flouci_app_token,
+                'app_secret': org.flouci_app_secret,
+                'amount': 1,
+                'accept_card': 'true',
+                'session_id': 'test-connexion',
+                'success_link': 'https://www.syndicpro.tn',
+                'fail_link': 'https://www.syndicpro.tn',
+                'developer_tracking_id': 'test',
+            },
+            timeout=8
+        )
+        if resp.status_code in (200, 201):
+            data = resp.json()
+            if data.get('result', {}).get('payment_id') or data.get('result', {}).get('link'):
+                return jsonify({'ok': True, 'message': 'Connexion Flouci réussie ✅'})
+            return jsonify({'ok': False, 'message': f'Réponse inattendue : {data}'})
+        elif resp.status_code == 401:
+            return jsonify({'ok': False, 'message': 'Token ou Secret invalide.'})
+        else:
+            return jsonify({'ok': False, 'message': f'Erreur Flouci ({resp.status_code}).'})
+    except Exception:
+        return jsonify({'ok': False, 'message': 'Impossible de joindre Flouci. Vérifiez votre connexion.'})
 
 
 @app.route('/settings/test-konnect')

@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h2 class="text-white mb-0"><i class="bi bi-credit-card"></i> Liens Flouci</h2>
+        {% if org.flouci_app_token and org.flouci_app_secret %}
+        <span class="badge bg-success">Flouci configuré</span>
+        {% else %}
+        <a href="{{ url_for('settings') }}" class="btn btn-warning btn-sm">
+            <i class="bi bi-gear"></i> Configurer Flouci
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-list-ul"></i> Historique des liens Flouci
+        <span class="badge bg-secondary ms-2">{{ links|length }}</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table mb-0">
+                <thead>
+                    <tr>
+                        <th>Appartement</th>
+                        <th>Mois</th>
+                        <th>Montant</th>
+                        <th>Statut</th>
+                        <th>Créé par</th>
+                        <th>Date</th>
+                        <th>Lien</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lk in links %}
+                    <tr>
+                        <td>
+                            {% if lk.apartment %}
+                            {{ lk.apartment.block.name }}-{{ lk.apartment.number }}
+                            {% endif %}
+                        </td>
+                        <td>{{ lk.month_target }}</td>
+                        <td>{{ '{:.3f}'.format(lk.amount) }} DT</td>
+                        <td>
+                            <span class="badge {% if lk.status == 'completed' %}bg-success{% elif lk.status == 'failed' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                                {{ lk.status|upper }}
+                            </span>
+                        </td>
+                        <td>{{ lk.created_by }}</td>
+                        <td>{{ lk.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>
+                            {% if lk.pay_url and lk.status == 'pending' %}
+                            <button class="btn btn-sm btn-outline-secondary"
+                                    onclick="navigator.clipboard.writeText('{{ lk.pay_url }}');this.textContent='✅ Copié'">
+                                <i class="bi bi-copy"></i> Copier
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="7" class="text-center text-muted py-3">Aucun lien généré</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
