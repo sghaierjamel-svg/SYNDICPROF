@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Assemblées Générales{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h2 class="text-white mb-0">
+        <i class="bi bi-people-fill" style="color:#00C896;"></i> Assemblées Générales
+    </h2>
+    {% if user.role == 'admin' %}
+    <a href="{{ url_for('assembly_new') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Nouvelle assemblée
+    </a>
+    {% endif %}
+</div>
+
+{% if not assemblies %}
+<div class="card text-center py-5">
+    <div class="card-body">
+        <i class="bi bi-calendar-x" style="font-size:3rem;color:var(--muted);"></i>
+        <h5 class="mt-3" style="color:var(--muted);">Aucune assemblée générale</h5>
+        {% if user.role == 'admin' %}
+        <p style="color:var(--muted);">Créez votre première assemblée pour organiser le vote des résidents.</p>
+        <a href="{{ url_for('assembly_new') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Créer une assemblée
+        </a>
+        {% else %}
+        <p style="color:var(--muted);">Aucune assemblée n'a encore été planifiée.</p>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+
+<!-- Stats rapides -->
+{% set nb_ouvertes  = assemblies|selectattr('status','eq','ouverte')|list|length %}
+{% set nb_planif    = assemblies|selectattr('status','eq','planifiee')|list|length %}
+{% set nb_cloturees = assemblies|selectattr('status','eq','cloturee')|list|length %}
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card text-center py-3">
+            <div style="font-size:1.8rem;font-weight:700;color:#00C896;">{{ assemblies|length }}</div>
+            <div style="font-size:.78rem;color:var(--muted);">Total</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center py-3">
+            <div style="font-size:1.8rem;font-weight:700;color:#f59e0b;">{{ nb_ouvertes }}</div>
+            <div style="font-size:.78rem;color:var(--muted);">Vote ouvert</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center py-3">
+            <div style="font-size:1.8rem;font-weight:700;color:#6b7280;">{{ nb_planif }}</div>
+            <div style="font-size:.78rem;color:var(--muted);">Planifiées</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center py-3">
+            <div style="font-size:1.8rem;font-weight:700;color:#9ca3af;">{{ nb_cloturees }}</div>
+            <div style="font-size:.78rem;color:var(--muted);">Clôturées</div>
+        </div>
+    </div>
+</div>
+
+<!-- Assemblées en vote ouvert en premier -->
+{% set open_ags   = assemblies|selectattr('status','eq','ouverte')|list %}
+{% set planif_ags = assemblies|selectattr('status','eq','planifiee')|list %}
+{% set closed_ags = assemblies|selectattr('status','eq','cloturee')|list %}
+
+{% for section_ags, section_title, section_color in [
+    (open_ags,   'Vote ouvert',  '#f59e0b'),
+    (planif_ags, 'Planifiées',   '#6b7280'),
+    (closed_ags, 'Clôturées',    '#4b5563'),
+] %}
+{% if section_ags %}
+<h5 class="mb-3 mt-4" style="color:{{ section_color }};font-size:.85rem;text-transform:uppercase;letter-spacing:.1em;">
+    <i class="bi bi-circle-fill" style="font-size:.5rem;vertical-align:middle;margin-right:.4rem;"></i>
+    {{ section_title }}
+</h5>
+<div class="row g-3 mb-2">
+{% for ag in section_ags %}
+<div class="col-lg-6">
+    <div class="card h-100" style="border-left: 4px solid
+        {% if ag.status == 'ouverte' %}#f59e0b
+        {% elif ag.status == 'cloturee' %}#374151
+        {% else %}#6b7280{% endif %};">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div style="flex:1;min-width:0;">
+                    <h5 class="mb-1 fw-bold text-white text-truncate">{{ ag.title }}</h5>
+                    <div style="font-size:.8rem;color:var(--muted);">
+                        <i class="bi bi-calendar3"></i>
+                        {{ ag.meeting_date.strftime('%d/%m/%Y à %H:%M') }}
+                        {% if ag.location %}
+                        &nbsp;·&nbsp;<i class="bi bi-geo-alt"></i> {{ ag.location }}
+                        {% endif %}
+                    </div>
+                </div>
+                <span class="badge ms-2 flex-shrink-0
+                    {% if ag.status == 'ouverte' %}bg-warning text-dark
+                    {% elif ag.status == 'cloturee' %}bg-secondary
+                    {% else %}bg-secondary opacity-75{% endif %}"
+                    style="font-size:.72rem;">
+                    {% if ag.status == 'ouverte' %}
+                    <i class="bi bi-check2-circle"></i> Vote ouvert
+                    {% elif ag.status == 'cloturee' %}
+                    <i class="bi bi-lock"></i> Clôturée
+                    {% else %}
+                    <i class="bi bi-clock"></i> Planifiée
+                    {% endif %}
+                </span>
+            </div>
+
+            {% if ag.description %}
+            <p style="font-size:.83rem;color:var(--muted);margin-bottom:.75rem;">
+                {{ ag.description[:120] }}{% if ag.description|length > 120 %}…{% endif %}
+            </p>
+            {% endif %}
+
+            <!-- Mini stats -->
+            <div class="d-flex gap-3 mb-3" style="font-size:.8rem;color:var(--muted);">
+                <span><i class="bi bi-list-ol" style="color:#00C896;"></i> {{ stats[ag.id].items }} point{{ 's' if stats[ag.id].items > 1 }}</span>
+                <span><i class="bi bi-person-check" style="color:#00C896;"></i> {{ stats[ag.id].voters }} votant{{ 's' if stats[ag.id].voters > 1 }}</span>
+            </div>
+
+            <!-- Actions -->
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{{ url_for('assembly_detail', ag_id=ag.id) }}" class="btn btn-sm btn-primary">
+                    {% if ag.status == 'ouverte' and user.role == 'resident' %}
+                    <i class="bi bi-hand-index"></i> Voter
+                    {% else %}
+                    <i class="bi bi-eye"></i> Voir
+                    {% endif %}
+                </a>
+                {% if ag.status == 'cloturee' %}
+                <a href="{{ url_for('assembly_pv', ag_id=ag.id) }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-file-text"></i> PV
+                </a>
+                <a href="{{ url_for('assembly_pv_pdf', ag_id=ag.id) }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-file-earmark-pdf"></i> PDF
+                </a>
+                {% endif %}
+                {% if user.role == 'admin' %}
+                <form method="POST" action="{{ url_for('assembly_delete', ag_id=ag.id) }}" style="display:inline;"
+                      onsubmit="return confirm('Supprimer cette assemblée et tous ses votes ?')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-sm btn-outline-secondary" style="color:#f87171;border-color:#f87171;">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+</div>
+{% endif %}
+{% endfor %}
+
+{% endif %}
+{% endblock %}

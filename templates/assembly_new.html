@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Nouvelle Assemblée{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4 gap-3">
+    <a href="{{ url_for('assembly_list') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i>
+    </a>
+    <h2 class="text-white mb-0">
+        <i class="bi bi-plus-circle" style="color:#00C896;"></i> Nouvelle Assemblée Générale
+    </h2>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-calendar-event" style="color:#00C896;"></i> Informations de l'assemblée
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-type"></i> Titre de l'assemblée *
+                        </label>
+                        <input type="text" name="title" class="form-control"
+                               placeholder="Ex : Assemblée Générale Ordinaire 2025"
+                               required maxlength="200">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-calendar-date"></i> Date et heure *
+                        </label>
+                        <input type="datetime-local" name="meeting_date" class="form-control" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-geo-alt"></i> Lieu
+                        </label>
+                        <input type="text" name="location" class="form-control"
+                               placeholder="Ex : Salle commune — Bâtiment A"
+                               maxlength="200">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-card-text"></i> Description / Objet
+                        </label>
+                        <textarea name="description" class="form-control" rows="4"
+                                  placeholder="Décrivez l'objet de cette assemblée…"></textarea>
+                    </div>
+
+                    <div class="alert alert-info" style="font-size:.85rem;">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Étape suivante :</strong> après création, vous pourrez ajouter les points
+                        à l'ordre du jour, puis ouvrir le vote en ligne pour les résidents.
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Créer l'assemblée
+                        </button>
+                        <a href="{{ url_for('assembly_list') }}" class="btn btn-secondary">Annuler</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

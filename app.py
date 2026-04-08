@@ -15,11 +15,13 @@ import routes.subscription
 import routes.profile
 import routes.settings
 import routes.konnect
+import routes.flouci
 import routes.ai
 import routes.automation
 import routes.access
 import routes.financial_statements
 import routes.announcements
+import routes.assembly
 
 
 @app.errorhandler(404)

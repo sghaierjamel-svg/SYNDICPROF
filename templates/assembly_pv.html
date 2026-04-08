@@ -1,0 +1,359 @@
+{% extends "base.html" %}
+{% block title %}PV — {{ ag.title }}{% endblock %}
+
+{% block content %}
+
+<!-- En-tête PV -->
+<div class="d-flex align-items-start gap-3 mb-4 flex-wrap">
+    <a href="{{ url_for('assembly_detail', ag_id=ag.id) }}" class="btn btn-outline-secondary btn-sm mt-1">
+        <i class="bi bi-arrow-left"></i>
+    </a>
+    <div style="flex:1;min-width:0;">
+        <h2 class="text-white mb-1" style="font-size:1.35rem;">
+            <i class="bi bi-file-earmark-text" style="color:#00C896;"></i>
+            Procès-Verbal — {{ ag.title }}
+        </h2>
+        <div style="font-size:.83rem;color:var(--muted);" class="d-flex gap-3 flex-wrap">
+            <span><i class="bi bi-calendar3"></i> {{ ag.meeting_date.strftime('%d/%m/%Y à %H:%M') }}</span>
+            {% if ag.location %}<span><i class="bi bi-geo-alt"></i> {{ ag.location }}</span>{% endif %}
+            <span><i class="bi bi-people"></i> {{ voters|length }} / {{ total_residents }} résidents ont voté</span>
+        </div>
+    </div>
+    <div class="d-flex gap-2 flex-shrink-0 flex-wrap">
+        {% if user.role == 'admin' and ag.status != 'cloturee' %}
+        <form method="POST" action="{{ url_for('assembly_close', ag_id=ag.id) }}"
+              onsubmit="return confirm('Clôturer définitivement ?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-danger btn-sm">
+                <i class="bi bi-lock"></i> Clôturer
+            </button>
+        </form>
+        {% endif %}
+        <a href="{{ url_for('assembly_pv_pdf', ag_id=ag.id) }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-file-earmark-pdf"></i> Télécharger PDF
+        </a>
+    </div>
+</div>
+
+<!-- Info AG -->
+<div class="card mb-4" style="border-left:4px solid #00C896;">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.25rem;">Assemblée</div>
+                <div style="font-weight:700;color:var(--text);">{{ ag.title }}</div>
+            </div>
+            <div class="col-md-3">
+                <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.25rem;">Date</div>
+                <div style="font-weight:600;color:var(--text);">{{ ag.meeting_date.strftime('%d/%m/%Y à %H:%M') }}</div>
+            </div>
+            <div class="col-md-3">
+                <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.25rem;">Statut</div>
+                <span class="badge {% if ag.status == 'cloturee' %}bg-secondary{% else %}bg-warning text-dark{% endif %}">
+                    {% if ag.status == 'cloturee' %}<i class="bi bi-lock-fill"></i> Clôturée{% else %}<i class="bi bi-check2-circle"></i> Vote ouvert{% endif %}
+                </span>
+            </div>
+            {% if ag.description %}
+            <div class="col-12">
+                <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.25rem;">Objet</div>
+                <div style="font-size:.88rem;color:var(--text);">{{ ag.description }}</div>
+            </div>
+            {% endif %}
+            <div class="col-md-4">
+                <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.25rem;">Taux de participation</div>
+                {% set taux = ((voters|length / total_residents * 100)|round|int) if total_residents > 0 else 0 %}
+                <div class="d-flex align-items-center gap-2">
+                    <div style="font-size:1.4rem;font-weight:700;color:#00C896;">{{ taux }}%</div>
+                    <div style="font-size:.8rem;color:var(--muted);">{{ voters|length }} / {{ total_residents }} résidents</div>
+                </div>
+                <div class="progress mt-1" style="height:4px;background:var(--border2);">
+                    <div class="progress-bar" style="width:{{ taux }}%;background:#00C896;"></div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.25rem;">Points votés</div>
+                <div style="font-size:1.4rem;font-weight:700;color:var(--text);">{{ ag.items|length }}</div>
+            </div>
+            <div class="col-md-4">
+                <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.25rem;">Résolutions adoptées</div>
+                {% set nb_adopte = votes_by_item.values()|selectattr('result','eq','ADOPTÉ')|list|length %}
+                <div style="font-size:1.4rem;font-weight:700;color:#00C896;">{{ nb_adopte }} / {{ ag.items|length }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── TABLEAU RÉCAPITULATIF ─── -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-table" style="color:#00C896;"></i> Récapitulatif des résolutions
+    </div>
+    <div class="table-responsive">
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th style="width:40px;">#</th>
+                    <th>Question</th>
+                    <th class="text-center" style="width:80px;color:#00C896;">Pour</th>
+                    <th class="text-center" style="width:80px;color:#ef4444;">Contre</th>
+                    <th class="text-center" style="width:90px;color:#9ca3af;">Abstention</th>
+                    <th class="text-center" style="width:100px;">Total</th>
+                    <th class="text-center" style="width:110px;">Résultat</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in ag.items|sort(attribute='order_num') %}
+                {% set data = votes_by_item.get(item.id, {}) %}
+                {% set pc = data.get('pour_count', 0) %}
+                {% set cc = data.get('contre_count', 0) %}
+                {% set ac = data.get('abstention_count', 0) %}
+                {% set total = data.get('total', 0) %}
+                {% set res = data.get('result', '-') %}
+                <tr>
+                    <td style="font-weight:700;color:#00C896;">{{ loop.index }}</td>
+                    <td style="font-weight:500;">{{ item.question }}</td>
+                    <td class="text-center">
+                        <span style="color:#00C896;font-weight:700;">{{ pc }}</span>
+                        {% if total > 0 %}<br><small style="color:var(--muted);font-size:.7rem;">{{ (pc/total*100)|round|int }}%</small>{% endif %}
+                    </td>
+                    <td class="text-center">
+                        <span style="color:#ef4444;font-weight:700;">{{ cc }}</span>
+                        {% if total > 0 %}<br><small style="color:var(--muted);font-size:.7rem;">{{ (cc/total*100)|round|int }}%</small>{% endif %}
+                    </td>
+                    <td class="text-center">
+                        <span style="color:#9ca3af;font-weight:700;">{{ ac }}</span>
+                        {% if total > 0 %}<br><small style="color:var(--muted);font-size:.7rem;">{{ (ac/total*100)|round|int }}%</small>{% endif %}
+                    </td>
+                    <td class="text-center" style="color:var(--muted);">{{ total }}</td>
+                    <td class="text-center">
+                        {% if total > 0 %}
+                        <span class="badge
+                            {% if res == 'ADOPTÉ' %}bg-success
+                            {% elif res == 'REJETÉ' %}bg-danger
+                            {% else %}bg-info{% endif %}">
+                            {{ res }}
+                        </span>
+                        {% else %}
+                        <span style="color:var(--muted);font-size:.8rem;">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ── DÉTAIL DES VOTES PAR POINT ─── -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-people-fill" style="color:#00C896;"></i> Détail des votes par point
+    </div>
+    <div class="card-body p-0">
+        {% for item in ag.items|sort(attribute='order_num') %}
+        {% set data = votes_by_item.get(item.id, {}) %}
+        {% set pc = data.get('pour_count', 0) %}
+        {% set cc = data.get('contre_count', 0) %}
+        {% set ac = data.get('abstention_count', 0) %}
+        {% set total = data.get('total', 0) %}
+        {% set res = data.get('result', '-') %}
+
+        <div style="padding:1.25rem;border-bottom:1px solid var(--border);">
+
+            <!-- Titre point -->
+            <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
+                <div>
+                    <span style="background:rgba(0,200,150,0.15);color:#00C896;
+                                 border-radius:8px;font-size:.78rem;font-weight:700;
+                                 padding:.25rem .6rem;margin-right:.6rem;">Point {{ loop.index }}</span>
+                    <span style="font-size:1rem;font-weight:600;color:var(--text);">{{ item.question }}</span>
+                </div>
+                {% if total > 0 %}
+                <span class="badge
+                    {% if res == 'ADOPTÉ' %}bg-success
+                    {% elif res == 'REJETÉ' %}bg-danger
+                    {% else %}bg-info{% endif %}" style="font-size:.85rem;padding:.45rem .9rem;">
+                    {{ res }}
+                </span>
+                {% endif %}
+            </div>
+
+            <!-- Barre de répartition -->
+            {% if total > 0 %}
+            <div class="progress mb-3" style="height:10px;background:var(--border2);border-radius:5px;">
+                {% if pc > 0 %}<div class="progress-bar" style="width:{{ (pc/total*100)|round|int }}%;background:#00C896;" title="Pour : {{ pc }}"></div>{% endif %}
+                {% if cc > 0 %}<div class="progress-bar" style="width:{{ (cc/total*100)|round|int }}%;background:#ef4444;" title="Contre : {{ cc }}"></div>{% endif %}
+                {% if ac > 0 %}<div class="progress-bar" style="width:{{ (ac/total*100)|round|int }}%;background:#6b7280;" title="Abstention : {{ ac }}"></div>{% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Colonnes Pour / Contre / Abstention -->
+            <div class="row g-3">
+
+                <!-- POUR -->
+                <div class="col-md-4">
+                    <div style="background:rgba(0,200,150,0.06);border:1px solid rgba(0,200,150,0.2);
+                                border-radius:12px;padding:1rem;">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span style="font-size:.8rem;font-weight:700;color:#00C896;">
+                                <i class="bi bi-hand-thumbs-up-fill"></i> POUR
+                            </span>
+                            <span style="font-size:1.3rem;font-weight:700;color:#00C896;">{{ pc }}</span>
+                        </div>
+                        {% for u, apt in data.get('pour', []) %}
+                        <div style="display:flex;align-items:center;gap:.5rem;padding:.3rem 0;
+                                    border-bottom:1px solid rgba(0,200,150,0.1);font-size:.82rem;">
+                            <span style="width:22px;height:22px;border-radius:50%;
+                                         background:rgba(0,200,150,0.15);
+                                         display:flex;align-items:center;justify-content:center;
+                                         color:#00C896;flex-shrink:0;font-size:.7rem;">
+                                <i class="bi bi-person-fill"></i>
+                            </span>
+                            <div>
+                                <div style="color:var(--text);font-weight:500;line-height:1.2;">
+                                    {{ u.name or u.email if u else '?' }}
+                                </div>
+                                {% if apt %}
+                                <div style="font-size:.72rem;color:var(--muted);">
+                                    Appt {{ apt.block.name }}-{{ apt.number }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% else %}
+                        <div style="font-size:.8rem;color:var(--muted);">Aucun vote</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- CONTRE -->
+                <div class="col-md-4">
+                    <div style="background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);
+                                border-radius:12px;padding:1rem;">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span style="font-size:.8rem;font-weight:700;color:#ef4444;">
+                                <i class="bi bi-hand-thumbs-down-fill"></i> CONTRE
+                            </span>
+                            <span style="font-size:1.3rem;font-weight:700;color:#ef4444;">{{ cc }}</span>
+                        </div>
+                        {% for u, apt in data.get('contre', []) %}
+                        <div style="display:flex;align-items:center;gap:.5rem;padding:.3rem 0;
+                                    border-bottom:1px solid rgba(239,68,68,0.1);font-size:.82rem;">
+                            <span style="width:22px;height:22px;border-radius:50%;
+                                         background:rgba(239,68,68,0.12);
+                                         display:flex;align-items:center;justify-content:center;
+                                         color:#ef4444;flex-shrink:0;font-size:.7rem;">
+                                <i class="bi bi-person-fill"></i>
+                            </span>
+                            <div>
+                                <div style="color:var(--text);font-weight:500;line-height:1.2;">
+                                    {{ u.name or u.email if u else '?' }}
+                                </div>
+                                {% if apt %}
+                                <div style="font-size:.72rem;color:var(--muted);">
+                                    Appt {{ apt.block.name }}-{{ apt.number }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% else %}
+                        <div style="font-size:.8rem;color:var(--muted);">Aucun vote</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- ABSTENTION -->
+                <div class="col-md-4">
+                    <div style="background:rgba(107,114,128,0.06);border:1px solid rgba(107,114,128,0.2);
+                                border-radius:12px;padding:1rem;">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span style="font-size:.8rem;font-weight:700;color:#9ca3af;">
+                                <i class="bi bi-dash-circle-fill"></i> ABSTENTION
+                            </span>
+                            <span style="font-size:1.3rem;font-weight:700;color:#9ca3af;">{{ ac }}</span>
+                        </div>
+                        {% for u, apt in data.get('abstention', []) %}
+                        <div style="display:flex;align-items:center;gap:.5rem;padding:.3rem 0;
+                                    border-bottom:1px solid rgba(107,114,128,0.1);font-size:.82rem;">
+                            <span style="width:22px;height:22px;border-radius:50%;
+                                         background:rgba(107,114,128,0.12);
+                                         display:flex;align-items:center;justify-content:center;
+                                         color:#9ca3af;flex-shrink:0;font-size:.7rem;">
+                                <i class="bi bi-person-fill"></i>
+                            </span>
+                            <div>
+                                <div style="color:var(--text);font-weight:500;line-height:1.2;">
+                                    {{ u.name or u.email if u else '?' }}
+                                </div>
+                                {% if apt %}
+                                <div style="font-size:.72rem;color:var(--muted);">
+                                    Appt {{ apt.block.name }}-{{ apt.number }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% else %}
+                        <div style="font-size:.8rem;color:var(--muted);">Aucune</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- ── LISTE DES PARTICIPANTS ─── -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-people-fill" style="color:#00C896;"></i> Participants</span>
+        <span class="badge bg-secondary">{{ voters|length }} / {{ total_residents }}</span>
+    </div>
+    <div class="card-body">
+        {% if voters %}
+        <div class="row g-2">
+            {% for v in voters|sort(attribute='name') %}
+            <div class="col-md-4 col-sm-6">
+                <div style="display:flex;align-items:center;gap:.6rem;padding:.5rem .75rem;
+                            background:rgba(0,200,150,0.04);border-radius:10px;
+                            border:1px solid rgba(0,200,150,0.1);">
+                    <span style="width:28px;height:28px;border-radius:50%;
+                                 background:rgba(0,200,150,0.12);
+                                 display:flex;align-items:center;justify-content:center;
+                                 color:#00C896;flex-shrink:0;font-size:.85rem;">
+                        <i class="bi bi-person-check-fill"></i>
+                    </span>
+                    <div>
+                        <div style="font-size:.85rem;font-weight:600;color:var(--text);">{{ v.name or v.email }}</div>
+                        {% if v.apartment %}
+                        <div style="font-size:.72rem;color:var(--muted);">Appt {{ v.apartment.block.name }}-{{ v.apartment.number }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-3" style="color:var(--muted);">
+            <i class="bi bi-people"></i> Aucun participant enregistré
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Footer PV -->
+<div class="card mb-4" style="background:rgba(0,200,150,0.04);border-color:rgba(0,200,150,0.15);">
+    <div class="card-body text-center" style="font-size:.83rem;color:var(--muted);">
+        <i class="bi bi-shield-check" style="color:#00C896;"></i>
+        Ce Procès-Verbal est généré automatiquement par <strong style="color:#00C896;">SyndicPro</strong> —
+        {{ org.name }} — {{ ag.meeting_date.strftime('%d/%m/%Y') }}<br>
+        Il constitue le document officiel de l'assemblée générale des copropriétaires.
+        <div class="mt-2">
+            <a href="{{ url_for('assembly_pv_pdf', ag_id=ag.id) }}" class="btn btn-primary btn-sm">
+                <i class="bi bi-file-earmark-pdf"></i> Télécharger le PV en PDF
+            </a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

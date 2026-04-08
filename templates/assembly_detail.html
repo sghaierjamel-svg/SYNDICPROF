@@ -1,0 +1,521 @@
+{% extends "base.html" %}
+{% block title %}{{ ag.title }}{% endblock %}
+
+{% block content %}
+
+<!-- En-tête AG -->
+<div class="d-flex align-items-start gap-3 mb-4 flex-wrap">
+    <a href="{{ url_for('assembly_list') }}" class="btn btn-outline-secondary btn-sm mt-1">
+        <i class="bi bi-arrow-left"></i>
+    </a>
+    <div style="flex:1;min-width:0;">
+        <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+            <h2 class="text-white mb-0" style="font-size:1.4rem;">
+                <i class="bi bi-people-fill" style="color:#00C896;"></i> {{ ag.title }}
+            </h2>
+            <span class="badge
+                {% if ag.status == 'ouverte' %}bg-warning text-dark
+                {% elif ag.status == 'cloturee' %}bg-secondary
+                {% else %}bg-secondary opacity-75{% endif %}">
+                {% if ag.status == 'ouverte' %}
+                <i class="bi bi-circle-fill" style="font-size:.5rem;animation:pulse 1.5s infinite;"></i> Vote ouvert
+                {% elif ag.status == 'cloturee' %}
+                <i class="bi bi-lock-fill"></i> Clôturée
+                {% else %}
+                <i class="bi bi-clock"></i> Planifiée
+                {% endif %}
+            </span>
+        </div>
+        <div style="font-size:.85rem;color:var(--muted);" class="d-flex gap-3 flex-wrap">
+            <span><i class="bi bi-calendar3"></i> {{ ag.meeting_date.strftime('%d/%m/%Y à %H:%M') }}</span>
+            {% if ag.location %}<span><i class="bi bi-geo-alt"></i> {{ ag.location }}</span>{% endif %}
+            <span><i class="bi bi-person-check"></i> {{ voters|length }} votant{{ 's' if voters|length > 1 }}</span>
+        </div>
+        {% if ag.description %}
+        <p class="mt-2 mb-0" style="font-size:.85rem;color:var(--muted);">{{ ag.description }}</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!--  BLOC ADMIN                                                             -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+{% if user.role == 'admin' %}
+
+<div class="row g-3 mb-4">
+
+    <!-- Gestion ordre du jour -->
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-list-ol" style="color:#00C896;"></i> Ordre du jour</span>
+                <span class="badge bg-secondary">{{ ag.items|length }} point{{ 's' if ag.items|length > 1 }}</span>
+            </div>
+            <div class="card-body">
+                {% if ag.status != 'cloturee' %}
+                <form method="POST" action="{{ url_for('assembly_add_item', ag_id=ag.id) }}" class="mb-3">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="input-group">
+                        <input type="text" name="question" class="form-control"
+                               placeholder="Ajouter un point à l'ordre du jour…" maxlength="500" required>
+                        <button class="btn btn-primary" type="submit">
+                            <i class="bi bi-plus"></i>
+                        </button>
+                    </div>
+                </form>
+                {% endif %}
+
+                {% if ag.items %}
+                <ol class="list-unstyled mb-0" style="counter-reset:items;">
+                    {% for item in ag.items|sort(attribute='order_num') %}
+                    <li style="display:flex;align-items:flex-start;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--border);">
+                        <span style="background:rgba(0,200,150,0.15);color:#00C896;border-radius:6px;
+                                     font-size:.75rem;font-weight:700;padding:.2rem .5rem;flex-shrink:0;
+                                     min-width:28px;text-align:center;">{{ loop.index }}</span>
+                        <span style="flex:1;font-size:.88rem;color:var(--text);">{{ item.question }}</span>
+                        {% if ag.status != 'cloturee' %}
+                        <form method="POST" action="{{ url_for('assembly_delete_item', ag_id=ag.id, item_id=item.id) }}"
+                              style="flex-shrink:0;"
+                              onsubmit="return confirm('Supprimer ce point ?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="btn btn-sm" style="color:#f87171;padding:.15rem .4rem;font-size:.8rem;">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ol>
+                {% else %}
+                <div class="text-center py-3" style="color:var(--muted);font-size:.85rem;">
+                    <i class="bi bi-inbox"></i><br>Aucun point ajouté
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Contrôles + Participants -->
+    <div class="col-lg-7">
+
+        <!-- Contrôles statut -->
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-sliders" style="color:#00C896;"></i> Gestion du vote</div>
+            <div class="card-body">
+                {% if ag.status == 'planifiee' %}
+                <div class="alert alert-info mb-3" style="font-size:.85rem;">
+                    <i class="bi bi-info-circle"></i>
+                    L'assemblée est planifiée. Ajoutez les points à l'ordre du jour, puis ouvrez le vote.
+                </div>
+                <form method="POST" action="{{ url_for('assembly_open_vote', ag_id=ag.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-warning w-100 fw-bold">
+                        <i class="bi bi-play-circle"></i> Ouvrir le vote en ligne
+                    </button>
+                </form>
+
+                {% elif ag.status == 'ouverte' %}
+                <div class="alert alert-success mb-3" style="font-size:.85rem;">
+                    <i class="bi bi-check-circle"></i>
+                    Le vote est ouvert — <strong>{{ voters|length }} résidents</strong> ont voté.
+                </div>
+                <div class="d-flex gap-2">
+                    <form method="POST" action="{{ url_for('assembly_close', ag_id=ag.id) }}"
+                          onsubmit="return confirm('Clôturer le vote ? Les résidents ne pourront plus voter.')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn-danger">
+                            <i class="bi bi-lock"></i> Clôturer et générer le PV
+                        </button>
+                    </form>
+                </div>
+
+                {% elif ag.status == 'cloturee' %}
+                <div class="alert alert-success mb-3" style="font-size:.85rem;">
+                    <i class="bi bi-lock-fill"></i>
+                    Assemblée clôturée. Le PV officiel est disponible.
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{{ url_for('assembly_pv', ag_id=ag.id) }}" class="btn btn-primary">
+                        <i class="bi bi-file-text"></i> Voir le PV
+                    </a>
+                    <a href="{{ url_for('assembly_pv_pdf', ag_id=ag.id) }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-file-earmark-pdf"></i> Télécharger PDF
+                    </a>
+                    <form method="POST" action="{{ url_for('assembly_reopen', ag_id=ag.id) }}"
+                          onsubmit="return confirm('Réouvrir le vote ?')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn-outline-secondary" style="font-size:.85rem;">
+                            <i class="bi bi-arrow-counterclockwise"></i> Réouvrir
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Participants -->
+        {% if voters %}
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-people" style="color:#00C896;"></i>
+                Participants ({{ voters|length }})
+            </div>
+            <div class="card-body p-0">
+                <div style="max-height:160px;overflow-y:auto;">
+                    {% for v in voters %}
+                    <div style="padding:.45rem 1rem;border-bottom:1px solid var(--border);
+                                display:flex;align-items:center;gap:.6rem;font-size:.83rem;">
+                        <span style="width:28px;height:28px;border-radius:50%;
+                                     background:rgba(0,200,150,0.12);
+                                     display:flex;align-items:center;justify-content:center;
+                                     color:#00C896;flex-shrink:0;font-size:.8rem;">
+                            <i class="bi bi-person-fill"></i>
+                        </span>
+                        <div>
+                            <div style="color:var(--text);font-weight:500;">{{ v.name or v.email }}</div>
+                            {% if v.apartment %}
+                            <div style="font-size:.75rem;color:var(--muted);">
+                                Appt {{ v.apartment.block.name }}-{{ v.apartment.number }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Résultats en temps réel (admin) -->
+{% if ag.items %}
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-bar-chart-fill" style="color:#00C896;"></i>
+        Résultats en temps réel
+        {% if ag.status == 'ouverte' %}
+        <span class="badge bg-warning text-dark ms-2" style="font-size:.7rem;">Live</span>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        {% for item in ag.items|sort(attribute='order_num') %}
+        {% set data = votes_by_item.get(item.id, {}) %}
+        {% set total = data.get('total', 0) %}
+        {% set pc = data.get('pour_count', 0) %}
+        {% set cc = data.get('contre_count', 0) %}
+        {% set ac = data.get('abstention_count', 0) %}
+        {% set res = data.get('result', '') %}
+
+        <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border);">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+                <div style="flex:1;">
+                    <span style="background:rgba(0,200,150,0.15);color:#00C896;
+                                 border-radius:6px;font-size:.72rem;font-weight:700;
+                                 padding:.2rem .5rem;margin-right:.5rem;">{{ loop.index }}</span>
+                    <span style="font-weight:600;color:var(--text);">{{ item.question }}</span>
+                </div>
+                {% if total > 0 %}
+                <span class="badge
+                    {% if res == 'ADOPTÉ' %}bg-success
+                    {% elif res == 'REJETÉ' %}bg-danger
+                    {% else %}bg-info{% endif %}">
+                    {{ res }}
+                </span>
+                {% endif %}
+            </div>
+
+            {% if total > 0 %}
+            <!-- Barre de progression -->
+            <div class="progress mb-2" style="height:8px;background:var(--border2);border-radius:4px;">
+                {% if pc > 0 %}<div class="progress-bar" style="width:{{ (pc/total*100)|round|int }}%;background:#00C896;"></div>{% endif %}
+                {% if cc > 0 %}<div class="progress-bar" style="width:{{ (cc/total*100)|round|int }}%;background:#ef4444;"></div>{% endif %}
+                {% if ac > 0 %}<div class="progress-bar" style="width:{{ (ac/total*100)|round|int }}%;background:#6b7280;"></div>{% endif %}
+            </div>
+
+            <div class="d-flex gap-4 flex-wrap" style="font-size:.83rem;">
+                <span style="color:#00C896;">
+                    <i class="bi bi-hand-thumbs-up-fill"></i>
+                    <strong>{{ pc }}</strong> Pour
+                    ({{ (pc/total*100)|round|int }}%)
+                </span>
+                <span style="color:#ef4444;">
+                    <i class="bi bi-hand-thumbs-down-fill"></i>
+                    <strong>{{ cc }}</strong> Contre
+                    ({{ (cc/total*100)|round|int }}%)
+                </span>
+                <span style="color:var(--muted);">
+                    <i class="bi bi-dash-circle-fill"></i>
+                    <strong>{{ ac }}</strong> Abstention
+                </span>
+                <span style="color:var(--muted);">
+                    <i class="bi bi-people"></i> {{ total }} votant{{ 's' if total > 1 }}
+                </span>
+            </div>
+
+            <!-- Noms par vote (admin uniquement) -->
+            <div class="row g-2 mt-2">
+                {% for lbl, key, clr, icon in [
+                    ('Pour', 'pour', '#00C896', 'hand-thumbs-up-fill'),
+                    ('Contre', 'contre', '#ef4444', 'hand-thumbs-down-fill'),
+                    ('Abstention', 'abstention', '#6b7280', 'dash-circle-fill'),
+                ] %}
+                {% set voters_list = data.get(key, []) %}
+                {% if voters_list %}
+                <div class="col-md-4">
+                    <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:.6rem .75rem;">
+                        <div style="font-size:.73rem;font-weight:700;color:{{ clr }};margin-bottom:.4rem;">
+                            <i class="bi bi-{{ icon }}"></i> {{ lbl }} ({{ voters_list|length }})
+                        </div>
+                        {% for u, apt in voters_list %}
+                        <div style="font-size:.78rem;color:var(--text);line-height:1.6;">
+                            {{ u.name or u.email if u else '?' }}
+                            {% if apt %}<span style="color:var(--muted);">({{ apt.block.name }}-{{ apt.number }})</span>{% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+
+            {% else %}
+            <div style="font-size:.82rem;color:var(--muted);">
+                <i class="bi bi-hourglass"></i> Aucun vote enregistré pour ce point
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% endif %}{# fin bloc admin #}
+
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!--  BLOC RÉSIDENT                                                          -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+{% if user.role == 'resident' %}
+
+{% if ag.status == 'planifiee' %}
+<!-- Vote pas encore ouvert -->
+<div class="card text-center py-5 mb-4">
+    <div class="card-body">
+        <i class="bi bi-clock" style="font-size:3rem;color:var(--muted);"></i>
+        <h5 class="mt-3" style="color:var(--muted);">Le vote n'est pas encore ouvert</h5>
+        <p style="color:var(--muted);font-size:.88rem;">
+            Cette assemblée est planifiée pour le <strong style="color:var(--text);">{{ ag.meeting_date.strftime('%d/%m/%Y à %H:%M') }}</strong>.
+            Vous serez notifié lorsque le vote en ligne sera disponible.
+        </p>
+    </div>
+</div>
+
+{% elif ag.status == 'ouverte' %}
+<!-- Formulaire de vote -->
+{% if has_voted_all %}
+<div class="alert alert-success mb-3" style="font-size:.88rem;">
+    <i class="bi bi-check-circle-fill"></i>
+    Vous avez déjà voté sur tous les points. Vous pouvez modifier votre vote jusqu'à la clôture.
+</div>
+{% else %}
+<div class="alert alert-warning mb-3" style="font-size:.88rem;">
+    <i class="bi bi-hand-index"></i>
+    Le vote est ouvert ! Sélectionnez votre position sur chaque point, puis validez.
+</div>
+{% endif %}
+
+<form method="POST" action="{{ url_for('assembly_vote', ag_id=ag.id) }}" id="voteForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    {% for item in ag.items|sort(attribute='order_num') %}
+    {% set my_vote = user_voted.get(item.id) %}
+    <div class="card mb-3 vote-item-card" id="card-item-{{ item.id }}">
+        <div class="card-body">
+            <div class="d-flex align-items-start gap-3 mb-3">
+                <span style="background:rgba(0,200,150,0.15);color:#00C896;
+                             border-radius:8px;font-size:.8rem;font-weight:700;
+                             padding:.3rem .6rem;flex-shrink:0;">{{ loop.index }}</span>
+                <h6 class="mb-0 mt-1" style="color:var(--text);font-weight:600;">{{ item.question }}</h6>
+            </div>
+
+            {% if my_vote %}
+            <div class="mb-2" style="font-size:.78rem;color:var(--muted);">
+                <i class="bi bi-check-circle" style="color:#00C896;"></i>
+                Vous avez voté :
+                <strong style="color:
+                    {% if my_vote == 'pour' %}#00C896
+                    {% elif my_vote == 'contre' %}#ef4444
+                    {% else %}#9ca3af{% endif %};">
+                    {{ my_vote|upper }}
+                </strong>
+                — vous pouvez changer
+            </div>
+            {% endif %}
+
+            <div class="d-flex gap-2">
+                {% for val, lbl, clr, icon in [
+                    ('pour',       'Pour',       '#00C896', 'hand-thumbs-up'),
+                    ('contre',     'Contre',     '#ef4444', 'hand-thumbs-down'),
+                    ('abstention', 'Abstention', '#9ca3af', 'dash-circle'),
+                ] %}
+                <label class="vote-btn flex-fill text-center
+                    {% if my_vote == val %}vote-selected-{{ val }}{% endif %}"
+                    data-val="{{ val }}"
+                    data-item="{{ item.id }}"
+                    style="cursor:pointer;padding:.7rem .5rem;border-radius:12px;
+                           border:2px solid {% if my_vote == val %}{{ clr }}{% else %}var(--border2){% endif %};
+                           color:{% if my_vote == val %}{{ clr }}{% else %}var(--muted){% endif %};
+                           background:{% if my_vote == val %}{{ clr }}18{% else %}transparent{% endif %};
+                           transition:all .2s;user-select:none;">
+                    <input type="radio" name="vote_{{ item.id }}" value="{{ val }}"
+                           {% if my_vote == val %}checked{% endif %}
+                           class="d-none vote-radio">
+                    <div style="font-size:1.2rem;margin-bottom:.2rem;"><i class="bi bi-{{ icon }}"></i></div>
+                    <div style="font-size:.82rem;font-weight:600;">{{ lbl }}</div>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <button type="submit" class="btn btn-primary btn-lg w-100" id="submitVoteBtn">
+                <i class="bi bi-check2-all"></i>
+                {% if has_voted_all %}Mettre à jour mon vote{% else %}Soumettre mes votes{% endif %}
+            </button>
+            <p class="text-center mt-2 mb-0" style="font-size:.78rem;color:var(--muted);">
+                <i class="bi bi-shield-lock"></i> Votre vote est confidentiel et sécurisé.
+            </p>
+        </div>
+    </div>
+</form>
+
+{% elif ag.status == 'cloturee' %}
+<!-- Assemblée clôturée -->
+<div class="card mb-4">
+    <div class="card-body text-center py-4">
+        <i class="bi bi-file-earmark-text" style="font-size:2.5rem;color:#00C896;"></i>
+        <h5 class="mt-3 text-white">Assemblée clôturée</h5>
+        <p style="color:var(--muted);font-size:.88rem;">
+            Le vote est terminé. Le Procès-Verbal officiel est disponible.
+        </p>
+        <div class="d-flex gap-2 justify-content-center">
+            <a href="{{ url_for('assembly_pv', ag_id=ag.id) }}" class="btn btn-primary">
+                <i class="bi bi-file-text"></i> Voir le PV
+            </a>
+            <a href="{{ url_for('assembly_pv_pdf', ag_id=ag.id) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-file-earmark-pdf"></i> Télécharger PDF
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Résultats (vue résidente — chiffres seulement) -->
+{% if ag.items %}
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-bar-chart" style="color:#00C896;"></i> Résultats finaux
+    </div>
+    <div class="card-body p-0">
+        {% for item in ag.items|sort(attribute='order_num') %}
+        {% set data = votes_by_item.get(item.id, {}) %}
+        {% set total = data.get('total', 0) %}
+        {% set pc = data.get('pour_count', 0) %}
+        {% set cc = data.get('contre_count', 0) %}
+        {% set ac = data.get('abstention_count', 0) %}
+        {% set res = data.get('result', '') %}
+        {% set my_vote = user_voted.get(item.id) %}
+
+        <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border);">
+            <div class="d-flex align-items-start justify-content-between gap-2 mb-2 flex-wrap">
+                <div>
+                    <span style="background:rgba(0,200,150,0.15);color:#00C896;
+                                 border-radius:6px;font-size:.72rem;font-weight:700;
+                                 padding:.2rem .5rem;margin-right:.5rem;">{{ loop.index }}</span>
+                    <span style="font-weight:600;color:var(--text);">{{ item.question }}</span>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    {% if my_vote %}
+                    <span style="font-size:.75rem;
+                        color:{% if my_vote == 'pour' %}#00C896{% elif my_vote == 'contre' %}#ef4444{% else %}#9ca3af{% endif %};">
+                        Mon vote : <strong>{{ my_vote|upper }}</strong>
+                    </span>
+                    {% endif %}
+                    {% if total > 0 %}
+                    <span class="badge
+                        {% if res == 'ADOPTÉ' %}bg-success
+                        {% elif res == 'REJETÉ' %}bg-danger
+                        {% else %}bg-info{% endif %}">
+                        {{ res }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if total > 0 %}
+            <div class="progress mb-2" style="height:6px;background:var(--border2);border-radius:3px;">
+                {% if pc > 0 %}<div class="progress-bar" style="width:{{ (pc/total*100)|round|int }}%;background:#00C896;"></div>{% endif %}
+                {% if cc > 0 %}<div class="progress-bar" style="width:{{ (cc/total*100)|round|int }}%;background:#ef4444;"></div>{% endif %}
+                {% if ac > 0 %}<div class="progress-bar" style="width:{{ (ac/total*100)|round|int }}%;background:#6b7280;"></div>{% endif %}
+            </div>
+            <div class="d-flex gap-3 flex-wrap" style="font-size:.8rem;">
+                <span style="color:#00C896;"><i class="bi bi-hand-thumbs-up-fill"></i> {{ pc }} Pour</span>
+                <span style="color:#ef4444;"><i class="bi bi-hand-thumbs-down-fill"></i> {{ cc }} Contre</span>
+                <span style="color:var(--muted);"><i class="bi bi-dash-circle-fill"></i> {{ ac }} Abstention</span>
+                <span style="color:var(--muted);">| {{ total }} votants</span>
+            </div>
+            {% else %}
+            <span style="font-size:.82rem;color:var(--muted);">Aucun vote</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endif %}
+
+{% endif %}{# fin bloc résident #}
+
+<style>
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.vote-btn:hover {
+    border-color: rgba(0,200,150,0.5) !important;
+    color: #00C896 !important;
+    background: rgba(0,200,150,0.07) !important;
+}
+</style>
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.vote-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var itemId  = this.dataset.item;
+        var val     = this.dataset.val;
+        var radio   = this.querySelector('.vote-radio');
+
+        // Désélectionner tous les boutons du même point
+        document.querySelectorAll('[data-item="' + itemId + '"]').forEach(function(b) {
+            b.style.borderColor = 'var(--border2)';
+            b.style.color       = 'var(--muted)';
+            b.style.background  = 'transparent';
+            b.style.fontWeight  = '';
+        });
+
+        // Couleurs selon le choix
+        var colorMap = { pour: '#00C896', contre: '#ef4444', abstention: '#9ca3af' };
+        var col = colorMap[val] || '#00C896';
+        this.style.borderColor = col;
+        this.style.color       = col;
+        this.style.background  = col + '20';
+        this.style.fontWeight  = '700';
+
+        radio.checked = true;
+    });
+});
+</script>
+{% endblock %}
+
+{% endblock %}

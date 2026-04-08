@@ -266,6 +266,10 @@
                                     <td><span class="badge bg-primary">{{ p.month_paid }}</span></td>
                                     <td>{{ p.description }}</td>
                                     <td>
+                                        <a href="{{ url_for('payment_receipt', payment_id=p.id) }}"
+                                           class="btn btn-sm btn-outline-secondary" title="Télécharger le reçu PDF">
+                                            <i class="bi bi-file-earmark-pdf"></i>
+                                        </a>
                                         <a href="{{ url_for('edit_payment', payment_id=p.id) }}"
                                            class="btn btn-sm btn-warning">
                                             <i class="bi bi-pencil"></i>

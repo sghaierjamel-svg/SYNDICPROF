@@ -615,6 +615,11 @@
             <i class="bi bi-megaphone"></i> Tableau d'affichage
         </a>
 
+        <a class="sidebar-link {% if request.endpoint in ['assembly_list','assembly_detail','assembly_pv','assembly_new'] %}active{% endif %}"
+           href="{{ url_for('assembly_list') }}">
+            <i class="bi bi-people-fill"></i> Assemblées Générales
+        </a>
+
         <div class="sidebar-section">Compte</div>
 
         <a class="sidebar-link {% if request.endpoint == 'subscription_status' %}active{% endif %}"
@@ -627,9 +632,13 @@
             <i class="bi bi-gear"></i> Paramètres
         </a>
 
+        <a class="sidebar-link {% if request.endpoint == 'flouci_links' %}active{% endif %}"
+           href="{{ url_for('flouci_links') }}">
+            <i class="bi bi-credit-card"></i> Liens Flouci
+        </a>
         <a class="sidebar-link {% if request.endpoint == 'konnect_links' %}active{% endif %}"
            href="{{ url_for('konnect_links') }}">
-            <i class="bi bi-credit-card"></i> Liens Konnect
+            <i class="bi bi-credit-card-2-front"></i> Liens Konnect
         </a>
 
         <div class="sidebar-section">Outils</div>
@@ -688,6 +697,13 @@
            href="{{ url_for('tickets') }}">
             <i class="bi bi-chat-left-dots"></i> Tickets
         </a>
+
+        {% if user.role == 'resident' %}
+        <a class="sidebar-link {% if request.endpoint in ['assembly_list','assembly_detail','assembly_pv'] %}active{% endif %}"
+           href="{{ url_for('assembly_list') }}">
+            <i class="bi bi-people-fill"></i> Assemblées Générales
+        </a>
+        {% endif %}
 
         {% if user.role == 'superadmin' %}
 
