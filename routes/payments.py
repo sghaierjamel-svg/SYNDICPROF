@@ -5,7 +5,7 @@ from models import Apartment, Payment, User
 from utils import (current_user, current_organization, login_required,
                    admin_required, subscription_required,
                    get_unpaid_months_count, get_next_unpaid_month)
-from datetime import datetime
+from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from utils_whatsapp import notify_payment
 
@@ -148,13 +148,12 @@ def payments():
         paid_months_by_apt.setdefault(p.apartment_id, set()).add(p.month_paid)
 
     today_month = date.today().replace(day=1)
-    from dateutil.relativedelta import relativedelta as rdelta
 
     for apt in apartments:
         paid = paid_months_by_apt.get(apt.id, set())
         start = apt.created_at.date().replace(day=1) if apt.created_at else today_month
         end_count = today_month
-        end_next = today_month + rdelta(months=3)
+        end_next = today_month + relativedelta(months=3)
 
         # Calcul impayés
         unpaid = 0
@@ -162,18 +161,17 @@ def payments():
         while cur <= end_count:
             if cur.strftime('%Y-%m') not in paid:
                 unpaid += 1
-            cur += rdelta(months=1)
+            cur += relativedelta(months=1)
         apt.unpaid_count = unpaid
 
         # Premier mois impayé
+        apt.next_unpaid = (end_next + relativedelta(months=1)).strftime('%Y-%m')
         cur = start
         while cur <= end_next:
             if cur.strftime('%Y-%m') not in paid:
                 apt.next_unpaid = cur.strftime('%Y-%m')
                 break
-            cur += rdelta(months=1)
-        else:
-            apt.next_unpaid = (end_next + rdelta(months=1)).strftime('%Y-%m')
+            cur += relativedelta(months=1)
 
     return render_template('payments.html', apartments=apartments, payments=payments_list, user=current_user())
 

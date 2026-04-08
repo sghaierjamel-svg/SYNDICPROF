@@ -39,17 +39,50 @@
     </div>
 
     <div class="col-lg-7 mt-4 mt-lg-0">
+
+        <!-- Notifications de lectures récentes -->
+        {% if recent_reads %}
+        <div class="card mb-3" style="border-color:rgba(0,200,150,0.3);">
+            <div class="card-header" style="background:rgba(0,200,150,0.06);">
+                <i class="bi bi-eye" style="color:var(--green);"></i>
+                <strong style="color:var(--green);">Lectures récentes</strong>
+                <span class="badge ms-2" style="background:rgba(0,200,150,0.2);color:var(--green);">{{ recent_reads|length }}</span>
+            </div>
+            <div class="card-body p-0">
+                {% for r in recent_reads %}
+                <div class="px-3 py-2 d-flex align-items-center gap-2" style="border-bottom:1px solid var(--border);font-size:.82rem;">
+                    <i class="bi bi-check-circle-fill" style="color:var(--green);flex-shrink:0;"></i>
+                    <div style="flex:1;min-width:0;">
+                        <span style="color:var(--text);font-weight:600;">
+                            {% if r.apartment %}{{ r.apartment.block.name }}-{{ r.apartment.number }}{% endif %}
+                        </span>
+                        <span style="color:var(--muted);"> a lu </span>
+                        <span style="color:var(--text);">{{ r.announcement.title }}</span>
+                    </div>
+                    <span style="color:var(--muted);font-size:.75rem;flex-shrink:0;">{{ r.read_at.strftime('%d/%m %H:%M') }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
         <div class="card">
             <div class="card-header"><i class="bi bi-list"></i> Annonces publiées ({{ announcements|length }})</div>
             <div class="card-body p-0">
                 {% for a in announcements %}
+                {% set read_count = read_counts.get(a.id, 0) %}
                 <div class="p-3" style="border-bottom:1px solid var(--border);{% if a.pinned %}background:rgba(0,200,150,0.04);{% endif %}">
                     <div class="d-flex justify-content-between align-items-start mb-1">
-                        <div>
+                        <div style="flex:1;min-width:0;">
                             {% if a.pinned %}
-                            <i class="bi bi-pin-angle-fill me-1" style="color:var(--accent);"></i>
+                            <i class="bi bi-pin-angle-fill me-1" style="color:var(--green);"></i>
                             {% endif %}
                             <strong style="color:var(--text);">{{ a.title }}</strong>
+                            <!-- Badge lectures -->
+                            <span class="ms-2" style="font-size:.72rem;padding:.15rem .5rem;border-radius:4px;
+                                {% if read_count > 0 %}background:rgba(0,200,150,0.15);color:var(--green);{% else %}background:rgba(156,163,175,0.15);color:var(--muted);{% endif %}">
+                                <i class="bi bi-eye"></i> {{ read_count }} lecture{{ 's' if read_count > 1 else '' }}
+                            </span>
                         </div>
                         <div class="d-flex gap-1 ms-2 flex-shrink-0">
                             <form method="post" action="{{ url_for('toggle_pin', ann_id=a.id) }}">
@@ -68,12 +101,24 @@
                             </form>
                         </div>
                     </div>
-                    <p style="color:var(--muted);font-size:.85rem;white-space:pre-wrap;margin-bottom:.25rem;">{{ a.body }}</p>
+                    <p style="color:var(--muted);font-size:.85rem;white-space:pre-wrap;margin-bottom:.35rem;">{{ a.body }}</p>
                     <small style="color:var(--muted);font-size:.75rem;">
                         <i class="bi bi-clock"></i>
                         {{ a.created_at.strftime('%d/%m/%Y à %H:%M') }}
                         {% if a.author %} — par {{ a.author.name or a.author.email }}{% endif %}
                     </small>
+
+                    <!-- Liste des lecteurs (si des lectures existent) -->
+                    {% if read_count > 0 %}
+                    <div class="mt-2" style="font-size:.75rem;color:var(--muted);">
+                        {% for r in a.reads|sort(attribute='read_at', reverse=True) %}
+                        <span class="me-2" style="background:rgba(0,200,150,0.08);padding:.1rem .4rem;border-radius:4px;color:var(--green);">
+                            <i class="bi bi-check"></i>
+                            {% if r.apartment %}{{ r.apartment.block.name }}-{{ r.apartment.number }}{% endif %}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
                 </div>
                 {% else %}
                 <div class="p-4 text-center" style="color:var(--muted);">

@@ -137,6 +137,36 @@ def notify_ticket_created(org, ticket, resident=None):
         send_whatsapp(org, org.whatsapp_admin_phone, msg)
 
 
+def notify_announcement(org, announcement, residents):
+    """Notification nouvelle annonce → tous les résidents avec un numéro WhatsApp."""
+    sent = 0
+    for resident in residents:
+        if resident.phone:
+            msg = (
+                f"📢 *SyndicPro — Nouvelle annonce*\n"
+                f"*{announcement.title}*\n\n"
+                f"{announcement.body[:300]}{'...' if len(announcement.body) > 300 else ''}\n\n"
+                f"Connectez-vous sur SyndicPro pour lire l'annonce complète."
+            )
+            if send_whatsapp(org, resident.phone, msg):
+                sent += 1
+    return sent
+
+
+def notify_announcement_read(org, announcement, apartment, resident):
+    """Notification lecture d'annonce → admin de la résidence."""
+    if not org.whatsapp_admin_phone:
+        return False
+    apt_label = f"{apartment.block.name}-{apartment.number}"
+    msg = (
+        f"👁️ *SyndicPro — Annonce lue*\n"
+        f"L'appartement *{apt_label}* a lu votre annonce :\n"
+        f"*{announcement.title}*\n"
+        f"Résident : {resident.name or resident.email}"
+    )
+    return send_whatsapp(org, org.whatsapp_admin_phone, msg)
+
+
 def notify_ticket_response(org, ticket, resident=None):
     """Notification réponse admin → résident."""
     if not resident or not resident.phone:

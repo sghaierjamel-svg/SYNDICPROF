@@ -195,6 +195,22 @@ class Announcement(db.Model):
     author = db.relationship('User', backref='announcements', lazy=True)
 
 
+class AnnouncementRead(db.Model):
+    """Trace la lecture d'une annonce par un résident"""
+    __tablename__ = 'announcement_read'
+    id = db.Column(db.Integer, primary_key=True)
+    announcement_id = db.Column(db.Integer, db.ForeignKey('announcement.id', ondelete='CASCADE'), nullable=False)
+    apartment_id = db.Column(db.Integer, db.ForeignKey('apartment.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    read_at = db.Column(db.DateTime, default=datetime.utcnow)
+    notified_admin = db.Column(db.Boolean, default=False)
+
+    announcement = db.relationship('Announcement', backref='reads', lazy=True)
+    apartment = db.relationship('Apartment', backref='announcement_reads', lazy=True)
+
+    __table_args__ = (db.UniqueConstraint('announcement_id', 'user_id', name='uq_ann_read_user'),)
+
+
 class AccessLog(db.Model):
     """Registre des entrées/sorties de la résidence"""
     __tablename__ = 'access_log'
@@ -359,6 +375,26 @@ def init_db():
     except Exception as e:
         print(f"Migration announcement : {e}")
 
+    # Migration : table announcement_read
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS announcement_read (
+                        id SERIAL PRIMARY KEY,
+                        announcement_id INTEGER REFERENCES announcement(id) ON DELETE CASCADE,
+                        apartment_id INTEGER REFERENCES apartment(id),
+                        user_id INTEGER REFERENCES "user"(id),
+                        read_at TIMESTAMP DEFAULT NOW(),
+                        notified_admin BOOLEAN DEFAULT FALSE,
+                        CONSTRAINT uq_ann_read_user UNIQUE (announcement_id, user_id)
+                    )
+                """))
+                conn.commit()
+                print("Migration PostgreSQL : table announcement_read vérifiée.")
+    except Exception as e:
+        print(f"Migration announcement_read : {e}")
+
     # Migration sécurité : activer RLS sur toutes les tables publiques (PostgreSQL)
     # Bloque l'accès anonyme via l'URL Supabase — l'appli Flask (postgres superuser) n'est pas affectée
     try:
@@ -367,7 +403,7 @@ def init_db():
                 tables = [
                     'organization', 'subscription', '"user"', 'block', 'apartment',
                     'payment', 'expense', 'ticket', 'super_admin_settings',
-                    'konnect_payment', 'unpaid_alert', 'announcement', 'access_log'
+                    'konnect_payment', 'unpaid_alert', 'announcement', 'announcement_read', 'access_log'
                 ]
                 for table in tables:
                     conn.execute(db.text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY"))

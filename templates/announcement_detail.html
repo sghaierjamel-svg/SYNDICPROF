@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+
+        <!-- Bouton retour -->
+        <div class="mb-3">
+            <a href="{{ url_for('residents_menu') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Retour à mon espace
+            </a>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-megaphone" style="color:var(--green);font-size:1.1rem;"></i>
+                <span>Annonce du syndic</span>
+                {% if announcement.pinned %}
+                <span class="badge ms-auto" style="background:rgba(0,200,150,0.15);color:var(--green);font-size:.72rem;">
+                    <i class="bi bi-pin-angle-fill"></i> Épinglée
+                </span>
+                {% endif %}
+            </div>
+            <div class="card-body p-4">
+
+                <h4 class="fw-bold mb-1" style="color:var(--text);">{{ announcement.title }}</h4>
+                <div class="mb-3" style="font-size:.82rem;color:var(--muted);">
+                    <i class="bi bi-clock"></i>
+                    Publiée le {{ announcement.created_at.strftime('%d/%m/%Y à %H:%M') }}
+                    {% if announcement.author %}
+                    — par {{ announcement.author.name or announcement.author.email }}
+                    {% endif %}
+                </div>
+
+                <hr style="border-color:var(--border);margin:1rem 0;">
+
+                <div style="color:var(--text);font-size:.95rem;line-height:1.8;white-space:pre-wrap;">{{ announcement.body }}</div>
+
+                <hr style="border-color:var(--border);margin:1.5rem 0;">
+
+                <div class="d-flex align-items-center gap-2" style="font-size:.82rem;color:var(--green);">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span>Annonce marquée comme lue</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

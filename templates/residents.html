@@ -161,14 +161,23 @@
             <div class="card-body p-0">
                 {% if announcements %}
                 {% for a in announcements %}
-                <div class="px-3 py-2" style="border-bottom:1px solid var(--border);{% if a.pinned %}background:rgba(0,200,150,0.04);{% endif %}">
-                    <div style="font-size:.84rem;font-weight:600;color:var(--text);">
-                        {% if a.pinned %}<i class="bi bi-pin-angle-fill" style="color:var(--accent);"></i> {% endif %}
-                        {{ a.title }}
+                <a href="{{ url_for('read_announcement', ann_id=a.id) }}"
+                   style="display:block;text-decoration:none;border-bottom:1px solid var(--border);{% if a.pinned %}background:rgba(0,200,150,0.04);{% endif %}transition:background .15s;"
+                   onmouseover="this.style.background='rgba(0,200,150,0.07)'" onmouseout="this.style.background='{% if a.pinned %}rgba(0,200,150,0.04){% else %}transparent{% endif %}'">
+                    <div class="px-3 py-2">
+                        <div style="font-size:.84rem;font-weight:600;color:var(--text);">
+                            {% if a.pinned %}<i class="bi bi-pin-angle-fill" style="color:var(--green);"></i> {% endif %}
+                            {{ a.title }}
+                            <i class="bi bi-box-arrow-up-right ms-1" style="font-size:.7rem;color:var(--muted);"></i>
+                        </div>
+                        <div style="font-size:.78rem;color:var(--muted);margin-top:2px;">{{ a.body[:100] }}{% if a.body|length > 100 %}…{% endif %}</div>
+                        <div style="font-size:.72rem;color:var(--muted);margin-top:3px;">
+                            <i class="bi bi-clock"></i> {{ a.created_at.strftime('%d/%m/%Y') }}
+                            &nbsp;·&nbsp;
+                            <span style="color:var(--green);font-size:.72rem;">Cliquer pour lire</span>
+                        </div>
                     </div>
-                    <div style="font-size:.78rem;color:var(--muted);margin-top:2px;white-space:pre-wrap;">{{ a.body[:120] }}{% if a.body|length > 120 %}…{% endif %}</div>
-                    <div style="font-size:.72rem;color:var(--muted);margin-top:3px;">{{ a.created_at.strftime('%d/%m/%Y') }}</div>
-                </div>
+                </a>
                 {% endfor %}
                 {% else %}
                 <div class="p-3 text-center" style="color:var(--muted);font-size:.85rem;">Aucune annonce</div>
