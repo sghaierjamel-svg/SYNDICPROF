@@ -285,25 +285,24 @@ def etats_financiers_pdf():
     pdf.set_auto_page_break(auto=True, margin=15)
 
     # ── Couleurs ───────────────────────────────────────────────────────────────
-    BG_R, BG_G, BG_B         = 10, 14, 26      # Fond sombre
-    HEADER_R, HEADER_G, HEADER_B = 17, 24, 39  # En-tête sections
-    GREEN_R, GREEN_G, GREEN_B = 0, 200, 150     # Vert SyndicPro
-    WHITE_R, WHITE_G, WHITE_B = 249, 250, 251
-    MUTED_R, MUTED_G, MUTED_B = 156, 163, 175
-    RED_R,   RED_G,   RED_B   = 239, 68,  68
+    BG_R, BG_G, BG_B         = 255, 255, 255    # Fond blanc
+    HEADER_R, HEADER_G, HEADER_B = 220, 240, 235  # En-tête sections (vert clair)
+    GREEN_R, GREEN_G, GREEN_B = 0, 180, 130      # Vert SyndicPro
+    WHITE_R, WHITE_G, WHITE_B = 40, 40, 40        # Texte sombre
+    MUTED_R, MUTED_G, MUTED_B = 100, 100, 100    # Texte secondaire
+    RED_R,   RED_G,   RED_B   = 200, 40,  40     # Rouge erreur
 
     def page_header(title):
-        pdf.set_fill_color(BG_R, BG_G, BG_B)
-        pdf.rect(0, 0, 210, 297, 'F')
-        pdf.set_fill_color(HEADER_R, HEADER_G, HEADER_B)
+        # Bandeau vert sur fond blanc
+        pdf.set_fill_color(0, 180, 130)
         pdf.rect(0, 0, 210, 28, 'F')
         pdf.set_xy(0, 5)
-        pdf.set_text_color(GREEN_R, GREEN_G, GREEN_B)
+        pdf.set_text_color(255, 255, 255)
         pdf.set_font('Helvetica', 'B', 16)
         pdf.cell(0, 8, 'SyndicPro', ln=False, align='C')
         pdf.set_xy(0, 13)
         pdf.set_font('Helvetica', '', 9)
-        pdf.set_text_color(MUTED_R, MUTED_G, MUTED_B)
+        pdf.set_text_color(255, 255, 255)
         pdf.cell(0, 5, _s(f"{org.name}  -  {title}  -  Exercice {year}"), ln=True, align='C')
         pdf.set_xy(0, 20)
         pdf.set_font('Helvetica', '', 7)
@@ -343,14 +342,14 @@ def etats_financiers_pdf():
         pdf.set_text_color(WHITE_R, WHITE_G, WHITE_B)
 
     def separator():
-        pdf.set_draw_color(55, 65, 81)
+        pdf.set_draw_color(200, 200, 200)
         pdf.set_line_width(0.3)
         pdf.line(10, pdf.get_y(), 200, pdf.get_y())
         pdf.ln(1)
 
     def total_row(label, montant, bg=True):
         if bg:
-            pdf.set_fill_color(31, 41, 55)
+            pdf.set_fill_color(220, 240, 235)
         pdf.set_text_color(GREEN_R, GREEN_G, GREEN_B)
         pdf.set_font('Helvetica', 'B', 9)
         pdf.cell(140, 7, _s(f"  {label}"), ln=False, fill=bg)
@@ -457,7 +456,7 @@ def etats_financiers_pdf():
     total_row("TOTAL CHARGES D'EXPLOITATION", data['total_charges'])
 
     pdf.ln(3)
-    pdf.set_fill_color(*((17, 74, 57) if data['resultat_net'] >= 0 else (74, 17, 17)))
+    pdf.set_fill_color(*((210, 245, 235) if data['resultat_net'] >= 0 else (255, 225, 225)))
     pdf.set_text_color(GREEN_R if data['resultat_net'] >= 0 else RED_R,
                        GREEN_G if data['resultat_net'] >= 0 else RED_G,
                        GREEN_B if data['resultat_net'] >= 0 else RED_B)
@@ -524,9 +523,9 @@ def etats_financiers_pdf():
     for i, f in enumerate(data['flux_mensuel']):
         fill = (i % 2 == 0)
         if fill:
-            pdf.set_fill_color(17, 24, 39)
+            pdf.set_fill_color(248, 250, 252)
         else:
-            pdf.set_fill_color(11, 18, 31)
+            pdf.set_fill_color(255, 255, 255)
         pdf.set_text_color(WHITE_R, WHITE_G, WHITE_B)
         pdf.set_font('Helvetica', '', 8)
         pdf.cell(25, 6, f"  {f['mois_label']} {year}", fill=True)

@@ -126,20 +126,22 @@ def pdf_report():
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
 
-    # En-tête
-    pdf.set_fill_color(10, 14, 26)
-    pdf.set_text_color(0, 200, 150)
+    # En-tête — bandeau vert sur fond blanc
+    pdf.set_fill_color(0, 180, 130)
+    pdf.rect(0, 0, 210, 32, 'F')
+    pdf.set_xy(0, 5)
+    pdf.set_text_color(255, 255, 255)
     pdf.set_font('Helvetica', 'B', 20)
     pdf.cell(0, 12, 'SyndicPro', ln=True, align='C')
     pdf.set_font('Helvetica', '', 12)
-    pdf.set_text_color(150, 150, 150)
+    pdf.set_text_color(255, 255, 255)
     pdf.cell(0, 6, f"Rapport mensuel — {month_label}", ln=True, align='C')
     pdf.cell(0, 6, org.name, ln=True, align='C')
     pdf.ln(6)
 
     def section(title):
-        pdf.set_fill_color(31, 41, 55)
-        pdf.set_text_color(0, 200, 150)
+        pdf.set_fill_color(220, 240, 235)
+        pdf.set_text_color(0, 140, 100)
         pdf.set_font('Helvetica', 'B', 11)
         pdf.cell(0, 8, title, ln=True, fill=True)
         pdf.set_text_color(30, 30, 30)

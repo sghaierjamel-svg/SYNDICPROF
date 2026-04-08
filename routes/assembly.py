@@ -360,25 +360,21 @@ def assembly_pv_pdf(ag_id):
     pdf.set_auto_page_break(auto=True, margin=18)
     pdf.add_page()
 
-    # Fond
-    pdf.set_fill_color(10, 14, 26)
-    pdf.rect(0, 0, 210, 297, 'F')
-
-    # En-tête
-    pdf.set_fill_color(17, 24, 39)
+    # En-tête — bandeau vert sur fond blanc
+    pdf.set_fill_color(0, 180, 130)
     pdf.rect(0, 0, 210, 44, 'F')
     pdf.set_xy(0, 7)
-    pdf.set_text_color(0, 200, 150)
+    pdf.set_text_color(255, 255, 255)
     pdf.set_font('Helvetica', 'B', 22)
     pdf.cell(0, 12, 'SyndicPro', ln=True, align='C')
     pdf.set_font('Helvetica', '', 10)
-    pdf.set_text_color(156, 163, 175)
+    pdf.set_text_color(255, 255, 255)
     pdf.cell(0, 5, s(org.name), ln=True, align='C')
     pdf.ln(3)
 
     # Titre PV
-    pdf.set_fill_color(0, 200, 150)
-    pdf.set_text_color(10, 14, 26)
+    pdf.set_fill_color(0, 180, 130)
+    pdf.set_text_color(255, 255, 255)
     pdf.set_font('Helvetica', 'B', 13)
     pdf.cell(0, 11, "  PROCES-VERBAL D'ASSEMBLEE GENERALE", ln=True, fill=True)
     pdf.ln(6)
@@ -386,10 +382,10 @@ def assembly_pv_pdf(ag_id):
     # Infos AG
     def info_line(lbl, val):
         pdf.set_font('Helvetica', 'B', 9)
-        pdf.set_text_color(156, 163, 175)
+        pdf.set_text_color(120, 120, 120)
         pdf.cell(48, 7, s(lbl))
         pdf.set_font('Helvetica', '', 9)
-        pdf.set_text_color(249, 250, 251)
+        pdf.set_text_color(40, 40, 40)
         pdf.cell(0, 7, s(str(val)), ln=True)
 
     info_line('Titre :', ag.title)
@@ -398,10 +394,10 @@ def assembly_pv_pdf(ag_id):
         info_line('Lieu :', ag.location)
     if ag.description:
         pdf.set_font('Helvetica', 'B', 9)
-        pdf.set_text_color(156, 163, 175)
+        pdf.set_text_color(120, 120, 120)
         pdf.cell(48, 7, 'Objet :')
         pdf.set_font('Helvetica', '', 9)
-        pdf.set_text_color(249, 250, 251)
+        pdf.set_text_color(40, 40, 40)
         pdf.multi_cell(0, 6, s(ag.description))
     info_line('Statut :', 'Cloturee' if ag.status == 'cloturee' else ag.status.capitalize())
     info_line('Etabli le :', datetime.now().strftime('%d/%m/%Y a %H:%M'))
@@ -414,7 +410,7 @@ def assembly_pv_pdf(ag_id):
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
     pdf.ln(4)
     pdf.set_font('Helvetica', 'B', 11)
-    pdf.set_text_color(0, 200, 150)
+    pdf.set_text_color(0, 140, 100)
     pdf.cell(0, 8, 'RESUME DES RESOLUTIONS', ln=True)
     pdf.ln(2)
 
@@ -422,8 +418,8 @@ def assembly_pv_pdf(ag_id):
     col_w = [85, 22, 22, 22, 39]
     headers = ['Question', 'Pour', 'Contre', 'Abst.', 'Resultat']
     pdf.set_font('Helvetica', 'B', 8)
-    pdf.set_fill_color(30, 40, 55)
-    pdf.set_text_color(156, 163, 175)
+    pdf.set_fill_color(220, 240, 235)
+    pdf.set_text_color(60, 60, 60)
     for h, w in zip(headers, col_w):
         pdf.cell(w, 7, h, border=0, fill=True, align='C')
     pdf.ln()
@@ -432,24 +428,24 @@ def assembly_pv_pdf(ag_id):
         data = votes_data.get(item.id, {})
         res  = data.get('result', '-')
         pdf.set_font('Helvetica', '', 8)
-        pdf.set_text_color(249, 250, 251)
+        pdf.set_text_color(40, 40, 40)
         q_text = s(f'{idx}. {item.question}')
         if len(q_text) > 55:
             q_text = q_text[:52] + '...'
-        pdf.set_fill_color(17, 27, 40) if idx % 2 == 0 else pdf.set_fill_color(20, 32, 48)
+        pdf.set_fill_color(248, 250, 252) if idx % 2 == 0 else pdf.set_fill_color(255, 255, 255)
         pdf.cell(col_w[0], 7, q_text, fill=True)
-        pdf.set_text_color(0, 200, 150)
+        pdf.set_text_color(0, 140, 90)
         pdf.cell(col_w[1], 7, str(data.get('pour_count', 0)), fill=True, align='C')
-        pdf.set_text_color(248, 113, 113)
+        pdf.set_text_color(220, 60, 60)
         pdf.cell(col_w[2], 7, str(data.get('contre_count', 0)), fill=True, align='C')
-        pdf.set_text_color(156, 163, 175)
+        pdf.set_text_color(100, 100, 100)
         pdf.cell(col_w[3], 7, str(data.get('abstention_count', 0)), fill=True, align='C')
         if res == 'ADOPTÉ':
-            pdf.set_text_color(0, 200, 150)
+            pdf.set_text_color(0, 140, 90)
         elif res == 'REJETÉ':
-            pdf.set_text_color(248, 113, 113)
+            pdf.set_text_color(220, 60, 60)
         else:
-            pdf.set_text_color(200, 200, 255)
+            pdf.set_text_color(100, 100, 180)
         pdf.cell(col_w[4], 7, s(res), fill=True, align='C')
         pdf.ln()
 
@@ -460,7 +456,7 @@ def assembly_pv_pdf(ag_id):
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
     pdf.ln(4)
     pdf.set_font('Helvetica', 'B', 11)
-    pdf.set_text_color(0, 200, 150)
+    pdf.set_text_color(0, 140, 100)
     pdf.cell(0, 8, "DETAIL DES VOTES PAR POINT", ln=True)
 
     for idx, item in enumerate(ag.items, 1):
@@ -470,19 +466,19 @@ def assembly_pv_pdf(ag_id):
 
         # Question
         pdf.set_font('Helvetica', 'B', 10)
-        pdf.set_text_color(249, 250, 251)
+        pdf.set_text_color(40, 40, 40)
         pdf.multi_cell(0, 7, s(f'Point {idx} : {item.question}'))
 
         # Badge résultat
         if res == 'ADOPTÉ':
-            pdf.set_fill_color(0, 80, 50)
-            pdf.set_text_color(0, 200, 150)
+            pdf.set_fill_color(210, 245, 235)
+            pdf.set_text_color(0, 140, 90)
         elif res == 'REJETÉ':
-            pdf.set_fill_color(90, 20, 20)
-            pdf.set_text_color(248, 113, 113)
+            pdf.set_fill_color(255, 225, 225)
+            pdf.set_text_color(200, 40, 40)
         else:
-            pdf.set_fill_color(40, 40, 80)
-            pdf.set_text_color(200, 200, 255)
+            pdf.set_fill_color(230, 230, 255)
+            pdf.set_text_color(80, 80, 180)
         pdf.set_font('Helvetica', 'B', 9)
         stat_line = (f"  {s(res)}   |   Pour : {data.get('pour_count', 0)}   "
                      f"Contre : {data.get('contre_count', 0)}   "
@@ -492,9 +488,9 @@ def assembly_pv_pdf(ag_id):
 
         # Listes nominatives
         for lbl, key, rgb in [
-            ('POUR', 'pour', (0, 200, 150)),
-            ('CONTRE', 'contre', (248, 113, 113)),
-            ('ABSTENTION', 'abstention', (156, 163, 175)),
+            ('POUR', 'pour', (0, 140, 90)),
+            ('CONTRE', 'contre', (200, 40, 40)),
+            ('ABSTENTION', 'abstention', (100, 100, 100)),
         ]:
             voters_list = data.get(key, [])
             if not voters_list:
@@ -508,7 +504,7 @@ def assembly_pv_pdf(ag_id):
                 names.append(s(n + apt_lbl))
             pdf.multi_cell(0, 5, f'   {lbl} : {", ".join(names)}')
 
-        pdf.set_draw_color(55, 65, 81)
+        pdf.set_draw_color(200, 200, 200)
         pdf.set_line_width(0.2)
         pdf.line(10, pdf.get_y() + 2, 200, pdf.get_y() + 2)
         pdf.ln(4)
@@ -520,10 +516,10 @@ def assembly_pv_pdf(ag_id):
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
     pdf.ln(4)
     pdf.set_font('Helvetica', 'B', 11)
-    pdf.set_text_color(0, 200, 150)
+    pdf.set_text_color(0, 140, 100)
     pdf.cell(0, 8, f'LISTE DES PARTICIPANTS ({len(voters)} votants)', ln=True)
     pdf.set_font('Helvetica', '', 8)
-    pdf.set_text_color(249, 250, 251)
+    pdf.set_text_color(40, 40, 40)
 
     if voters:
         col_per_row = 2
@@ -538,7 +534,7 @@ def assembly_pv_pdf(ag_id):
                 pdf.cell(col_width, 6, s(f'• {v_user.name or v_user.email}{apt_lbl}'))
             pdf.ln()
     else:
-        pdf.set_text_color(156, 163, 175)
+        pdf.set_text_color(120, 120, 120)
         pdf.cell(0, 6, 'Aucun participant enregistre.', ln=True)
 
     # Pied de page
