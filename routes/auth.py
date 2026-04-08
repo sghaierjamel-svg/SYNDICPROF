@@ -18,6 +18,12 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/demo')
+def demo():
+    """Page de démonstration publique"""
+    return render_template('demo.html')
+
+
 @app.route('/login', methods=['GET', 'POST'])
 @limiter.limit("5 per minute", error_message="Trop de tentatives. Réessayez dans 1 minute.")
 def login():

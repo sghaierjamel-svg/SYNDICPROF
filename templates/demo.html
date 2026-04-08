@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Démonstration — SyndicPro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0A0E1A;
+            --card-bg: #111827;
+            --border: #1F2937;
+            --green: #00C896;
+            --text: #F9FAFB;
+            --muted: #9CA3AF;
+        }
+        * { box-sizing: border-box; }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            margin: 0; padding: 0;
+        }
+        h1, h2, h3, h4, h5, .syne { font-family: 'Syne', sans-serif; }
+
+        /* NAVBAR */
+        .lp-navbar {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(10,14,26,0.95);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex; align-items: center;
+            justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+        }
+        .lp-logo {
+            font-family: 'Syne', sans-serif; font-size: 1.5rem;
+            font-weight: 800; color: var(--text); text-decoration: none;
+        }
+        .lp-logo span { color: var(--green); }
+        .btn-green {
+            background: var(--green); color: #000;
+            padding: 0.5rem 1.2rem; border-radius: 8px;
+            font-size: 0.9rem; font-weight: 600;
+            text-decoration: none; transition: opacity 0.2s;
+        }
+        .btn-green:hover { opacity: 0.88; color: #000; }
+        .btn-outline-lp {
+            border: 1px solid rgba(255,255,255,0.3); color: var(--text);
+            background: transparent; padding: 0.5rem 1.2rem;
+            border-radius: 8px; font-size: 0.9rem;
+            text-decoration: none; transition: all 0.2s;
+        }
+        .btn-outline-lp:hover { border-color: white; color: white; }
+
+        /* HERO */
+        .demo-hero {
+            text-align: center;
+            padding: 4rem 2rem 3rem;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        .demo-badge {
+            display: inline-block;
+            background: rgba(0,200,150,0.12);
+            color: var(--green);
+            border: 1px solid rgba(0,200,150,0.3);
+            padding: 0.4rem 1rem; border-radius: 999px;
+            font-size: 0.85rem; font-weight: 500; margin-bottom: 1.5rem;
+        }
+        .demo-hero h1 {
+            font-size: clamp(1.8rem, 4vw, 2.8rem);
+            font-weight: 800; line-height: 1.2; margin-bottom: 1rem;
+        }
+        .demo-hero h1 span { color: var(--green); }
+        .demo-hero p {
+            color: var(--muted); font-size: 1.05rem;
+            line-height: 1.7; margin: 0 auto;
+        }
+
+        /* STEPS */
+        .steps-section { max-width: 860px; margin: 0 auto; padding: 2rem 2rem 4rem; }
+
+        .step-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1.5rem;
+            align-items: flex-start;
+            transition: border-color 0.2s;
+        }
+        .step-card:hover { border-color: rgba(0,200,150,0.4); }
+
+        .step-num {
+            flex-shrink: 0;
+            width: 52px; height: 52px;
+            background: rgba(0,200,150,0.12);
+            border: 2px solid var(--green);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Syne', sans-serif;
+            font-size: 1.3rem; font-weight: 800;
+            color: var(--green);
+        }
+        .step-content h3 {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.15rem; font-weight: 700;
+            margin-bottom: 0.4rem;
+        }
+        .step-content p {
+            color: var(--muted); font-size: 0.95rem;
+            line-height: 1.65; margin: 0;
+        }
+        .step-emoji { font-size: 1.5rem; margin-right: 0.4rem; }
+
+        /* MOCKUP SCREENS */
+        .mockup {
+            background: #0D1320;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-size: 0.82rem;
+        }
+        .mockup-bar {
+            display: flex; gap: 6px; margin-bottom: 0.75rem;
+        }
+        .mockup-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+        }
+        .mockup-row {
+            display: flex; justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0.6rem;
+            border-bottom: 1px solid #1F2937;
+            font-size: 0.8rem;
+        }
+        .mockup-row:last-child { border-bottom: none; }
+        .tag-green {
+            background: rgba(0,200,150,0.15);
+            color: var(--green); font-size: 0.7rem;
+            padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 600;
+        }
+        .tag-red {
+            background: rgba(239,68,68,0.12);
+            color: #F87171; font-size: 0.7rem;
+            padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 600;
+        }
+        .tag-blue {
+            background: rgba(96,165,250,0.12);
+            color: #60A5FA; font-size: 0.7rem;
+            padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 600;
+        }
+        .mockup-stat {
+            text-align: center; flex: 1; padding: 0.5rem;
+            border-right: 1px solid #1F2937;
+        }
+        .mockup-stat:last-child { border-right: none; }
+        .mockup-stat strong { display: block; color: var(--green); font-size: 1.1rem; }
+        .mockup-stat span { color: var(--muted); font-size: 0.72rem; }
+
+        /* FEATURES BONUS */
+        .bonus-section {
+            max-width: 860px; margin: 0 auto; padding: 0 2rem 4rem;
+        }
+        .bonus-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.5rem; font-weight: 800;
+            text-align: center; margin-bottom: 1.5rem;
+        }
+        .bonus-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+        @media (max-width: 768px) {
+            .bonus-grid { grid-template-columns: 1fr; }
+            .step-card { flex-direction: column; }
+        }
+        @media (max-width: 992px) and (min-width: 769px) {
+            .bonus-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        .bonus-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+        }
+        .bonus-card .icon { font-size: 1.6rem; margin-bottom: 0.6rem; }
+        .bonus-card h5 {
+            font-family: 'Syne', sans-serif;
+            font-size: 0.95rem; font-weight: 700; margin-bottom: 0.35rem;
+        }
+        .bonus-card p { color: var(--muted); font-size: 0.85rem; margin: 0; line-height: 1.55; }
+
+        /* CTA FINAL */
+        .cta-section {
+            max-width: 700px; margin: 0 auto;
+            padding: 3rem 2rem 5rem;
+            text-align: center;
+        }
+        .cta-section h2 {
+            font-family: 'Syne', sans-serif;
+            font-size: 2rem; font-weight: 800; margin-bottom: 1rem;
+        }
+        .cta-section h2 span { color: var(--green); }
+        .cta-section p { color: var(--muted); margin-bottom: 2rem; font-size: 1rem; }
+        .btn-hero-primary {
+            background: var(--green); color: #000;
+            padding: 0.9rem 2.2rem; border-radius: 10px;
+            font-weight: 700; font-size: 1rem;
+            text-decoration: none; transition: opacity 0.2s;
+            display: inline-block;
+        }
+        .btn-hero-primary:hover { opacity: 0.88; color: #000; }
+
+        /* FOOTER */
+        .lp-footer {
+            border-top: 1px solid var(--border);
+            padding: 1.5rem 2rem;
+            display: flex; justify-content: space-between;
+            align-items: center; flex-wrap: wrap;
+            gap: 0.5rem; color: var(--muted); font-size: 0.85rem;
+        }
+        .lp-footer a { color: var(--muted); text-decoration: none; }
+        .lp-footer a:hover { color: var(--text); }
+
+        /* PROGRESS BAR */
+        .progress-bar-demo {
+            height: 4px; background: var(--border);
+            border-radius: 4px; overflow: hidden; margin-top: 0.6rem;
+        }
+        .progress-fill {
+            height: 100%; background: var(--green); border-radius: 4px;
+        }
+
+        /* CONNECTOR */
+        .step-connector {
+            display: flex; justify-content: center;
+            color: var(--border); font-size: 1.5rem;
+            margin: -0.5rem 0;
+        }
+    </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="lp-navbar">
+    <a href="{{ url_for('index') }}" class="lp-logo">Syndic<span>Pro</span></a>
+    <div style="display:flex; gap:0.75rem; align-items:center;">
+        <a href="{{ url_for('login') }}" class="btn-outline-lp">Se connecter</a>
+        <a href="{{ url_for('register') }}" class="btn-green">Démarrer gratuitement</a>
+    </div>
+</nav>
+
+<!-- HERO -->
+<div class="demo-hero">
+    <div class="demo-badge">🎓 Démo interactive — 5 minutes suffisent</div>
+    <h1>Comment fonctionne <span>SyndicPro</span> ?</h1>
+    <p>On vous explique tout, étape par étape.<br>Pas besoin d'être informaticien — si vous savez envoyer un SMS, vous pouvez utiliser SyndicPro.</p>
+</div>
+
+<!-- STEPS -->
+<div class="steps-section">
+
+    <!-- STEP 1 -->
+    <div class="step-card">
+        <div class="step-num">1</div>
+        <div class="step-content" style="flex:1">
+            <h3><span class="step-emoji">🏢</span> Le gestionnaire crée son compte</h3>
+            <p>
+                En 2 minutes, le syndic (ou le gestionnaire de l'immeuble) crée son compte sur SyndicPro.
+                Il donne le nom de la résidence, son adresse, et c'est tout.
+                <strong style="color:var(--text);">Aucune installation, ça marche directement depuis le navigateur.</strong>
+            </p>
+            <!-- Mockup inscription -->
+            <div class="mockup">
+                <div class="mockup-bar">
+                    <div class="mockup-dot" style="background:#EF4444;"></div>
+                    <div class="mockup-dot" style="background:#F59E0B;"></div>
+                    <div class="mockup-dot" style="background:#10B981;"></div>
+                    <span style="color:var(--muted); font-size:0.75rem; margin-left:0.5rem;">syndicpro.tn/register</span>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.5rem;">
+                    <div style="background:#1F2937; border-radius:6px; padding:0.5rem; color:var(--muted); font-size:0.78rem;">
+                        📧 &nbsp; admin@residence.tn
+                    </div>
+                    <div style="background:#1F2937; border-radius:6px; padding:0.5rem; color:var(--muted); font-size:0.78rem;">
+                        🏢 &nbsp; Résidence Les Pins
+                    </div>
+                </div>
+                <div style="background:var(--green); color:#000; text-align:center; padding:0.5rem; border-radius:6px; font-weight:700; font-size:0.82rem;">
+                    ✅ Compte créé — Bienvenue !
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="step-connector">↓</div>
+
+    <!-- STEP 2 -->
+    <div class="step-card">
+        <div class="step-num">2</div>
+        <div class="step-content" style="flex:1">
+            <h3><span class="step-emoji">🚪</span> Il ajoute les appartements et les résidents</h3>
+            <p>
+                Le gestionnaire entre la liste des appartements (A01, A02, B01…) et crée un compte pour chaque résident.
+                Chaque résident reçoit automatiquement un email avec son mot de passe.
+                <strong style="color:var(--text);">Zéro paperasse, tout est numérique.</strong>
+            </p>
+            <!-- Mockup liste appartements -->
+            <div class="mockup">
+                <div class="mockup-bar">
+                    <div class="mockup-dot" style="background:#EF4444;"></div>
+                    <div class="mockup-dot" style="background:#F59E0B;"></div>
+                    <div class="mockup-dot" style="background:#10B981;"></div>
+                    <span style="color:var(--muted); font-size:0.75rem; margin-left:0.5rem;">Mes appartements</span>
+                </div>
+                <div class="mockup-row"><span>🏠 Appartement A01 — Étage 1</span><span class="tag-green">Occupé</span></div>
+                <div class="mockup-row"><span>🏠 Appartement A02 — Étage 1</span><span class="tag-green">Occupé</span></div>
+                <div class="mockup-row"><span>🏠 Appartement B01 — Étage 2</span><span class="tag-green">Occupé</span></div>
+                <div class="mockup-row"><span>🏠 Appartement B02 — Étage 2</span><span class="tag-blue">Libre</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="step-connector">↓</div>
+
+    <!-- STEP 3 -->
+    <div class="step-card">
+        <div class="step-num">3</div>
+        <div class="step-content" style="flex:1">
+            <h3><span class="step-emoji">💸</span> Le gestionnaire enregistre les charges</h3>
+            <p>
+                Chaque mois, le gestionnaire note les charges dues par chaque appartement.
+                Il peut aussi enregistrer les dépenses de la résidence (gardien, électricité, travaux…).
+                <strong style="color:var(--text);">SyndicPro calcule automatiquement qui a payé et qui doit encore.</strong>
+            </p>
+            <!-- Mockup encaissements -->
+            <div class="mockup">
+                <div class="mockup-bar">
+                    <div class="mockup-dot" style="background:#EF4444;"></div>
+                    <div class="mockup-dot" style="background:#F59E0B;"></div>
+                    <div class="mockup-dot" style="background:#10B981;"></div>
+                    <span style="color:var(--muted); font-size:0.75rem; margin-left:0.5rem;">Encaissements — Avril 2026</span>
+                </div>
+                <div class="mockup-row"><span>🏠 A01 — Mohamed Ben Ali</span><span class="tag-green">Payé ✓</span></div>
+                <div class="mockup-row"><span>🏠 A02 — Fatma Trabelsi</span><span class="tag-red">Impayé</span></div>
+                <div class="mockup-row"><span>🏠 B01 — Karim Mansouri</span><span class="tag-green">Payé ✓</span></div>
+                <div class="mockup-row" style="justify-content:flex-end; border:none; padding-top:0.75rem;">
+                    <span style="color:var(--muted); font-size:0.75rem;">Trésorerie du mois : </span>
+                    <strong style="color:var(--green); margin-left:0.5rem; font-size:0.95rem;">+1 200 TND</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="step-connector">↓</div>
+
+    <!-- STEP 4 -->
+    <div class="step-card">
+        <div class="step-num">4</div>
+        <div class="step-content" style="flex:1">
+            <h3><span class="step-emoji">📱</span> Le résident paye depuis son téléphone</h3>
+            <p>
+                Le résident se connecte sur SyndicPro, voit ce qu'il doit payer, et clique sur
+                <strong style="color:var(--text);">"Payer en ligne"</strong>.
+                Il paie en quelques secondes avec sa carte Konnect — comme un achat sur internet.
+                Le gestionnaire est notifié automatiquement sur <strong style="color:var(--text);">WhatsApp</strong>.
+            </p>
+            <!-- Mockup espace résident -->
+            <div class="mockup">
+                <div class="mockup-bar">
+                    <div class="mockup-dot" style="background:#EF4444;"></div>
+                    <div class="mockup-dot" style="background:#F59E0B;"></div>
+                    <div class="mockup-dot" style="background:#10B981;"></div>
+                    <span style="color:var(--muted); font-size:0.75rem; margin-left:0.5rem;">Mon espace résident</span>
+                </div>
+                <div style="display:flex; margin-bottom:0.75rem;">
+                    <div class="mockup-stat"><strong>150 TND</strong><span>Charges dues</span></div>
+                    <div class="mockup-stat"><strong style="color:#60A5FA;">Avril</strong><span>Mois en cours</span></div>
+                    <div class="mockup-stat"><strong>0</strong><span>Tickets ouverts</span></div>
+                </div>
+                <div style="background:var(--green); color:#000; text-align:center; padding:0.6rem; border-radius:6px; font-weight:700; font-size:0.82rem; cursor:pointer;">
+                    💳 &nbsp; Payer en ligne — 150 TND
+                </div>
+                <div style="text-align:center; color:var(--muted); font-size:0.72rem; margin-top:0.4rem;">
+                    Paiement sécurisé via Konnect 🔒
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="step-connector">↓</div>
+
+    <!-- STEP 5 -->
+    <div class="step-card">
+        <div class="step-num">5</div>
+        <div class="step-content" style="flex:1">
+            <h3><span class="step-emoji">📊</span> Le gestionnaire voit tout sur son tableau de bord</h3>
+            <p>
+                En un coup d'œil, le gestionnaire voit l'état de la résidence : qui a payé, combien il y a en caisse,
+                quelles dépenses ont été faites. Il peut télécharger des rapports PDF à tout moment.
+                <strong style="color:var(--text);">Tout est là, accessible depuis n'importe quel appareil.</strong>
+            </p>
+            <!-- Mockup dashboard -->
+            <div class="mockup">
+                <div class="mockup-bar">
+                    <div class="mockup-dot" style="background:#EF4444;"></div>
+                    <div class="mockup-dot" style="background:#F59E0B;"></div>
+                    <div class="mockup-dot" style="background:#10B981;"></div>
+                    <span style="color:var(--muted); font-size:0.75rem; margin-left:0.5rem;">Tableau de bord</span>
+                </div>
+                <div style="display:flex; margin-bottom:0.75rem;">
+                    <div class="mockup-stat"><strong>3 450 TND</strong><span>Encaissé</span></div>
+                    <div class="mockup-stat"><strong style="color:#F87171;">2</strong><span>Impayés</span></div>
+                    <div class="mockup-stat"><strong style="color:#60A5FA;">1</strong><span>Ticket ouvert</span></div>
+                    <div class="mockup-stat"><strong>1 890 TND</strong><span>Trésorerie</span></div>
+                </div>
+                <div style="color:var(--muted); font-size:0.77rem; margin-bottom:0.4rem;">Taux de recouvrement ce mois</div>
+                <div class="progress-bar-demo"><div class="progress-fill" style="width:87%;"></div></div>
+                <div style="text-align:right; color:var(--green); font-size:0.78rem; margin-top:0.3rem; font-weight:600;">87%</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- BONUS FEATURES -->
+<div class="bonus-section">
+    <div class="bonus-title">Et bien plus encore 🚀</div>
+    <div class="bonus-grid">
+        <div class="bonus-card">
+            <div class="icon">🤖</div>
+            <h5>Assistant IA intégré</h5>
+            <p>Posez vos questions à l'assistant Claude AI : "Qui sont les plus gros impayés ?" — il répond en quelques secondes.</p>
+        </div>
+        <div class="bonus-card">
+            <div class="icon">📩</div>
+            <h5>Relances automatiques WhatsApp</h5>
+            <p>SyndicPro envoie automatiquement des messages WhatsApp aux résidents en retard. Fini les appels gênants.</p>
+        </div>
+        <div class="bonus-card">
+            <div class="icon">📄</div>
+            <h5>Rapports PDF en 1 clic</h5>
+            <p>Téléchargez un rapport complet de la résidence en PDF : encaissements, dépenses, trésorerie, bilan.</p>
+        </div>
+        <div class="bonus-card">
+            <div class="icon">🎫</div>
+            <h5>Tickets de support</h5>
+            <p>Les résidents signalent les problèmes (fuite, ascenseur…) directement depuis leur espace. Le gestionnaire répond et suit.</p>
+        </div>
+        <div class="bonus-card">
+            <div class="icon">🚪</div>
+            <h5>Registre d'accès</h5>
+            <p>Enregistrez toutes les entrées et sorties de la résidence (visiteurs, livraisons…) dans un journal numérique.</p>
+        </div>
+        <div class="bonus-card">
+            <div class="icon">📢</div>
+            <h5>Annonces aux résidents</h5>
+            <p>Publiez des annonces visibles par tous les résidents : coupure d'eau, réunion de copropriété, travaux…</p>
+        </div>
+    </div>
+</div>
+
+<!-- CTA FINAL -->
+<div class="cta-section">
+    <h2>Prêt à simplifier votre<br><span>résidence ?</span></h2>
+    <p>30 jours d'essai gratuit. Aucune carte bancaire requise.<br>Vous êtes opérationnel en moins de 5 minutes.</p>
+    <a href="{{ url_for('register') }}" class="btn-hero-primary">Démarrer gratuitement →</a>
+    <div style="margin-top:1.2rem;">
+        <a href="{{ url_for('index') }}" style="color:var(--muted); font-size:0.9rem; text-decoration:none;">
+            ← Retour à l'accueil
+        </a>
+    </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="lp-footer">
+    <span>© 2026 SyndicPro — Fait en Tunisie 🇹🇳</span>
+    <div style="display:flex; gap:1.5rem;">
+        <a href="mailto:contact@syndicpro.tn">contact@syndicpro.tn</a>
+        <a href="{{ url_for('login') }}">Connexion</a>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
