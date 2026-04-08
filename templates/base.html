@@ -77,6 +77,12 @@
             color: var(--green);
         }
 
+        .sidebar-logo img {
+            height: 36px;
+            width: auto;
+            object-fit: contain;
+        }
+
         .sidebar-nav {
             flex: 1;
             padding: 1rem 0.75rem;
@@ -461,7 +467,7 @@
 
     <!-- Logo -->
     <a class="sidebar-logo" href="{{ url_for('dashboard') }}">
-        <i class="bi bi-building logo-icon"></i>
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="SyndicPro">
         <span>SyndicPro</span>
     </a>
 
