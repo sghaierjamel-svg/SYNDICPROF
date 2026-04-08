@@ -72,7 +72,7 @@ def assembly_list():
             voter_count = db.session.query(
                 db.func.count(db.func.distinct(AGVote.user_id))
             ).filter(AGVote.item_id.in_(item_ids)).scalar() or 0
-        stats[ag.id] = {'items': len(ag.items), 'voters': voter_count}
+        stats[ag.id] = {'nb_items': len(ag.items), 'nb_voters': voter_count}
 
     return render_template('assembly_list.html',
                            assemblies=assemblies, stats=stats, user=user)
