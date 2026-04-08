@@ -5,6 +5,7 @@ from utils import (current_user, current_organization, login_required,
                    subscription_required, get_unpaid_months_count,
                    get_next_unpaid_month, last_n_months, get_month_name)
 from datetime import date
+from sqlalchemy import func
 
 
 @app.route('/dashboard')
@@ -18,23 +19,26 @@ def dashboard():
         return redirect(url_for('logout'))
     blocks_count = Block.query.filter_by(organization_id=org.id).count()
     apartments_count = Apartment.query.filter_by(organization_id=org.id).count()
-    total_payments = sum(p.amount for p in Payment.query.filter_by(organization_id=org.id).all())
-    total_expenses = sum(e.amount for e in Expense.query.filter_by(organization_id=org.id).all())
     current_month_str = date.today().strftime('%Y-%m')
-    encaisse_mois = sum(
-        p.amount for p in Payment.query.filter_by(organization_id=org.id).all()
-        if p.month_paid == current_month_str
-    )
-    depense_mois = sum(
-        e.amount for e in Expense.query.filter_by(organization_id=org.id).all()
-        if e.expense_date.strftime('%Y-%m') == current_month_str
-    )
+
+    # Agrégats SQL — une seule requête par calcul, pas de chargement en mémoire
+    total_payments = db.session.query(func.coalesce(func.sum(Payment.amount), 0)).filter_by(
+        organization_id=org.id).scalar()
+    total_expenses = db.session.query(func.coalesce(func.sum(Expense.amount), 0)).filter_by(
+        organization_id=org.id).scalar()
+    encaisse_mois = db.session.query(func.coalesce(func.sum(Payment.amount), 0)).filter(
+        Payment.organization_id == org.id,
+        Payment.month_paid == current_month_str).scalar()
+    depense_mois = db.session.query(func.coalesce(func.sum(Expense.amount), 0)).filter(
+        Expense.organization_id == org.id,
+        func.to_char(Expense.expense_date, 'YYYY-MM') == current_month_str
+        if 'postgresql' in str(db.engine.url)
+        else func.strftime('%Y-%m', Expense.expense_date) == current_month_str).scalar()
     solde_tresorerie = total_payments - total_expenses
     apts_total = apartments_count
-    apts_payes_mois = len(set(
-        p.apartment_id for p in Payment.query.filter_by(organization_id=org.id).all()
-        if p.month_paid == current_month_str
-    ))
+    apts_payes_mois = db.session.query(func.count(func.distinct(Payment.apartment_id))).filter(
+        Payment.organization_id == org.id,
+        Payment.month_paid == current_month_str).scalar()
     taux_recouvrement = round((apts_payes_mois / apts_total * 100) if apts_total > 0 else 0)
     subscription = org.subscription
     days_left = subscription.days_remaining() if subscription else 0

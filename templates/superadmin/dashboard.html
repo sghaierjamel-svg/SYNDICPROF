@@ -83,6 +83,7 @@
                                 <th class="d-none d-md-table-cell">Expiration</th>
                                 <th class="d-none d-lg-table-cell">Prix</th>
                                 <th class="d-none d-lg-table-cell">Créé le</th>
+                                <th class="d-none d-lg-table-cell">Dernière connexion</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -141,6 +142,14 @@
                                 </td>
                                 <td class="d-none d-lg-table-cell">
                                     {{ org.created_at.strftime('%d/%m/%Y') }}
+                                </td>
+                                <td class="d-none d-lg-table-cell">
+                                    {% set last_login = last_login_map.get(org.id) %}
+                                    {% if last_login %}
+                                        {{ last_login.strftime('%d/%m/%Y %H:%M') }}
+                                    {% else %}
+                                        <span class="text-muted">Jamais</span>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">

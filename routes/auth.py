@@ -43,6 +43,9 @@ def login():
             session['user_id'] = user.id
             session.permanent = True
             session['last_activity'] = datetime.utcnow().isoformat()
+            user.last_login_at = datetime.utcnow()
+            from core import db as _db
+            _db.session.commit()
             flash('Connecté avec succès', 'success')
             if user.role == 'superadmin':
                 return redirect(url_for('superadmin_dashboard'))

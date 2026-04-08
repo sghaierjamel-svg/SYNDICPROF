@@ -139,12 +139,42 @@ def payments():
 
         return redirect(url_for('payments'))
 
-    # Préparer les données pour l'affichage
-    for apt in apartments:
-        apt.next_unpaid = get_next_unpaid_month(apt.id)
-        apt.unpaid_count = get_unpaid_months_count(apt.id)
-
+    # Charger TOUS les paiements de l'org en UNE seule requête (évite le N+1)
     payments_list = Payment.query.filter_by(organization_id=org.id).order_by(Payment.payment_date.desc()).all()
+
+    # Grouper les mois payés par appartement en mémoire (pas de requêtes supplémentaires)
+    paid_months_by_apt = {}
+    for p in payments_list:
+        paid_months_by_apt.setdefault(p.apartment_id, set()).add(p.month_paid)
+
+    today_month = date.today().replace(day=1)
+    from dateutil.relativedelta import relativedelta as rdelta
+
+    for apt in apartments:
+        paid = paid_months_by_apt.get(apt.id, set())
+        start = apt.created_at.date().replace(day=1) if apt.created_at else today_month
+        end_count = today_month
+        end_next = today_month + rdelta(months=3)
+
+        # Calcul impayés
+        unpaid = 0
+        cur = start
+        while cur <= end_count:
+            if cur.strftime('%Y-%m') not in paid:
+                unpaid += 1
+            cur += rdelta(months=1)
+        apt.unpaid_count = unpaid
+
+        # Premier mois impayé
+        cur = start
+        while cur <= end_next:
+            if cur.strftime('%Y-%m') not in paid:
+                apt.next_unpaid = cur.strftime('%Y-%m')
+                break
+            cur += rdelta(months=1)
+        else:
+            apt.next_unpaid = (end_next + rdelta(months=1)).strftime('%Y-%m')
+
     return render_template('payments.html', apartments=apartments, payments=payments_list, user=current_user())
 
 

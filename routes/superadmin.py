@@ -3,6 +3,7 @@ from core import app, db
 from models import Organization, Apartment, User, SuperAdminSettings
 from utils import (current_user, login_required, superadmin_required)
 from datetime import datetime, timedelta
+from sqlalchemy import func
 import requests as http
 
 
@@ -17,7 +18,19 @@ def superadmin_dashboard():
     for org in organizations:
         if org.subscription and org.subscription.status == 'active':
             total_revenue += org.subscription.monthly_price
-    return render_template('superadmin/dashboard.html', organizations=organizations, total_orgs=total_orgs, active_orgs=active_orgs, total_revenue=total_revenue)
+
+    # Dernière connexion de l'admin principal de chaque organisation (une seule requête)
+    rows = db.session.query(User.organization_id, func.max(User.last_login_at)).filter(
+        User.role == 'admin', User.organization_id.isnot(None)
+    ).group_by(User.organization_id).all()
+    last_login_map = {org_id: last_login for org_id, last_login in rows}
+
+    return render_template('superadmin/dashboard.html',
+                           organizations=organizations,
+                           total_orgs=total_orgs,
+                           active_orgs=active_orgs,
+                           total_revenue=total_revenue,
+                           last_login_map=last_login_map)
 
 
 @app.route('/superadmin/organization/<int:org_id>')
