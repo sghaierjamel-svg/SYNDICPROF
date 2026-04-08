@@ -65,22 +65,11 @@
             gap: 0.6rem;
         }
 
-        .sidebar-logo span {
-            font-size: 1.3rem;
-            font-weight: 800;
-            color: var(--green);
-            letter-spacing: 1px;
-        }
-
-        .sidebar-logo .logo-icon {
-            font-size: 1.6rem;
-            color: var(--green);
-        }
-
         .sidebar-logo img {
-            height: 36px;
+            height: 52px;
             width: auto;
             object-fit: contain;
+            mix-blend-mode: screen;
         }
 
         .sidebar-nav {
@@ -468,7 +457,6 @@
     <!-- Logo -->
     <a class="sidebar-logo" href="{{ url_for('dashboard') }}">
         <img src="{{ url_for('static', filename='img/logo.png') }}" alt="SyndicPro">
-        <span>SyndicPro</span>
     </a>
 
     <!-- Navigation -->
