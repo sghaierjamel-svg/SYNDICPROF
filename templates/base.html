@@ -414,29 +414,120 @@
         h1, h2, h3, h4, h5, h6 { color: var(--text); }
         hr { border-color: var(--border2); }
 
+        /* ── TOPBAR NOTIFICATIONS ── */
+        .notif-topbar {
+            position: fixed;
+            top: 0; left: var(--sidebar-width); right: 0;
+            height: 38px;
+            background: rgba(17,24,39,0.97);
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: flex-end;
+            padding: 0 1.5rem;
+            z-index: 800;
+            backdrop-filter: blur(6px);
+        }
+        .notif-topbar-spacer { height: 38px; }
+
+        .notif-btn {
+            position: relative;
+            background: transparent;
+            border: none;
+            color: var(--muted);
+            padding: 0.2rem 0.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: color 0.2s, background 0.2s;
+            line-height: 1;
+        }
+        .notif-btn:hover { color: var(--text); background: var(--border); }
+        .notif-badge {
+            position: absolute;
+            top: -2px; right: -4px;
+            background: #EF4444;
+            color: #fff;
+            font-size: 0.6rem;
+            font-weight: 700;
+            min-width: 15px; height: 15px;
+            border-radius: 999px;
+            display: flex; align-items: center; justify-content: center;
+            padding: 0 3px;
+            line-height: 1;
+        }
+
+        .notif-dropdown {
+            min-width: 320px;
+            max-height: 420px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            padding: 0;
+        }
+        .notif-header {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .notif-item {
+            display: flex; align-items: flex-start; gap: 0.75rem;
+            padding: 0.65rem 1rem;
+            border-bottom: 1px solid var(--border);
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+        .notif-item:last-child { border-bottom: none; }
+        .notif-item:hover { background: var(--border); }
+        .notif-icon {
+            width: 30px; height: 30px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.85rem; flex-shrink: 0; margin-top: 1px;
+        }
+        .notif-text { font-size: 0.82rem; color: var(--text); font-weight: 500; line-height: 1.3; }
+        .notif-sub { font-size: 0.75rem; color: var(--muted); margin-top: 1px; }
+        .notif-time { font-size: 0.7rem; color: var(--muted); margin-left: auto; flex-shrink: 0; padding-left: 0.5rem; }
+        .notif-empty { padding: 1.5rem 1rem; text-align: center; color: var(--muted); font-size: 0.85rem; }
+
+        /* Badge annonces sidebar résident */
+        .sidebar-badge {
+            margin-left: auto;
+            background: #EF4444;
+            color: #fff;
+            font-size: 0.65rem;
+            font-weight: 700;
+            min-width: 18px; height: 18px;
+            border-radius: 999px;
+            display: flex; align-items: center; justify-content: center;
+            padding: 0 4px;
+        }
+        .sidebar-ann-item {
+            display: flex; align-items: center; gap: 0.6rem;
+            padding: 0.45rem 0.85rem;
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--muted);
+            font-size: 0.82rem;
+            transition: background 0.15s, color 0.15s;
+        }
+        .sidebar-ann-item:hover { background: var(--border); color: var(--text); }
+        .sidebar-ann-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            flex-shrink: 0;
+        }
+
         /* ── RESPONSIVE ── */
         @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-            }
-
-            .sidebar.open {
-                transform: translateX(0);
-            }
-
-            .sidebar-overlay.open {
-                display: block;
-            }
-
-            .sidebar-toggle {
-                display: flex;
-            }
-
-            .main-content {
-                margin-left: 0;
-                padding: 1rem;
-                padding-top: 4rem;
-            }
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .sidebar-overlay.open { display: block; }
+            .sidebar-toggle { display: flex; }
+            .main-content { margin-left: 0; padding: 1rem; padding-top: 4rem; }
+            .notif-topbar { left: 0; }
         }
     </style>
 </head>
@@ -569,6 +660,28 @@
             <i class="bi bi-person-badge"></i> Mon Appartement
         </a>
 
+        <!-- Annonces dans la sidebar -->
+        <a class="sidebar-link {% if request.endpoint == 'residents_menu' and request.args.get('tab') == 'annonces' %}active{% endif %}"
+           href="{{ url_for('residents_menu') }}"
+           style="font-weight:600;">
+            <i class="bi bi-megaphone" {% if sidebar_unread_count and sidebar_unread_count > 0 %}style="color:var(--green);"{% endif %}></i>
+            Annonces
+            {% if sidebar_unread_count and sidebar_unread_count > 0 %}
+            <span class="sidebar-badge">{{ sidebar_unread_count }}</span>
+            {% endif %}
+        </a>
+
+        {% if sidebar_announcements %}
+        {% for ann, unread in sidebar_announcements %}
+        <a class="sidebar-ann-item" href="{{ url_for('read_announcement', ann_id=ann.id) }}">
+            <span class="sidebar-ann-dot" style="background:{% if unread %}var(--green){% else %}var(--border2){% endif %};"></span>
+            <span style="{% if unread %}color:var(--text);font-weight:500;{% endif %}overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                {{ ann.title }}
+            </span>
+        </a>
+        {% endfor %}
+        {% endif %}
+
         {% endif %}
 
         <a class="sidebar-link {% if request.endpoint == 'tickets' %}active{% endif %}"
@@ -610,8 +723,60 @@
 </aside>
 {% endif %}
 
+{% if user and user.role == 'admin' %}
+<!-- BARRE NOTIFICATIONS -->
+<div class="notif-topbar">
+    <div class="dropdown">
+        <button class="notif-btn" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
+            <i class="bi bi-bell{% if notif_count and notif_count > 0 %}-fill{% endif %}"></i>
+            {% if notif_count and notif_count > 0 %}
+            <span class="notif-badge">{{ notif_count if notif_count <= 9 else '9+' }}</span>
+            {% endif %}
+        </button>
+        <div class="dropdown-menu dropdown-menu-end notif-dropdown">
+            <div class="notif-header">
+                <i class="bi bi-bell"></i> &nbsp;Notifications — 24 dernières heures
+            </div>
+
+            {% if unpaid_critical and unpaid_critical > 0 %}
+            <a href="{{ url_for('alerts') }}" class="notif-item">
+                <div class="notif-icon" style="background:rgba(239,68,68,0.15);">
+                    <i class="bi bi-exclamation-triangle-fill" style="color:#F87171;"></i>
+                </div>
+                <div>
+                    <div class="notif-text">{{ unpaid_critical }} impayé{{ 's' if unpaid_critical > 1 }} critiques</div>
+                    <div class="notif-sub">Retard de plus de 3 mois</div>
+                </div>
+            </a>
+            {% endif %}
+
+            {% if notif_list %}
+                {% for n in notif_list %}
+                <a href="{{ n.url }}" class="notif-item">
+                    <div class="notif-icon" style="background:{{ n.color }}22;">
+                        <i class="bi bi-{{ n.icon }}" style="color:{{ n.color }};"></i>
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                        <div class="notif-text">{{ n.text }}</div>
+                        <div class="notif-sub">{{ n.sub }}</div>
+                    </div>
+                    <div class="notif-time">{{ n.ts.strftime('%H:%M') }}</div>
+                </a>
+                {% endfor %}
+            {% else %}
+                <div class="notif-empty">
+                    <i class="bi bi-check-circle" style="font-size:1.5rem;display:block;margin-bottom:.5rem;"></i>
+                    Aucune activité récente
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- CONTENU PRINCIPAL -->
 <main class="main-content {% if not user %}no-sidebar{% endif %}">
+    {% if user and user.role == 'admin' %}<div class="notif-topbar-spacer"></div>{% endif %}
 
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}

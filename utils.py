@@ -1,9 +1,113 @@
 from functools import wraps
-from flask import session, flash, redirect, url_for
+from flask import session, flash, redirect, url_for, request as _req
 from core import app, db
 from models import User, Organization, Apartment, Payment, UnpaidAlert
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
+
+
+@app.context_processor
+def inject_notifications():
+    """Injecte les notifications dans tous les templates (admin + résident)."""
+    if _req.endpoint in (None, 'static', 'login', 'logout', 'register',
+                         'index', 'demo', 'subscription_status'):
+        return {}
+    user = current_user()
+    if not user or not user.organization_id:
+        return {}
+
+    org_id = user.organization_id
+    result = {}
+
+    if user.role == 'admin':
+        from models import Ticket, AnnouncementRead, Announcement
+        from sqlalchemy.orm import joinedload
+        since = datetime.utcnow() - timedelta(hours=24)
+        notifs = []
+
+        # Paiements récents
+        recent_payments = Payment.query.options(
+            joinedload(Payment.apartment).joinedload(Apartment.block)
+        ).filter(
+            Payment.organization_id == org_id,
+            Payment.payment_date >= since.date()
+        ).order_by(Payment.payment_date.desc()).limit(5).all()
+        for p in recent_payments:
+            apt_label = (f"{p.apartment.block.name}-{p.apartment.number}"
+                         if p.apartment and p.apartment.block else "?")
+            notifs.append({
+                'icon': 'cash-coin', 'color': '#00C896',
+                'text': f"Paiement reçu — {apt_label}",
+                'sub': f"{p.amount:.0f} DT · {p.month_paid}",
+                'ts': datetime.combine(p.payment_date, datetime.min.time()),
+                'url': url_for('payments')
+            })
+
+        # Lectures d'annonces récentes
+        recent_reads = (db.session.query(AnnouncementRead)
+            .join(Announcement)
+            .options(joinedload(AnnouncementRead.apartment).joinedload(Apartment.block))
+            .filter(
+                Announcement.organization_id == org_id,
+                AnnouncementRead.read_at >= since
+            ).order_by(AnnouncementRead.read_at.desc()).limit(5).all())
+        for r in recent_reads:
+            apt_label = (f"{r.apartment.block.name}-{r.apartment.number}"
+                         if r.apartment and r.apartment.block else "?")
+            notifs.append({
+                'icon': 'eye', 'color': '#60A5FA',
+                'text': f"{apt_label} a lu une annonce",
+                'sub': (r.announcement.title[:40] if r.announcement else ""),
+                'ts': r.read_at,
+                'url': url_for('announcements')
+            })
+
+        # Tickets ouverts récents
+        from models import Ticket
+        recent_tickets = Ticket.query.options(
+            joinedload(Ticket.apartment).joinedload(Apartment.block)
+        ).filter(
+            Ticket.organization_id == org_id,
+            Ticket.status == 'ouvert',
+            Ticket.created_at >= since
+        ).order_by(Ticket.created_at.desc()).limit(5).all()
+        for t in recent_tickets:
+            apt_label = (f"{t.apartment.block.name}-{t.apartment.number}"
+                         if t.apartment and t.apartment.block else "?")
+            notifs.append({
+                'icon': 'chat-left-dots', 'color': '#F59E0B',
+                'text': f"Nouveau ticket — {apt_label}",
+                'sub': t.subject[:40],
+                'ts': t.created_at,
+                'url': url_for('tickets')
+            })
+
+        # Impayés critiques
+        unpaid_critical = UnpaidAlert.query.filter_by(
+            organization_id=org_id, email_sent=False
+        ).count()
+
+        notifs.sort(key=lambda x: x['ts'], reverse=True)
+        total = len(notifs) + (1 if unpaid_critical > 0 else 0)
+        result.update({
+            'notif_list': notifs[:8],
+            'notif_count': total,
+            'unpaid_critical': unpaid_critical,
+        })
+
+    elif user.role == 'resident' and user.apartment_id:
+        from models import Announcement, AnnouncementRead
+        anns = Announcement.query.filter_by(organization_id=org_id)\
+            .order_by(Announcement.pinned.desc(), Announcement.created_at.desc()).limit(5).all()
+        read_ids = {r.announcement_id for r in
+                    AnnouncementRead.query.filter_by(user_id=user.id).all()}
+        sidebar_anns = [(a, a.id not in read_ids) for a in anns]
+        result.update({
+            'sidebar_announcements': sidebar_anns,
+            'sidebar_unread_count': sum(1 for _, unread in sidebar_anns if unread),
+        })
+
+    return result
 
 
 @app.before_request

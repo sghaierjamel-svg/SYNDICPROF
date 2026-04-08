@@ -1,5 +1,22 @@
 {% extends 'base.html' %}
 {% block content %}
+
+<!-- Modal "Qui a lu ?" -->
+<div class="modal fade" id="modalLectures" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background:var(--card-bg);border:1px solid var(--border);border-radius:16px;">
+            <div class="modal-header" style="border-bottom:1px solid var(--border);">
+                <h5 class="modal-title" id="modalLecturesTitle" style="color:var(--text);font-size:.95rem;">
+                    <i class="bi bi-eye" style="color:var(--green);"></i> Lectures
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0" id="modalLecturesBody">
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row mb-4">
     <div class="col-12">
         <h2 class="text-white mb-1"><i class="bi bi-megaphone"></i> Tableau d'affichage</h2>
@@ -71,6 +88,18 @@
             <div class="card-body p-0">
                 {% for a in announcements %}
                 {% set read_count = read_counts.get(a.id, 0) %}
+
+                <!-- Données lectures cachées pour le modal JS -->
+                <script type="application/json" id="reads-{{ a.id }}">
+                {% if a.reads %}
+                [{% for r in a.reads|sort(attribute='read_at', reverse=True) %}
+                  {"apt": "{% if r.apartment %}{{ r.apartment.block.name }}-{{ r.apartment.number }}{% else %}?{% endif %}",
+                   "name": "{{ r.apartment.residents[0].name if r.apartment and r.apartment.residents else '-' }}",
+                   "time": "{{ r.read_at.strftime('%d/%m/%Y %H:%M') }}"}{% if not loop.last %},{% endif %}
+                {% endfor %}]
+                {% else %}[]{% endif %}
+                </script>
+
                 <div class="p-3" style="border-bottom:1px solid var(--border);{% if a.pinned %}background:rgba(0,200,150,0.04);{% endif %}">
                     <div class="d-flex justify-content-between align-items-start mb-1">
                         <div style="flex:1;min-width:0;">
@@ -78,11 +107,12 @@
                             <i class="bi bi-pin-angle-fill me-1" style="color:var(--green);"></i>
                             {% endif %}
                             <strong style="color:var(--text);">{{ a.title }}</strong>
-                            <!-- Badge lectures -->
-                            <span class="ms-2" style="font-size:.72rem;padding:.15rem .5rem;border-radius:4px;
-                                {% if read_count > 0 %}background:rgba(0,200,150,0.15);color:var(--green);{% else %}background:rgba(156,163,175,0.15);color:var(--muted);{% endif %}">
+                            <!-- Badge lectures cliquable -->
+                            <button onclick="showLectures({{ a.id }}, '{{ a.title|replace("'", "\\'") }}')"
+                                    style="border:none;background:none;cursor:pointer;font-size:.72rem;padding:.15rem .5rem;border-radius:4px;margin-left:.4rem;
+                                    {% if read_count > 0 %}background:rgba(0,200,150,0.15);color:var(--green);{% else %}background:rgba(156,163,175,0.1);color:var(--muted);{% endif %}">
                                 <i class="bi bi-eye"></i> {{ read_count }} lecture{{ 's' if read_count > 1 else '' }}
-                            </span>
+                            </button>
                         </div>
                         <div class="d-flex gap-1 ms-2 flex-shrink-0">
                             <form method="post" action="{{ url_for('toggle_pin', ann_id=a.id) }}">
@@ -107,18 +137,6 @@
                         {{ a.created_at.strftime('%d/%m/%Y à %H:%M') }}
                         {% if a.author %} — par {{ a.author.name or a.author.email }}{% endif %}
                     </small>
-
-                    <!-- Liste des lecteurs (si des lectures existent) -->
-                    {% if read_count > 0 %}
-                    <div class="mt-2" style="font-size:.75rem;color:var(--muted);">
-                        {% for r in a.reads|sort(attribute='read_at', reverse=True) %}
-                        <span class="me-2" style="background:rgba(0,200,150,0.08);padding:.1rem .4rem;border-radius:4px;color:var(--green);">
-                            <i class="bi bi-check"></i>
-                            {% if r.apartment %}{{ r.apartment.block.name }}-{{ r.apartment.number }}{% endif %}
-                        </span>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
                 </div>
                 {% else %}
                 <div class="p-4 text-center" style="color:var(--muted);">
@@ -129,4 +147,40 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showLectures(annId, annTitle) {
+    const raw = document.getElementById('reads-' + annId);
+    const reads = raw ? JSON.parse(raw.textContent.trim()) : [];
+
+    document.getElementById('modalLecturesTitle').innerHTML =
+        '<i class="bi bi-eye" style="color:var(--green);"></i> ' + annTitle;
+
+    const body = document.getElementById('modalLecturesBody');
+    if (reads.length === 0) {
+        body.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--muted);font-size:.88rem;">'
+            + '<i class="bi bi-eye-slash" style="font-size:1.8rem;display:block;margin-bottom:.5rem;"></i>'
+            + 'Aucun résident n\'a encore lu cette annonce.</div>';
+    } else {
+        let html = '<table style="width:100%;font-size:.83rem;border-collapse:collapse;">';
+        html += '<thead><tr style="background:var(--border2);color:var(--muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;">'
+              + '<th style="padding:.6rem 1rem;">Appartement</th>'
+              + '<th style="padding:.6rem 1rem;">Résident</th>'
+              + '<th style="padding:.6rem 1rem;text-align:right;">Lu le</th>'
+              + '</tr></thead><tbody>';
+        reads.forEach(function(r) {
+            html += '<tr style="border-bottom:1px solid var(--border);">'
+                  + '<td style="padding:.55rem 1rem;"><strong style="color:var(--green);">' + r.apt + '</strong></td>'
+                  + '<td style="padding:.55rem 1rem;color:var(--text);">' + r.name + '</td>'
+                  + '<td style="padding:.55rem 1rem;color:var(--muted);text-align:right;">' + r.time + '</td>'
+                  + '</tr>';
+        });
+        html += '</tbody></table>';
+        body.innerHTML = html;
+    }
+    new bootstrap.Modal(document.getElementById('modalLectures')).show();
+}
+</script>
 {% endblock %}
