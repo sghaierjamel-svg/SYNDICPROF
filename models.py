@@ -353,6 +353,23 @@ def init_db():
     except Exception as e:
         print(f"Migration announcement : {e}")
 
+    # Migration sécurité : activer RLS sur toutes les tables publiques (PostgreSQL)
+    # Bloque l'accès anonyme via l'URL Supabase — l'appli Flask (postgres superuser) n'est pas affectée
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                tables = [
+                    'organization', 'subscription', '"user"', 'block', 'apartment',
+                    'payment', 'expense', 'ticket', 'super_admin_settings',
+                    'konnect_payment', 'unpaid_alert', 'announcement', 'access_log'
+                ]
+                for table in tables:
+                    conn.execute(db.text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY"))
+                conn.commit()
+                print("RLS activé sur toutes les tables — accès anonyme bloqué.")
+    except Exception as e:
+        print(f"Migration RLS : {e}")
+
     if not User.query.filter_by(email='superadmin@syndicpro.tn').first():
         # CRIT-003 : SUPERADMIN_PASSWORD obligatoire et >= 16 caractères
         _sa_pwd = os.environ.get('SUPERADMIN_PASSWORD', '')
