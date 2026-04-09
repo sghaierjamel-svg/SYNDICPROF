@@ -119,10 +119,22 @@ def payments():
                 flash(f"Paiement enregistré avec succès !", "success")
                 flash(f"{months_actually_paid} mois payé(s) : {months_display}", "success")
                 flash(f"Montant total : {total_recorded_amount:.2f} DT", "info")
-                # Notification WhatsApp (dernier mois payé comme référence)
+                # Notification WhatsApp + Push → admin
                 try:
                     resident = User.query.filter_by(apartment_id=apartment_id).first()
                     notify_payment(org, apt, paid_months_list[-1], total_recorded_amount, resident)
+                except Exception:
+                    pass
+                try:
+                    from utils_push import push_to_admins
+                    apt_label = f"{apt.block.name}-{apt.number}"
+                    months_str = ", ".join(paid_months_list) if len(paid_months_list) <= 3 else f"{paid_months_list[0]} … {paid_months_list[-1]}"
+                    push_to_admins(
+                        org.id,
+                        title=f"💰 Paiement reçu — {apt_label}",
+                        body=f"{total_recorded_amount:.2f} DT — {months_str}",
+                        url="/payments",
+                    )
                 except Exception:
                     pass
             else:

@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SyndicPro - Gestion de Syndic</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <!-- PWA -->
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#1D4ED8">
@@ -779,6 +780,13 @@
 {% if user and user.role == 'admin' %}
 <!-- BARRE NOTIFICATIONS -->
 <div class="notif-topbar">
+    <!-- Bouton activation notifications push (masqué par défaut, JS l'affiche si nécessaire) -->
+    <button id="pushActivateBtn" title="Activer les notifications push"
+            style="display:none;align-items:center;gap:6px;background:rgba(59,130,246,0.15);
+                   border:1px solid rgba(59,130,246,0.4);color:#93C5FD;border-radius:8px;
+                   padding:4px 10px;font-size:0.78rem;cursor:pointer;margin-right:6px;">
+        <i class="bi bi-bell-slash"></i> Activer les notifs
+    </button>
     <div class="dropdown">
         <button class="notif-btn" id="notifBtn" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
             <i class="bi bi-bell{% if notif_count and notif_count > 0 %}-fill{% endif %}" id="notifBellIcon"></i>
@@ -910,9 +918,69 @@
 </script>
 {% block extra_js %}{% endblock %}
 <script>
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/static/sw.js').catch(() => {});
-}
+// ── Service Worker + Web Push ──────────────────────────────────────────────
+(function() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+
+    let swReg = null;
+
+    // Convertit la clé VAPID base64url → Uint8Array
+    function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const raw = atob(base64);
+        return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+    }
+
+    async function subscribePush() {
+        if (!swReg) return;
+        try {
+            const resp = await fetch('/api/push/vapid-key');
+            const { key } = await resp.json();
+            if (!key) return;
+            const sub = await swReg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(key),
+            });
+            await fetch('/api/push/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.content || '' },
+                body: JSON.stringify(sub.toJSON()),
+            });
+            // Masquer le bouton d'activation
+            const btn = document.getElementById('pushActivateBtn');
+            if (btn) btn.remove();
+        } catch (e) { /* permission refusée ou erreur réseau */ }
+    }
+
+    async function initPush() {
+        swReg = await navigator.serviceWorker.register('/static/sw.js');
+        await navigator.serviceWorker.ready;
+
+        const perm = Notification.permission;
+        if (perm === 'granted') {
+            // Vérifier si déjà abonné
+            const existing = await swReg.pushManager.getSubscription();
+            if (!existing) await subscribePush();
+            return;
+        }
+        if (perm === 'denied') return;
+
+        // Permission non encore demandée → afficher le bouton d'activation
+        const btn = document.getElementById('pushActivateBtn');
+        if (btn) {
+            btn.style.display = 'flex';
+            btn.addEventListener('click', async () => {
+                const result = await Notification.requestPermission();
+                if (result === 'granted') await subscribePush();
+                else btn.remove();
+            });
+        }
+    }
+
+    // Lancer après chargement complet
+    window.addEventListener('load', () => initPush().catch(() => {}));
+})();
 </script>
 </body>
 </html>

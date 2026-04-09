@@ -49,9 +49,21 @@ def tickets():
         db.session.add(ticket)
         db.session.commit()
         flash('Ticket créé avec succès', 'success')
-        # Notification WhatsApp → admin
+        # Notifications → admin (WhatsApp + Push)
         try:
             notify_ticket_created(org, ticket, resident=user)
+        except Exception:
+            pass
+        try:
+            from utils_push import push_to_admins
+            apt = ticket.apartment
+            apt_label = f"{apt.block.name}-{apt.number}" if apt else ''
+            push_to_admins(
+                org.id,
+                title=f"🎫 Nouveau ticket — {apt_label}",
+                body=f"{ticket.subject}\nPriorité : {ticket.priority}",
+                url=f"/ticket/{ticket.id}",
+            )
         except Exception:
             pass
         return redirect(url_for('tickets'))
@@ -78,11 +90,22 @@ def ticket_detail(ticket_id):
         ticket.updated_at = datetime.utcnow()
         db.session.commit()
         flash('Ticket mis à jour', 'success')
-        # Notification WhatsApp → résident si réponse fournie
+        # Notifications → résident si réponse fournie (WhatsApp + Push)
         try:
             if ticket.admin_response:
                 resident = User.query.get(ticket.user_id)
                 notify_ticket_response(org, ticket, resident)
+        except Exception:
+            pass
+        try:
+            if ticket.admin_response and ticket.user_id:
+                from utils_push import push_to_user
+                push_to_user(
+                    ticket.user_id,
+                    title=f"📋 Réponse à votre ticket",
+                    body=f"{ticket.subject}\nStatut : {ticket.status}",
+                    url=f"/ticket/{ticket_id}",
+                )
         except Exception:
             pass
         return redirect(url_for('ticket_detail', ticket_id=ticket_id))

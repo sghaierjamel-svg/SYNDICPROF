@@ -1,4 +1,4 @@
-// SyndicPro Service Worker — v1.0
+// SyndicPro Service Worker — v1.1
 const CACHE_NAME = 'syndicpro-v1';
 
 // Ressources statiques mises en cache au premier chargement
@@ -49,5 +49,40 @@ self.addEventListener('fetch', (event) => {
   // Pages de l'application → Network First (offline fallback si nécessaire)
   event.respondWith(
     fetch(event.request).catch(() => caches.match(event.request))
+  );
+});
+
+// ─── Web Push ────────────────────────────────────────────────────────────────
+
+self.addEventListener('push', (event) => {
+  let payload = { title: 'SyndicPro', body: 'Nouvelle notification', url: '/dashboard', icon: '/static/icons/icon-192.png' };
+  try { payload = Object.assign(payload, event.data.json()); } catch (e) {}
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body:    payload.body,
+      icon:    payload.icon,
+      badge:   '/static/icons/icon-192.png',
+      vibrate: [200, 100, 200],
+      tag:     'syndicpro-notif',
+      renotify: true,
+      data:    { url: payload.url },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/dashboard';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(url);
+          return client.focus();
+        }
+      }
+      return clients.openWindow(url);
+    })
   );
 });

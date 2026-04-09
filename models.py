@@ -301,6 +301,19 @@ class Announcement(db.Model):
     author = db.relationship('User', backref='announcements', lazy=True)
 
 
+class PushSubscription(db.Model):
+    """Abonnements Web Push des utilisateurs (un par navigateur/appareil)"""
+    __tablename__ = 'push_subscription'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=True)
+    endpoint = db.Column(db.Text, nullable=False)
+    p256dh = db.Column(db.Text, nullable=False)
+    auth = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user = db.relationship('User', backref='push_subscriptions')
+
+
 class DirectMessage(db.Model):
     """Messagerie directe admin ↔ résident (par appartement)"""
     __tablename__ = 'direct_message'
@@ -960,6 +973,38 @@ def init_db():
                 print("Migration PostgreSQL : table intervenant créée.")
     except Exception as e:
         print(f"Migration intervenant : {e}")
+
+    # Migration : table push_subscription
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS push_subscription (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER REFERENCES "user"(id) ON DELETE CASCADE,
+                        organization_id INTEGER REFERENCES organization(id) ON DELETE CASCADE,
+                        endpoint TEXT NOT NULL,
+                        p256dh TEXT NOT NULL,
+                        auth TEXT NOT NULL,
+                        created_at TIMESTAMP DEFAULT NOW()
+                    )
+                """))
+                conn.commit()
+            else:
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS push_subscription (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER REFERENCES user(id),
+                        organization_id INTEGER REFERENCES organization(id),
+                        endpoint TEXT NOT NULL,
+                        p256dh TEXT NOT NULL,
+                        auth TEXT NOT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """))
+                conn.commit()
+    except Exception as e:
+        print(f"Migration push_subscription : {e}")
 
     # Migration : colonne last_reminder_check sur super_admin_settings
     try:
