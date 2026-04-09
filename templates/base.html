@@ -956,24 +956,42 @@
         return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
     }
 
+    // S'assure que le SW est enregistré avant de s'abonner
+    async function getSW() {
+        if (swReg) return swReg;
+        swReg = await navigator.serviceWorker.register('/static/sw.js');
+        await navigator.serviceWorker.ready;
+        return swReg;
+    }
+
     async function doSubscribe() {
         try {
-            label.textContent = '...';
+            icon.className = 'bi bi-hourglass-split';
+            label.textContent = 'Activation...';
+            btn.style.cursor = 'wait';
+
+            const reg = await getSW();
+
             const resp = await fetch('/api/push/vapid-key');
             const data = await resp.json();
-            if (!data.key) { setBtn('inactive'); return; }
-            const sub = await swReg.pushManager.subscribe({
+            if (!data.key) {
+                console.warn('[Push] VAPID_PUBLIC_KEY vide — vérifiez Render');
+                setBtn('inactive');
+                return;
+            }
+
+            const sub = await reg.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(data.key),
             });
+
+            const csrf = document.querySelector('meta[name=csrf-token]')?.content || '';
             await fetch('/api/push/subscribe', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.content || ''
-                },
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
                 body: JSON.stringify(sub.toJSON()),
             });
+
             localStorage.setItem('pushSubscribed', '1');
             setBtn('active');
         } catch (e) {
@@ -983,7 +1001,7 @@
         }
     }
 
-    // Affichage immédiat depuis localStorage (évite le flash bleu à chaque page)
+    // Affichage immédiat depuis localStorage
     const perm0 = Notification.permission;
     if (perm0 === 'denied') {
         setBtn('blocked');
@@ -992,30 +1010,34 @@
         setBtn('active');
     }
 
-    // Le clic est attaché immédiatement — pas conditionnel
+    // Clic — fonctionne même si initPush() n'est pas encore terminé
     btn.addEventListener('click', async () => {
-        if (Notification.permission === 'denied') {
-            alert('Les notifications sont bloquées dans votre navigateur.\nCliquez sur le cadenas 🔒 dans la barre d\'adresse et autorisez les notifications.');
+        const perm = Notification.permission;
+        if (perm === 'denied') {
+            alert('Les notifications sont bloquées.\nCliquez sur le cadenas 🔒 dans la barre d\'adresse → Notifications → Autoriser.');
             return;
         }
-        if (Notification.permission === 'granted') {
+        if (perm === 'granted') {
             await doSubscribe();
             return;
         }
-        // 'default' → demander la permission
-        const result = await Notification.requestPermission();
-        if (result === 'granted') await doSubscribe();
-        else setBtn('blocked');
+        // 'default' → demander la permission au navigateur
+        try {
+            const result = await Notification.requestPermission();
+            if (result === 'granted') await doSubscribe();
+            else setBtn('blocked');
+        } catch(e) {
+            console.warn('[Push] requestPermission error:', e);
+        }
     });
 
-    // Initialisation au chargement : vérification async en arrière-plan
+    // Init au chargement : détection de l'état existant
     async function initPush() {
-        swReg = await navigator.serviceWorker.register('/static/sw.js');
-        await navigator.serviceWorker.ready;
+        const reg = await getSW();
         const perm = Notification.permission;
         if (perm === 'denied') { setBtn('blocked'); localStorage.removeItem('pushSubscribed'); return; }
         if (perm === 'granted') {
-            const existing = await swReg.pushManager.getSubscription();
+            const existing = await reg.pushManager.getSubscription();
             if (existing) {
                 localStorage.setItem('pushSubscribed', '1');
                 setBtn('active');
