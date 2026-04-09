@@ -86,7 +86,7 @@
                 <div class="d-flex flex-wrap gap-2 align-items-center">
                     <input type="email" id="testEmailTo" placeholder="Adresse email de test"
                            class="form-control" style="max-width:280px;"
-                           value="{{ current_user().email if current_user() else '' }}">
+                           value="{{ user.email if user else '' }}">
                     <button type="button" class="btn btn-primary" id="btnTestEmail">
                         <i class="bi bi-send"></i> Envoyer un email de test
                     </button>

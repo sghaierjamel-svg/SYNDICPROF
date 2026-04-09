@@ -237,7 +237,7 @@ def superadmin_settings():
         db.session.commit()
         flash('Paramètres enregistrés.', 'success')
         return redirect(url_for('superadmin_settings'))
-    return render_template('superadmin/settings.html', settings=settings)
+    return render_template('superadmin/settings.html', settings=settings, user=current_user())
 
 
 @app.route('/superadmin/test-konnect')
