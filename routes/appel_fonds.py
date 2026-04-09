@@ -269,99 +269,134 @@ def appel_fonds_facture(af_id, dep_id):
 @login_required
 @subscription_required
 def appel_fonds_recu(af_id, p_id):
-    from fpdf import FPDF
-    org  = current_organization()
-    user = current_user()
-    af   = AppelFonds.query.filter_by(id=af_id, organization_id=org.id).first_or_404()
-    p    = AppelFondsPaiement.query.filter_by(id=p_id, appel_id=af_id).first_or_404()
+    import traceback
+    try:
+        from fpdf import FPDF
+    except ImportError as e:
+        print(f"[appel_fonds_recu] ImportError fpdf: {e}")
+        flash('Module PDF non disponible.', 'danger')
+        return redirect(url_for('appel_fonds_detail', af_id=af_id))
 
-    # Résident : seulement son propre reçu
-    if user.role == 'resident' and p.apartment_id != user.apartment_id:
-        abort(403)
+    try:
+        org  = current_organization()
+        user = current_user()
 
-    apt = p.apartment
-    resident = apt.residents[0] if apt.residents else None
+        if not org:
+            flash('Organisation introuvable.', 'danger')
+            return redirect(url_for('appels_fonds'))
 
-    def _s(t):
-        if not t: return ''
-        return (str(t)
-            .replace('\u2014', '-').replace('\u2013', '-')
-            .replace('\u2019', "'").replace('\u2018', "'")
-            .encode('latin-1', errors='replace').decode('latin-1'))
+        af = AppelFonds.query.filter_by(id=af_id, organization_id=org.id).first_or_404()
+        p  = AppelFondsPaiement.query.filter_by(id=p_id, appel_id=af_id).first_or_404()
 
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_auto_page_break(auto=True, margin=15)
+        # Résident : seulement son propre reçu
+        if user.role == 'resident' and p.apartment_id != user.apartment_id:
+            abort(403)
 
-    # Bandeau header
-    pdf.set_fill_color(0, 120, 200)
-    pdf.rect(0, 0, 210, 32, 'F')
-    pdf.set_xy(0, 5)
-    pdf.set_text_color(255, 255, 255)
-    pdf.set_font('Helvetica', 'B', 22)
-    pdf.cell(0, 11, 'SyndicPro', ln=True, align='C')
-    pdf.set_font('Helvetica', '', 10)
-    pdf.cell(0, 6, _s(org.name), ln=True, align='C')
-    pdf.ln(6)
+        apt = p.apartment
+        if not apt:
+            flash('Appartement introuvable pour ce paiement.', 'danger')
+            return redirect(url_for('appel_fonds_detail', af_id=af_id))
 
-    # Titre
-    pdf.set_fill_color(235, 245, 255)
-    pdf.set_draw_color(0, 120, 200)
-    pdf.set_line_width(0.5)
-    pdf.set_text_color(0, 80, 160)
-    pdf.set_font('Helvetica', 'B', 12)
-    pdf.cell(0, 10, _s(f'  RECU DE PAIEMENT — APPEL DE FONDS  N{chr(176)} {p.id:05d}'),
-             ln=True, fill=True, border=1)
-    pdf.ln(5)
+        block_name = apt.block.name if apt.block else 'N/A'
+        resident   = apt.residents[0] if apt.residents else None
 
-    def line(label, value, accent=False):
-        pdf.set_font('Helvetica', 'B', 9)
-        pdf.set_text_color(120, 120, 120)
-        pdf.cell(65, 7, _s(label))
-        pdf.set_font('Helvetica', '', 9)
-        pdf.set_text_color(0, 80, 160) if accent else pdf.set_text_color(40, 40, 40)
-        pdf.cell(0, 7, _s(str(value)), ln=True)
+        def _s(t):
+            if not t: return ''
+            return (str(t)
+                .replace('\u2014', '-').replace('\u2013', '-')
+                .replace('\u2019', "'").replace('\u2018', "'")
+                .encode('latin-1', errors='replace').decode('latin-1'))
 
-    line('Projet :', af.titre)
-    line('Appartement :', f"{apt.block.name}-{apt.number}")
-    line('Résident :', resident.name if resident else '-')
-    line('Date de paiement :', p.payment_date.strftime('%d/%m/%Y'))
-    if p.notes:
-        line('Notes :', p.notes)
-    pdf.ln(4)
-    pdf.set_draw_color(200, 200, 200)
-    pdf.set_line_width(0.3)
-    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-    pdf.ln(4)
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_auto_page_break(auto=True, margin=15)
 
-    # Montant
-    pdf.set_fill_color(0, 120, 200)
-    pdf.set_text_color(255, 255, 255)
-    pdf.set_font('Helvetica', 'B', 14)
-    pdf.cell(0, 13, _s(f'  MONTANT VERSE : {p.amount:.3f} DT'), ln=True, fill=True)
+        # Bandeau header
+        pdf.set_fill_color(0, 120, 200)
+        pdf.rect(0, 0, 210, 32, 'F')
+        pdf.set_xy(0, 5)
+        pdf.set_text_color(255, 255, 255)
+        pdf.set_font('Helvetica', 'B', 22)
+        pdf.cell(0, 11, 'SyndicPro', ln=True, align='C')
+        pdf.set_font('Helvetica', '', 10)
+        pdf.cell(0, 6, _s(org.name), ln=True, align='C')
+        pdf.ln(6)
 
-    # Quota de l'appartement
-    quota = next((q.montant_attendu for q in af.quotas if q.apartment_id == p.apartment_id), None)
-    if quota:
-        total_verse = sum(pp.amount for pp in af.paiements if pp.apartment_id == p.apartment_id)
-        reste = max(0, quota - total_verse)
-        pdf.set_font('Helvetica', '', 8)
-        pdf.set_text_color(80, 80, 80)
-        pdf.cell(0, 5, _s(f'  Quote-part totale : {quota:.3f} DT  |  Versé total : {total_verse:.3f} DT  |  Reste : {reste:.3f} DT'), ln=True)
+        # Titre
+        pdf.set_fill_color(235, 245, 255)
+        pdf.set_draw_color(0, 120, 200)
+        pdf.set_line_width(0.5)
+        pdf.set_text_color(0, 80, 160)
+        pdf.set_font('Helvetica', 'B', 12)
+        pdf.cell(0, 10, _s(f'  RECU PAIEMENT - APPEL DE FONDS  N{chr(176)} {p.id:05d}'),
+                 ln=True, fill=True, border=1)
+        pdf.ln(5)
 
-    pdf.ln(8)
-    pdf.set_draw_color(200, 200, 200)
-    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-    pdf.ln(4)
-    pdf.set_font('Helvetica', 'I', 7)
-    pdf.set_text_color(150, 150, 150)
-    pdf.cell(0, 4, _s(f'Document généré le {datetime.now().strftime("%d/%m/%Y")} — SyndicPro, {org.name}'), ln=True, align='C')
-    pdf.cell(0, 4, 'Ce reçu concerne exclusivement les fonds de travaux — distinct de la gestion courante.', ln=True, align='C')
+        def info_line(label, value):
+            pdf.set_font('Helvetica', 'B', 9)
+            pdf.set_text_color(120, 120, 120)
+            pdf.cell(65, 7, _s(label))
+            pdf.set_font('Helvetica', '', 9)
+            pdf.set_text_color(40, 40, 40)
+            pdf.cell(0, 7, _s(str(value)), ln=True)
 
-    buf = io.BytesIO(pdf.output())
-    buf.seek(0)
-    filename = f"Recu_AppelFonds_{apt.block.name}{apt.number}_{af_id}_{p_id}.pdf"
-    return send_file(buf, mimetype='application/pdf', as_attachment=True, download_name=filename)
+        info_line('Projet :', af.titre)
+        info_line('Appartement :', f"{block_name}-{apt.number}")
+        info_line('Resident :', resident.name if resident else '-')
+        info_line('Date de paiement :', p.payment_date.strftime('%d/%m/%Y'))
+        if p.notes:
+            info_line('Notes :', p.notes)
+        pdf.ln(4)
+        pdf.set_draw_color(200, 200, 200)
+        pdf.set_line_width(0.3)
+        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+        pdf.ln(4)
+
+        # Montant
+        pdf.set_fill_color(0, 120, 200)
+        pdf.set_text_color(255, 255, 255)
+        pdf.set_font('Helvetica', 'B', 14)
+        pdf.cell(0, 13, _s(f'  MONTANT VERSE : {p.amount:.3f} DT'), ln=True, fill=True)
+
+        # Quota de l'appartement
+        quotas_list = list(af.quotas)
+        paiements_list = list(af.paiements)
+        quota = next((q.montant_attendu for q in quotas_list if q.apartment_id == p.apartment_id), None)
+        if quota:
+            total_verse = sum(pp.amount for pp in paiements_list if pp.apartment_id == p.apartment_id)
+            reste = max(0, quota - total_verse)
+            pdf.set_font('Helvetica', '', 8)
+            pdf.set_text_color(80, 80, 80)
+            pdf.cell(0, 5, _s(
+                f'  Quote-part : {quota:.3f} DT  |  Verse total : {total_verse:.3f} DT  |  Reste : {reste:.3f} DT'
+            ), ln=True)
+
+        pdf.ln(8)
+        pdf.set_draw_color(200, 200, 200)
+        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+        pdf.ln(4)
+        pdf.set_font('Helvetica', 'I', 7)
+        pdf.set_text_color(150, 150, 150)
+        pdf.cell(0, 4, _s(
+            f'Document genere le {datetime.now().strftime("%d/%m/%Y")} - SyndicPro, {org.name}'
+        ), ln=True, align='C')
+        pdf.cell(0, 4,
+                 'Ce recu concerne exclusivement les fonds de travaux - distinct de la gestion courante.',
+                 ln=True, align='C')
+
+        output = pdf.output()
+        buf = io.BytesIO(bytes(output) if not isinstance(output, bytes) else output)
+        buf.seek(0)
+        safe_block = _s(block_name).replace('/', '-').replace(' ', '_')
+        safe_apt   = _s(str(apt.number)).replace('/', '-').replace(' ', '_')
+        filename = f"Recu_AppelFonds_{safe_block}{safe_apt}_{af_id}_{p_id}.pdf"
+        return send_file(buf, mimetype='application/pdf', as_attachment=True, download_name=filename)
+
+    except Exception as exc:
+        print(f"[appel_fonds_recu] ERREUR: {exc}")
+        print(traceback.format_exc())
+        flash(f'Erreur lors de la génération du reçu : {exc}', 'danger')
+        return redirect(url_for('appel_fonds_detail', af_id=af_id))
 
 
 # ─── Supprimer un appel de fonds ─────────────────────────────────────────────
