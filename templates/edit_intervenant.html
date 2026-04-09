@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Modifier Intervenant{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2 class="text-white mb-1">
+        <i class="bi bi-pencil" style="color:#00C896;"></i> Modifier l'Intervenant
+    </h2>
+    <a href="{{ url_for('intervenants') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Retour à l'annuaire
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-person-gear"></i>
+                {% if iv.nom_societe %}{{ iv.nom_societe }}{% elif iv.prenom or iv.nom %}{{ iv.prenom or '' }} {{ iv.nom or '' }}{% else %}Intervenant #{{ iv.id }}{% endif %}
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-3">
+                        <label class="form-label">Catégorie *</label>
+                        <select name="categorie" class="form-select" required>
+                            {% for cat in categories %}
+                            <option value="{{ cat }}" {% if iv.categorie == cat %}selected{% endif %}>
+                                {{ cat }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Nom de la Société</label>
+                        <input class="form-control" name="nom_societe"
+                               value="{{ iv.nom_societe or '' }}"
+                               placeholder="Ex: Plombi Service SARL">
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Prénom</label>
+                            <input class="form-control" name="prenom"
+                                   value="{{ iv.prenom or '' }}"
+                                   placeholder="Mohamed">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Nom</label>
+                            <input class="form-control" name="nom"
+                                   value="{{ iv.nom or '' }}"
+                                   placeholder="Ben Ali">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Téléphone (WhatsApp de préférence)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-whatsapp" style="color:#25D366;"></i>
+                            </span>
+                            <input class="form-control" name="telephone"
+                                   value="{{ iv.telephone or '' }}"
+                                   placeholder="+216 XX XXX XXX">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" name="email"
+                               value="{{ iv.email or '' }}"
+                               placeholder="contact@exemple.tn">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" name="notes" rows="3"
+                                  placeholder="Disponible le matin, tarif négocié, spécialité...">{{ iv.notes or '' }}</textarea>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-save"></i> Enregistrer les modifications
+                        </button>
+                        <a href="{{ url_for('intervenants') }}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Annuler
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

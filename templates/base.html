@@ -589,6 +589,11 @@
             <i class="bi bi-people"></i> Utilisateurs
         </a>
 
+        <a class="sidebar-link {% if request.endpoint in ['intervenants','edit_intervenant'] %}active{% endif %}"
+           href="{{ url_for('intervenants') }}">
+            <i class="bi bi-person-gear"></i> Intervenants
+        </a>
+
         <div class="sidebar-section">Rapports</div>
 
         <a class="sidebar-link {% if request.endpoint == 'tresorerie' %}active{% endif %}"

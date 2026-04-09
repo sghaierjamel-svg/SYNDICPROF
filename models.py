@@ -286,6 +286,21 @@ class AnnouncementRead(db.Model):
     __table_args__ = (db.UniqueConstraint('announcement_id', 'user_id', name='uq_ann_read_user'),)
 
 
+class Intervenant(db.Model):
+    """Annuaire des prestataires et intervenants de la résidence"""
+    __tablename__ = 'intervenant'
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
+    categorie = db.Column(db.String(60), nullable=False)
+    nom_societe = db.Column(db.String(200))
+    prenom = db.Column(db.String(100))
+    nom = db.Column(db.String(100))
+    telephone = db.Column(db.String(25))
+    email = db.Column(db.String(120))
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 class AccessLog(db.Model):
     """Registre des entrées/sorties de la résidence"""
     __tablename__ = 'access_log'
@@ -592,6 +607,29 @@ def init_db():
     except Exception as e:
         print(f"Migration announcement_read : {e}")
 
+    # Migration : table intervenant
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS intervenant (
+                        id SERIAL PRIMARY KEY,
+                        organization_id INTEGER REFERENCES organization(id),
+                        categorie VARCHAR(60) NOT NULL,
+                        nom_societe VARCHAR(200),
+                        prenom VARCHAR(100),
+                        nom VARCHAR(100),
+                        telephone VARCHAR(25),
+                        email VARCHAR(120),
+                        notes TEXT,
+                        created_at TIMESTAMP DEFAULT NOW()
+                    )
+                """))
+                conn.commit()
+                print("Migration PostgreSQL : table intervenant créée.")
+    except Exception as e:
+        print(f"Migration intervenant : {e}")
+
     # Migration sécurité : activer RLS sur toutes les tables publiques (PostgreSQL)
     # Bloque l'accès anonyme via l'URL Supabase — l'appli Flask (postgres superuser) n'est pas affectée
     try:
@@ -601,7 +639,7 @@ def init_db():
                     'organization', 'subscription', '"user"', 'block', 'apartment',
                     'payment', 'expense', 'ticket', 'super_admin_settings',
                     'konnect_payment', 'flouci_payment', 'unpaid_alert', 'announcement', 'announcement_read', 'access_log',
-                    'direct_message', 'assembly_general', 'ag_item', 'ag_vote'
+                    'direct_message', 'assembly_general', 'ag_item', 'ag_vote', 'intervenant'
                 ]
                 for table in tables:
                     conn.execute(db.text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY"))

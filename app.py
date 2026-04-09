@@ -22,6 +22,7 @@ import routes.access
 import routes.financial_statements
 import routes.announcements
 import routes.assembly
+import routes.intervenants
 
 
 @app.errorhandler(404)
