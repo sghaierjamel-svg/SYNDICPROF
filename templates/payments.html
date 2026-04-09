@@ -13,339 +13,505 @@
     <li class="nav-item">
         <a class="nav-link active" id="tab-rev" data-bs-toggle="tab" href="#redevances" role="tab"
            style="color:var(--muted);">
-            <i class="bi bi-house-door"></i> Redevances
+            <i class="bi bi-house-door"></i> Encaissements
             <span class="badge bg-primary ms-1">{{ payments|length }}</span>
         </a>
     </li>
     <li class="nav-item">
         <a class="nav-link" id="tab-div" data-bs-toggle="tab" href="#divers" role="tab"
            style="color:var(--muted);">
-            <i class="bi bi-collection"></i> Encaissements divers
+            <i class="bi bi-collection"></i> Divers
             <span class="badge bg-secondary ms-1">{{ misc_list|length }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" id="tab-kon" data-bs-toggle="tab" href="#konnect" role="tab"
+           style="color:var(--muted);">
+            <i class="bi bi-link-45deg"></i> Konnect
+            <span class="badge bg-secondary ms-1">{{ konnect_links|length }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" id="tab-flo" data-bs-toggle="tab" href="#flouci" role="tab"
+           style="color:var(--muted);">
+            <i class="bi bi-credit-card-2-front"></i> Flouci
+            <span class="badge bg-secondary ms-1">{{ flouci_links|length }}</span>
         </a>
     </li>
 </ul>
 
 <div class="tab-content">
 
-<!-- ══════════════════ TAB REDEVANCES ══════════════════ -->
+{# ══════════════════ TAB ENCAISSEMENTS ══════════════════ #}
 <div class="tab-pane fade show active" id="redevances" role="tabpanel">
-    <div class="row g-3 mb-4">
 
-        <!-- Formulaire encaissement -->
-        <div class="col-lg-5">
-            <div class="card">
-                <div class="card-header">
-                    <i class="bi bi-plus-circle" style="color:#00C896;"></i> Nouvel Encaissement
-                </div>
-                <div class="card-body">
-                    <form method="POST" id="paymentForm">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                        <div class="mb-3">
-                            <label class="form-label">Appartement *</label>
-                            <select class="form-select" id="apartment_id" name="apartment_id"
-                                    required onchange="updateAptInfo()">
-                                <option value="">-- Sélectionner --</option>
-                                {% for apt in apartments %}
-                                <option value="{{ apt.id }}"
-                                        data-fee="{{ apt.monthly_fee }}"
-                                        data-unpaid="{{ apt.unpaid_count }}"
-                                        data-next="{{ apt.next_unpaid }}"
-                                        data-credit="{{ apt.credit_balance }}">
-                                    {{ apt.block.name }}-{{ apt.number }}
-                                    ({{ '{:.0f}'.format(apt.monthly_fee) }} DT · {{ apt.unpaid_count }} impayés{% if apt.credit_balance > 0 %} · crédit {{ '{:.0f}'.format(apt.credit_balance) }} DT{% endif %})
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-
-                        <!-- Info appartement compacte -->
-                        <div id="aptInfo" class="d-none mb-3 p-2 rounded" style="background:rgba(0,200,150,0.07);border:1px solid rgba(0,200,150,0.2);font-size:.82rem;">
+    <!-- Formulaire -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-plus-circle" style="color:#00C896;"></i> Nouvel Encaissement
+        </div>
+        <div class="card-body">
+            <form method="POST" id="paymentForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Appartement *</label>
+                        <select class="form-select" id="apartment_id" name="apartment_id"
+                                required onchange="updateAptInfo()">
+                            <option value="">-- Sélectionner --</option>
+                            {% for apt in apartments %}
+                            <option value="{{ apt.id }}"
+                                    data-fee="{{ apt.monthly_fee }}"
+                                    data-unpaid="{{ apt.unpaid_count }}"
+                                    data-next="{{ apt.next_unpaid }}"
+                                    data-credit="{{ apt.credit_balance }}">
+                                {{ apt.block.name }}-{{ apt.number }}
+                                ({{ '{:.0f}'.format(apt.monthly_fee) }} DT · {{ apt.unpaid_count }} impayés{% if apt.credit_balance > 0 %} · crédit {{ '{:.0f}'.format(apt.credit_balance) }} DT{% endif %})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div id="aptInfo" class="d-none mt-2 p-2 rounded" style="background:rgba(0,200,150,0.07);border:1px solid rgba(0,200,150,0.2);font-size:.8rem;">
                             <span id="aptInfoText"></span>
                         </div>
-
-                        <div class="row g-2 mb-3">
-                            <div class="col-7">
-                                <label class="form-label">Montant (DT) *</label>
-                                <input type="number" step="0.01" class="form-control" id="amount" name="amount"
-                                       placeholder="0.00" required oninput="calcMonths()">
-                                <div id="monthsInfo" class="mt-1" style="font-size:.78rem;"></div>
-                            </div>
-                            <div class="col-5">
-                                <label class="form-label">Date *</label>
-                                <input type="date" class="form-control" id="payment_date" name="payment_date" required>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">
-                                Mois de départ
-                                <small style="color:var(--muted);">(vide = automatique)</small>
-                            </label>
-                            <input type="month" class="form-control" id="start_month" name="start_month">
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Description</label>
-                            <input type="text" class="form-control" name="description"
-                                   placeholder="Ex: Paiement redevances">
-                        </div>
-
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="bi bi-floppy"></i> Enregistrer
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Konnect (accordéon) -->
-            <div class="accordion mt-3" id="konnectAccordion">
-                <div class="accordion-item" style="background:var(--card);border:1px solid var(--border);">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button"
-                                data-bs-toggle="collapse" data-bs-target="#konnectPanel"
-                                style="background:var(--card);color:var(--muted);font-size:.85rem;">
-                            <i class="bi bi-link-45deg me-2" style="color:#00C896;"></i>
-                            Générer un lien Konnect
-                        </button>
-                    </h2>
-                    <div id="konnectPanel" class="accordion-collapse collapse">
-                        <div class="accordion-body pt-2">
-                            <div class="mb-2">
-                                <select class="form-select form-select-sm" id="konnect_apt" onchange="fillKonnect()">
-                                    <option value="">-- Appartement --</option>
-                                    {% for apt in apartments %}
-                                    <option value="{{ apt.id }}" data-fee="{{ apt.monthly_fee }}" data-next="{{ apt.next_unpaid }}">
-                                        {{ apt.block.name }}-{{ apt.number }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="row g-2 mb-2">
-                                <div class="col-6">
-                                    <input type="month" class="form-control form-control-sm" id="konnect_month">
-                                </div>
-                                <div class="col-6">
-                                    <input type="number" step="0.01" class="form-control form-control-sm"
-                                           id="konnect_amount" placeholder="Montant DT">
-                                </div>
-                            </div>
-                            <button class="btn btn-sm btn-primary w-100" id="konnectBtn" onclick="genKonnect()">
-                                <i class="bi bi-link-45deg"></i> Générer
-                            </button>
-                            <div id="konnectResult" class="mt-2 d-none">
-                                <div class="input-group input-group-sm">
-                                    <input type="text" class="form-control" id="konnectUrl" readonly>
-                                    <button class="btn btn-outline-secondary" onclick="copyKonnect()">
-                                        <i class="bi bi-clipboard"></i>
-                                    </button>
-                                </div>
-                                <small style="color:#00C896;"><i class="bi bi-check-circle"></i> Lien généré</small>
-                            </div>
-                            <div id="konnectError" class="alert alert-danger mt-2 p-2 d-none" style="font-size:.8rem;"></div>
-                            <div class="mt-2">
-                                <a href="{{ url_for('konnect_links') }}" class="btn btn-outline-secondary btn-sm w-100">
-                                    <i class="bi bi-list-ul"></i> Voir tous les liens
-                                </a>
-                            </div>
-                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Montant (DT) *</label>
+                        <input type="number" step="0.01" class="form-control" id="amount" name="amount"
+                               placeholder="0.00" required oninput="calcMonths()">
+                        <div id="monthsInfo" class="mt-1" style="font-size:.75rem;"></div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Date *</label>
+                        <input type="date" class="form-control" id="payment_date" name="payment_date" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">
+                            Mois de départ
+                            <small style="color:var(--muted);">(vide = auto)</small>
+                        </label>
+                        <input type="month" class="form-control" id="start_month" name="start_month">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Description</label>
+                        <input type="text" class="form-control" name="description" placeholder="Optionnel">
                     </div>
                 </div>
-            </div>
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="bi bi-floppy"></i> Enregistrer
+                    </button>
+                </div>
+            </form>
         </div>
+    </div>
 
-        <!-- Tableau historique redevances -->
-        <div class="col-lg-7">
-            <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-list-ul" style="color:#00C896;"></i> Historique Redevances</span>
-                    <small style="color:var(--muted);">{{ payments|length }} enregistrement{{ 's' if payments|length > 1 }}</small>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0" style="font-size:.83rem;">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Appartement</th>
-                                    <th>Mois</th>
-                                    <th>Montant</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for p in payments %}
-                                <tr>
-                                    <td style="white-space:nowrap;">{{ p.payment_date.strftime('%d/%m/%Y') }}</td>
-                                    <td>
-                                        <strong>{{ p.apartment.block.name }}-{{ p.apartment.number }}</strong>
-                                        {% if p.credit_used > 0 %}
-                                        <br><small style="color:#00C896;font-size:.72rem;">
-                                            crédit {{ '{:.2f}'.format(p.credit_used) }} DT
-                                        </small>
-                                        {% endif %}
-                                    </td>
-                                    <td><span class="badge bg-primary">{{ p.month_paid }}</span></td>
-                                    <td><strong style="color:#00C896;">{{ '{:.2f}'.format(p.amount) }} DT</strong></td>
-                                    <td>
-                                        <div class="d-flex gap-1">
-                                            <a href="{{ url_for('payment_receipt', payment_id=p.id) }}"
-                                               class="btn btn-sm btn-outline-secondary" title="Reçu PDF">
-                                                <i class="bi bi-file-earmark-pdf"></i>
-                                            </a>
-                                            <a href="{{ url_for('edit_payment', payment_id=p.id) }}"
-                                               class="btn btn-sm btn-warning" title="Modifier">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            <form method="POST" action="{{ url_for('delete_payment', payment_id=p.id) }}"
-                                                  style="display:inline;" onsubmit="return confirm('Supprimer ?')">
-                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                <button class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% else %}
-                                <tr>
-                                    <td colspan="5" class="text-center py-4" style="color:var(--muted);">
-                                        Aucun encaissement enregistré
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+    <!-- Tableau historique -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-list-ul" style="color:#00C896;"></i> Historique des Encaissements</span>
+            <small style="color:var(--muted);">{{ payments|length }} enregistrement{{ 's' if payments|length > 1 }}</small>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" style="font-size:.83rem;">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Appartement</th>
+                            <th>Mois</th>
+                            <th>Montant</th>
+                            <th>Crédit utilisé</th>
+                            <th>Description</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in payments %}
+                        <tr>
+                            <td style="white-space:nowrap;">{{ p.payment_date.strftime('%d/%m/%Y') }}</td>
+                            <td><strong>{{ p.apartment.block.name }}-{{ p.apartment.number }}</strong></td>
+                            <td><span class="badge bg-primary">{{ p.month_paid }}</span></td>
+                            <td><strong style="color:#00C896;">{{ '{:.2f}'.format(p.amount) }} DT</strong></td>
+                            <td>
+                                {% if p.credit_used and p.credit_used > 0 %}
+                                <span class="badge bg-info text-dark">{{ '{:.2f}'.format(p.credit_used) }} DT</span>
+                                {% else %}<span style="color:var(--muted);">—</span>{% endif %}
+                            </td>
+                            <td style="color:var(--muted);">{{ p.description or '—' }}</td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <a href="{{ url_for('payment_receipt', payment_id=p.id) }}"
+                                       class="btn btn-sm btn-outline-secondary" title="Reçu PDF">
+                                        <i class="bi bi-file-earmark-pdf"></i>
+                                    </a>
+                                    <a href="{{ url_for('edit_payment', payment_id=p.id) }}"
+                                       class="btn btn-sm btn-warning" title="Modifier">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('delete_payment', payment_id=p.id) }}"
+                                          style="display:inline;" onsubmit="return confirm('Supprimer ?')">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4" style="color:var(--muted);">
+                                Aucun encaissement enregistré
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 </div>
 
-<!-- ══════════════════ TAB ENCAISSEMENTS DIVERS ══════════════════ -->
+{# ══════════════════ TAB DIVERS ══════════════════ #}
 <div class="tab-pane fade" id="divers" role="tabpanel">
-    <div class="row g-3">
-
-        <!-- Formulaire -->
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <i class="bi bi-plus-circle" style="color:#00C896;"></i> Nouvel encaissement divers
+    <!-- Formulaire -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-plus-circle" style="color:#00C896;"></i> Nouvel encaissement divers
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('add_misc_receipt') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Libellé *</label>
+                        <input class="form-control" name="libelle" list="libelles_list"
+                               placeholder="Ex: Badge accès, Télécommande..." required>
+                        <datalist id="libelles_list">
+                            <option value="Badge d'accès">
+                            <option value="Télécommande porte sous-sol">
+                            <option value="Duplicata de clé">
+                            <option value="Caution">
+                            <option value="Pénalité de retard">
+                            <option value="Participation travaux">
+                            <option value="Autre">
+                        </datalist>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Montant (DT) *</label>
+                        <input type="number" step="0.01" class="form-control"
+                               name="amount" placeholder="0.00" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Date *</label>
+                        <input type="date" class="form-control" name="payment_date" id="misc_date" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Description</label>
+                        <input class="form-control" name="description" placeholder="Détails optionnels...">
+                    </div>
                 </div>
-                <div class="card-body">
-                    <form method="POST" action="{{ url_for('add_misc_receipt') }}">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="bi bi-floppy"></i> Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Libellé *</label>
-                            <input class="form-control" name="libelle" list="libelles_list"
-                                   placeholder="Ex: Badge accès, Télécommande..." required>
-                            <datalist id="libelles_list">
-                                <option value="Badge d'accès">
-                                <option value="Télécommande porte sous-sol">
-                                <option value="Duplicata de clé">
-                                <option value="Caution">
-                                <option value="Pénalité de retard">
-                                <option value="Participation travaux">
-                                <option value="Autre">
-                            </datalist>
-                        </div>
+    <!-- Tableau -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-collection" style="color:#00C896;"></i> Historique</span>
+            {% if misc_list %}
+            <strong style="color:#00C896;">
+                Total : {{ '{:.2f}'.format(misc_list | sum(attribute='amount')) }} DT
+            </strong>
+            {% endif %}
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" style="font-size:.83rem;">
+                    <thead>
+                        <tr><th>Date</th><th>Libellé</th><th>Montant</th><th>Description</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        {% for m in misc_list %}
+                        <tr>
+                            <td style="white-space:nowrap;">{{ m.payment_date.strftime('%d/%m/%Y') }}</td>
+                            <td><strong>{{ m.libelle }}</strong></td>
+                            <td><strong style="color:#00C896;">{{ '{:.2f}'.format(m.amount) }} DT</strong></td>
+                            <td style="color:var(--muted);">{{ m.description or '—' }}</td>
+                            <td>
+                                <form method="POST" action="{{ url_for('delete_misc_receipt', receipt_id=m.id) }}"
+                                      onsubmit="return confirm('Supprimer ?')">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4" style="color:var(--muted);">
+                                Aucun encaissement divers enregistré
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 
-                        <div class="row g-2 mb-3">
-                            <div class="col-6">
-                                <label class="form-label">Montant (DT) *</label>
-                                <input type="number" step="0.01" class="form-control"
-                                       name="amount" placeholder="0.00" required>
-                            </div>
-                            <div class="col-6">
-                                <label class="form-label">Date *</label>
-                                <input type="date" class="form-control" name="payment_date"
-                                       id="misc_date" required>
-                            </div>
-                        </div>
+{# ══════════════════ TAB KONNECT ══════════════════ #}
+<div class="tab-pane fade" id="konnect" role="tabpanel">
+    {% if not org.konnect_api_key %}
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i>
+        Konnect n'est pas configuré.
+        <a href="{{ url_for('settings') }}" class="alert-link">Configurer dans Paramètres →</a>
+    </div>
+    {% endif %}
 
-                        <div class="mb-3">
-                            <label class="form-label">Description</label>
-                            <input class="form-control" name="description"
-                                   placeholder="Détails optionnels...">
-                        </div>
-
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="bi bi-floppy"></i> Enregistrer
-                        </button>
-                    </form>
+    <!-- Générateur lien -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-link-45deg" style="color:#00C896;"></i> Générer un lien de paiement Konnect
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Appartement</label>
+                    <select class="form-select" id="konnect_apt" onchange="fillKonnect()">
+                        <option value="">-- Sélectionner --</option>
+                        {% for apt in apartments %}
+                        <option value="{{ apt.id }}" data-fee="{{ apt.monthly_fee }}" data-next="{{ apt.next_unpaid }}">
+                            {{ apt.block.name }}-{{ apt.number }}
+                            ({{ '{:.0f}'.format(apt.monthly_fee) }} DT · {{ apt.unpaid_count }} impayés)
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Mois concerné</label>
+                    <input type="month" class="form-control" id="konnect_month">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Montant (DT)</label>
+                    <input type="number" step="0.01" class="form-control" id="konnect_amount" placeholder="0.00">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button class="btn btn-primary w-100" id="konnectBtn" onclick="genKonnect()">
+                        <i class="bi bi-link-45deg"></i> Générer le lien
+                    </button>
                 </div>
             </div>
-
-            <!-- Total -->
-            {% if misc_list %}
-            <div class="card mt-3">
-                <div class="card-body text-center">
-                    <div style="font-size:1.5rem;font-weight:700;color:#00C896;">
-                        {{ '{:.2f}'.format(misc_list | sum(attribute='amount')) }} DT
-                    </div>
-                    <div style="font-size:.8rem;color:var(--muted);">Total encaissements divers</div>
+            <div id="konnectResult" class="mt-3 d-none">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="konnectUrl" readonly>
+                    <button class="btn btn-outline-secondary" onclick="copyKonnect()">
+                        <i class="bi bi-clipboard"></i>
+                    </button>
                 </div>
+                <small style="color:#00C896;" class="mt-1 d-block">
+                    <i class="bi bi-check-circle"></i> Lien généré — partagez-le au résident
+                </small>
+            </div>
+            <div id="konnectError" class="alert alert-danger mt-3 p-2 d-none" style="font-size:.85rem;"></div>
+        </div>
+    </div>
+
+    <!-- Historique liens Konnect -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between">
+            <span><i class="bi bi-list-ul" style="color:#00C896;"></i> Historique des liens Konnect</span>
+            <small style="color:var(--muted);">{{ konnect_links|length }} lien{{ 's' if konnect_links|length > 1 }}</small>
+        </div>
+        <div class="card-body p-0">
+            {% if konnect_links %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" style="font-size:.82rem;">
+                    <thead>
+                        <tr><th>Date</th><th>Appartement</th><th>Mois</th><th>Montant</th><th>Créé par</th><th>Statut</th><th>Lien</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for lk in konnect_links %}
+                        <tr>
+                            <td style="color:var(--muted);white-space:nowrap;">{{ lk.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td><strong>{{ lk.apartment.block.name }}-{{ lk.apartment.number }}</strong></td>
+                            <td><span class="badge bg-primary">{{ lk.month_target }}</span></td>
+                            <td style="color:#00C896;font-weight:600;">{{ '{:.2f}'.format(lk.amount) }} DT</td>
+                            <td>
+                                {% if lk.created_by == 'admin' %}
+                                <span class="badge" style="background:rgba(245,158,11,0.15);color:#fcd34d;">Admin</span>
+                                {% else %}
+                                <span class="badge" style="background:rgba(6,182,212,0.15);color:#67e8f9;">Résident</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if lk.status == 'completed' %}
+                                <span class="badge" style="background:rgba(0,200,150,0.15);color:#00C896;">✅ Payé</span>
+                                {% elif lk.status == 'failed' %}
+                                <span class="badge" style="background:rgba(239,68,68,0.15);color:#f87171;">❌ Échoué</span>
+                                {% else %}
+                                <span class="badge" style="background:rgba(156,163,175,0.15);color:#9CA3AF;">⏳ En attente</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if lk.pay_url and lk.status == 'pending' %}
+                                <button class="btn btn-sm btn-outline-primary" onclick="copyLink('{{ lk.pay_url }}', this)" title="Copier">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                                <a href="{{ lk.pay_url }}" target="_blank" class="btn btn-sm btn-outline-secondary ms-1">
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                </a>
+                                {% else %}<span style="color:var(--muted);">—</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-5 text-center" style="color:var(--muted);">
+                <i class="bi bi-link-45deg" style="font-size:2.5rem;"></i>
+                <p class="mt-3 mb-0">Aucun lien Konnect généré.</p>
             </div>
             {% endif %}
         </div>
+    </div>
+</div>
 
-        <!-- Tableau -->
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-collection" style="color:#00C896;"></i> Historique</span>
-                    <small style="color:var(--muted);">{{ misc_list|length }} enregistrement{{ 's' if misc_list|length > 1 }}</small>
+{# ══════════════════ TAB FLOUCI ══════════════════ #}
+<div class="tab-pane fade" id="flouci" role="tabpanel">
+    {% if not org.flouci_app_token %}
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i>
+        Flouci n'est pas configuré.
+        <a href="{{ url_for('settings') }}" class="alert-link">Configurer dans Paramètres →</a>
+    </div>
+    {% endif %}
+
+    <!-- Générateur lien -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-credit-card-2-front" style="color:#00C896;"></i> Générer un lien de paiement Flouci
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Appartement</label>
+                    <select class="form-select" id="flouci_apt" onchange="fillFlouci()">
+                        <option value="">-- Sélectionner --</option>
+                        {% for apt in apartments %}
+                        <option value="{{ apt.id }}" data-fee="{{ apt.monthly_fee }}" data-next="{{ apt.next_unpaid }}">
+                            {{ apt.block.name }}-{{ apt.number }}
+                            ({{ '{:.0f}'.format(apt.monthly_fee) }} DT · {{ apt.unpaid_count }} impayés)
+                        </option>
+                        {% endfor %}
+                    </select>
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0" style="font-size:.83rem;">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Libellé</th>
-                                    <th>Montant</th>
-                                    <th>Description</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for m in misc_list %}
-                                <tr>
-                                    <td style="white-space:nowrap;">{{ m.payment_date.strftime('%d/%m/%Y') }}</td>
-                                    <td><strong>{{ m.libelle }}</strong></td>
-                                    <td><strong style="color:#00C896;">{{ '{:.2f}'.format(m.amount) }} DT</strong></td>
-                                    <td style="color:var(--muted);">{{ m.description or '—' }}</td>
-                                    <td>
-                                        <form method="POST" action="{{ url_for('delete_misc_receipt', receipt_id=m.id) }}"
-                                              onsubmit="return confirm('Supprimer ?')">
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                {% else %}
-                                <tr>
-                                    <td colspan="5" class="text-center py-4" style="color:var(--muted);">
-                                        Aucun encaissement divers enregistré
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="col-md-3">
+                    <label class="form-label">Mois concerné</label>
+                    <input type="month" class="form-control" id="flouci_month">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Montant (DT)</label>
+                    <input type="number" step="0.01" class="form-control" id="flouci_amount" placeholder="0.00">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button class="btn btn-primary w-100" id="flouciBtn" onclick="genFlouci()">
+                        <i class="bi bi-credit-card-2-front"></i> Générer le lien
+                    </button>
                 </div>
             </div>
+            <div id="flouciResult" class="mt-3 d-none">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="flouciUrl" readonly>
+                    <button class="btn btn-outline-secondary" onclick="copyFlouci()">
+                        <i class="bi bi-clipboard"></i>
+                    </button>
+                </div>
+                <small style="color:#00C896;" class="mt-1 d-block">
+                    <i class="bi bi-check-circle"></i> Lien généré — partagez-le au résident
+                </small>
+            </div>
+            <div id="flouciError" class="alert alert-danger mt-3 p-2 d-none" style="font-size:.85rem;"></div>
+        </div>
+    </div>
+
+    <!-- Historique liens Flouci -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between">
+            <span><i class="bi bi-list-ul" style="color:#00C896;"></i> Historique des liens Flouci</span>
+            <small style="color:var(--muted);">{{ flouci_links|length }} lien{{ 's' if flouci_links|length > 1 }}</small>
+        </div>
+        <div class="card-body p-0">
+            {% if flouci_links %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" style="font-size:.82rem;">
+                    <thead>
+                        <tr><th>Date</th><th>Appartement</th><th>Mois</th><th>Montant</th><th>Créé par</th><th>Statut</th><th>Lien</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for lk in flouci_links %}
+                        <tr>
+                            <td style="color:var(--muted);white-space:nowrap;">{{ lk.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td><strong>{{ lk.apartment.block.name }}-{{ lk.apartment.number }}</strong></td>
+                            <td><span class="badge bg-primary">{{ lk.month_target }}</span></td>
+                            <td style="color:#00C896;font-weight:600;">{{ '{:.2f}'.format(lk.amount) }} DT</td>
+                            <td>
+                                {% if lk.created_by == 'admin' %}
+                                <span class="badge" style="background:rgba(245,158,11,0.15);color:#fcd34d;">Admin</span>
+                                {% else %}
+                                <span class="badge" style="background:rgba(6,182,212,0.15);color:#67e8f9;">Résident</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if lk.status == 'completed' %}
+                                <span class="badge" style="background:rgba(0,200,150,0.15);color:#00C896;">✅ Payé</span>
+                                {% elif lk.status == 'failed' %}
+                                <span class="badge" style="background:rgba(239,68,68,0.15);color:#f87171;">❌ Échoué</span>
+                                {% else %}
+                                <span class="badge" style="background:rgba(156,163,175,0.15);color:#9CA3AF;">⏳ En attente</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if lk.pay_url and lk.status == 'pending' %}
+                                <button class="btn btn-sm btn-outline-primary" onclick="copyLink('{{ lk.pay_url }}', this)" title="Copier">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                                <a href="{{ lk.pay_url }}" target="_blank" class="btn btn-sm btn-outline-secondary ms-1">
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                </a>
+                                {% else %}<span style="color:var(--muted);">—</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-5 text-center" style="color:var(--muted);">
+                <i class="bi bi-credit-card-2-front" style="font-size:2.5rem;"></i>
+                <p class="mt-3 mb-0">Aucun lien Flouci généré.</p>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
 </div><!-- /tab-content -->
+
+<div id="copyToast" class="position-fixed bottom-0 end-0 m-3 p-3 rounded"
+     style="background:#00C896;color:#0A0E1A;font-weight:600;display:none;z-index:9999;">
+    ✅ Lien copié !
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// ── Redevances ────────────────────────────────────────────────────────────────
+// ── Redevances ─────────────────────────────────────────────────────────────
 let fee = 0, credit = 0;
 
 function updateAptInfo() {
@@ -355,13 +521,10 @@ function updateAptInfo() {
     if (!opt.value) { box.classList.add('d-none'); fee = 0; credit = 0; return; }
     fee    = parseFloat(opt.dataset.fee);
     credit = parseFloat(opt.dataset.credit || 0);
-    const unpaid = opt.dataset.unpaid;
-    const next   = opt.dataset.next;
     document.getElementById('aptInfoText').innerHTML =
-        `<strong style="color:#00C896;">${fee} DT/mois</strong> · ${unpaid} mois impayé(s) · prochain : <strong>${next}</strong>`
+        `<strong style="color:#00C896;">${fee} DT/mois</strong> · ${opt.dataset.unpaid} mois impayé(s) · prochain : <strong>${opt.dataset.next}</strong>`
         + (credit > 0 ? ` · <span style="color:#00C896;">crédit ${credit.toFixed(2)} DT</span>` : '');
     box.classList.remove('d-none');
-    document.getElementById('start_month').placeholder = next;
     calcMonths();
 }
 
@@ -369,20 +532,17 @@ function calcMonths() {
     const val = parseFloat(document.getElementById('amount').value);
     const box = document.getElementById('monthsInfo');
     if (!val || fee <= 0) { box.innerHTML = ''; return; }
-    const total  = val + credit;
-    const months = Math.floor(total / fee);
-    const rem    = (total % fee).toFixed(2);
-    if (months > 0) {
-        box.innerHTML = `<span style="color:#6ee7b7;">✅ ${months} mois${rem > 0 ? ' · crédit restant : ' + rem + ' DT' : ''}</span>`;
-    } else {
-        box.innerHTML = `<span style="color:#fcd34d;">Insuffisant (${fee} DT/mois) · mis en crédit</span>`;
-    }
+    const total = val + credit, months = Math.floor(total / fee), rem = (total % fee).toFixed(2);
+    box.innerHTML = months > 0
+        ? `<span style="color:#6ee7b7;">✅ ${months} mois${rem > 0 ? ' · crédit restant : ' + rem + ' DT' : ''}</span>`
+        : `<span style="color:#fcd34d;">Insuffisant · sera mis en crédit</span>`;
 }
 
 document.getElementById('amount').addEventListener('input', calcMonths);
 document.getElementById('payment_date').value = new Date().toISOString().split('T')[0];
+document.getElementById('misc_date').value    = new Date().toISOString().split('T')[0];
 
-// ── Konnect ───────────────────────────────────────────────────────────────────
+// ── Konnect ────────────────────────────────────────────────────────────────
 function fillKonnect() {
     const opt = document.getElementById('konnect_apt').options[document.getElementById('konnect_apt').selectedIndex];
     if (opt.value) {
@@ -394,22 +554,18 @@ function fillKonnect() {
 }
 
 function genKonnect() {
-    const aptId  = document.getElementById('konnect_apt').value;
-    const month  = document.getElementById('konnect_month').value;
-    const amount = document.getElementById('konnect_amount').value;
-    if (!aptId || !month || !amount) { alert('Remplissez tous les champs Konnect.'); return; }
+    const aptId = document.getElementById('konnect_apt').value;
+    const month = document.getElementById('konnect_month').value;
+    const amount= document.getElementById('konnect_amount').value;
+    if (!aptId || !month || !amount) { alert('Remplissez tous les champs.'); return; }
     const btn = document.getElementById('konnectBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>...';
+    btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>...';
     const fd = new FormData();
-    fd.append('apartment_id', aptId);
-    fd.append('month_target', month);
-    fd.append('amount', amount);
-    fd.append('csrf_token', '{{ csrf_token() }}');
+    fd.append('apartment_id', aptId); fd.append('month_target', month);
+    fd.append('amount', amount); fd.append('csrf_token', '{{ csrf_token() }}');
     fetch('/konnect/admin/generate-link', {method:'POST', body:fd})
-        .then(r => r.json())
-        .then(d => {
-            btn.disabled = false; btn.innerHTML = '<i class="bi bi-link-45deg"></i> Générer';
+        .then(r => r.json()).then(d => {
+            btn.disabled = false; btn.innerHTML = '<i class="bi bi-link-45deg"></i> Générer le lien';
             if (d.ok) {
                 document.getElementById('konnectUrl').value = d.pay_url;
                 document.getElementById('konnectResult').classList.remove('d-none');
@@ -419,27 +575,79 @@ function genKonnect() {
                 document.getElementById('konnectError').classList.remove('d-none');
                 document.getElementById('konnectResult').classList.add('d-none');
             }
-        })
-        .catch(() => {
-            btn.disabled = false; btn.innerHTML = '<i class="bi bi-link-45deg"></i> Générer';
+        }).catch(() => { btn.disabled = false; btn.innerHTML = '<i class="bi bi-link-45deg"></i> Générer le lien';
             document.getElementById('konnectError').textContent = 'Erreur réseau.';
-            document.getElementById('konnectError').classList.remove('d-none');
-        });
+            document.getElementById('konnectError').classList.remove('d-none'); });
 }
 
 function copyKonnect() {
     navigator.clipboard.writeText(document.getElementById('konnectUrl').value);
-    event.target.closest('button').innerHTML = '<i class="bi bi-check-lg"></i>';
-    setTimeout(() => event.target.closest('button').innerHTML = '<i class="bi bi-clipboard"></i>', 2000);
+    showToast();
 }
 
-// Date par défaut encaissements divers
-document.getElementById('misc_date').value = new Date().toISOString().split('T')[0];
+// ── Flouci ─────────────────────────────────────────────────────────────────
+function fillFlouci() {
+    const opt = document.getElementById('flouci_apt').options[document.getElementById('flouci_apt').selectedIndex];
+    if (opt.value) {
+        document.getElementById('flouci_amount').value = parseFloat(opt.dataset.fee).toFixed(2);
+        document.getElementById('flouci_month').value  = opt.dataset.next;
+    }
+    document.getElementById('flouciResult').classList.add('d-none');
+    document.getElementById('flouciError').classList.add('d-none');
+}
 
-// Activer l'onglet divers si hash #divers dans l'URL
-if (window.location.hash === '#divers') {
-    const tab = document.getElementById('tab-div');
-    if (tab) new bootstrap.Tab(tab).show();
+function genFlouci() {
+    const aptId = document.getElementById('flouci_apt').value;
+    const month = document.getElementById('flouci_month').value;
+    const amount= document.getElementById('flouci_amount').value;
+    if (!aptId || !month || !amount) { alert('Remplissez tous les champs.'); return; }
+    const btn = document.getElementById('flouciBtn');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>...';
+    const fd = new FormData();
+    fd.append('apartment_id', aptId); fd.append('month_target', month);
+    fd.append('amount', amount); fd.append('csrf_token', '{{ csrf_token() }}');
+    fetch('/flouci/admin/generate-link', {method:'POST', body:fd})
+        .then(r => r.json()).then(d => {
+            btn.disabled = false; btn.innerHTML = '<i class="bi bi-credit-card-2-front"></i> Générer le lien';
+            if (d.ok) {
+                document.getElementById('flouciUrl').value = d.pay_url;
+                document.getElementById('flouciResult').classList.remove('d-none');
+                document.getElementById('flouciError').classList.add('d-none');
+            } else {
+                document.getElementById('flouciError').textContent = d.message;
+                document.getElementById('flouciError').classList.remove('d-none');
+                document.getElementById('flouciResult').classList.add('d-none');
+            }
+        }).catch(() => { btn.disabled = false; btn.innerHTML = '<i class="bi bi-credit-card-2-front"></i> Générer le lien';
+            document.getElementById('flouciError').textContent = 'Erreur réseau.';
+            document.getElementById('flouciError').classList.remove('d-none'); });
+}
+
+function copyFlouci() {
+    navigator.clipboard.writeText(document.getElementById('flouciUrl').value);
+    showToast();
+}
+
+// ── Utilitaires ────────────────────────────────────────────────────────────
+function copyLink(url, btn) {
+    navigator.clipboard.writeText(url).then(() => {
+        btn.innerHTML = '<i class="bi bi-check-lg"></i>';
+        showToast();
+        setTimeout(() => { btn.innerHTML = '<i class="bi bi-clipboard"></i>'; }, 2000);
+    });
+}
+
+function showToast() {
+    const t = document.getElementById('copyToast');
+    t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 2000);
+}
+
+// Activer le bon onglet selon le hash URL
+const hashTab = {'#divers': 'tab-div', '#konnect': 'tab-kon', '#flouci': 'tab-flo'};
+if (hashTab[window.location.hash]) {
+    const el = document.getElementById(hashTab[window.location.hash]);
+    if (el) new bootstrap.Tab(el).show();
 }
 </script>
 {% endblock %}
