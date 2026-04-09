@@ -233,6 +233,7 @@ class SuperAdminSettings(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     konnect_api_key = db.Column(db.String(200))
     konnect_wallet_id = db.Column(db.String(100))
+    last_reminder_check = db.Column(db.Date, nullable=True)  # date du dernier passage de rappels abonnement
 
     @staticmethod
     def get():
@@ -959,6 +960,23 @@ def init_db():
                 print("Migration PostgreSQL : table intervenant créée.")
     except Exception as e:
         print(f"Migration intervenant : {e}")
+
+    # Migration : colonne last_reminder_check sur super_admin_settings
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text(
+                    "ALTER TABLE super_admin_settings ADD COLUMN IF NOT EXISTS last_reminder_check DATE"
+                ))
+                conn.commit()
+            else:
+                result = conn.execute(db.text("PRAGMA table_info(super_admin_settings)"))
+                cols = [row[1] for row in result]
+                if 'last_reminder_check' not in cols:
+                    conn.execute(db.text("ALTER TABLE super_admin_settings ADD COLUMN last_reminder_check DATE"))
+                    conn.commit()
+    except Exception as e:
+        print(f"Migration super_admin_settings last_reminder_check : {e}")
 
     # Migration sécurité : activer RLS sur toutes les tables publiques (PostgreSQL)
     # Bloque l'accès anonyme via l'URL Supabase — l'appli Flask (postgres superuser) n'est pas affectée

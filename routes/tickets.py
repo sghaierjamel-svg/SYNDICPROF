@@ -33,6 +33,19 @@ def tickets():
             message=message,
             priority=priority
         )
+        # Photo attachée (optionnelle, max 3 Mo)
+        photo = request.files.get('photo')
+        if photo and photo.filename:
+            allowed = {'image/jpeg', 'image/png', 'image/gif', 'image/webp'}
+            if photo.mimetype not in allowed:
+                flash('Format de photo non supporté (JPEG, PNG, GIF, WEBP uniquement).', 'warning')
+                return redirect(url_for('tickets'))
+            data = photo.read()
+            if len(data) > 3 * 1024 * 1024:
+                flash('La photo ne doit pas dépasser 3 Mo.', 'warning')
+                return redirect(url_for('tickets'))
+            ticket.photo_data = base64.b64encode(data).decode('utf-8')
+            ticket.photo_mime = photo.mimetype
         db.session.add(ticket)
         db.session.commit()
         flash('Ticket créé avec succès', 'success')

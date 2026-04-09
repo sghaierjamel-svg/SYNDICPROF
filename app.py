@@ -28,6 +28,33 @@ import routes.appel_fonds
 import routes.onboarding
 
 
+@app.before_request
+def _daily_subscription_reminders():
+    """Envoie les rappels d'expiration d'abonnement une fois par jour."""
+    from datetime import date
+    from models import SuperAdminSettings, Organization, Subscription
+    from utils_email import send_subscription_reminder
+    try:
+        settings = SuperAdminSettings.get()
+        today = date.today()
+        if settings.last_reminder_check == today:
+            return  # déjà traité aujourd'hui
+        settings.last_reminder_check = today
+        db.session.commit()
+        # Chercher les orgs dont l'abonnement expire dans 7 ou 1 jour
+        for sub in Subscription.query.filter(Subscription.end_date.isnot(None)).all():
+            days = sub.days_remaining()
+            if days in (7, 1):
+                org = sub.organization
+                if org and org.email:
+                    try:
+                        send_subscription_reminder(org.name, org.email, days)
+                    except Exception:
+                        pass
+    except Exception:
+        pass
+
+
 @app.errorhandler(404)
 def not_found_error(error):
     from flask import render_template
