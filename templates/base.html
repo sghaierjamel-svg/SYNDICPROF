@@ -924,33 +924,27 @@
     const btn   = document.getElementById('pushActivateBtn');
     const icon  = document.getElementById('pushBtnIcon');
     const label = document.getElementById('pushBtnLabel');
+    if (!btn) return;
 
     function setBtn(state) {
-        if (!btn) return;
         if (state === 'active') {
-            btn.style.background = 'rgba(16,185,129,0.15)';
-            btn.style.borderColor = 'rgba(16,185,129,0.4)';
-            btn.style.color = '#34D399';
-            btn.style.cursor = 'default';
+            btn.style.cssText += ';background:rgba(16,185,129,0.15)!important;border-color:rgba(16,185,129,0.4)!important;color:#34D399!important;cursor:default!important;';
             icon.className = 'bi bi-bell-fill';
             label.textContent = 'Notifs actives';
         } else if (state === 'blocked') {
-            btn.style.background = 'rgba(239,68,68,0.12)';
-            btn.style.borderColor = 'rgba(239,68,68,0.4)';
-            btn.style.color = '#F87171';
-            btn.style.cursor = 'help';
+            btn.style.cssText += ';background:rgba(239,68,68,0.12)!important;border-color:rgba(239,68,68,0.4)!important;color:#F87171!important;cursor:help!important;';
             icon.className = 'bi bi-bell-slash-fill';
             label.textContent = 'Notifs bloquées';
             btn.title = 'Autorisez les notifications dans les paramètres de votre navigateur';
         } else {
-            btn.style.cursor = 'pointer';
             icon.className = 'bi bi-bell-slash';
             label.textContent = 'Activer les notifs';
         }
     }
 
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        if (btn) btn.style.display = 'none';
+    // Navigateur ne supporte pas push → cacher le bouton
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+        btn.style.display = 'none';
         return;
     }
 
@@ -962,14 +956,15 @@
         return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
     }
 
-    async function subscribePush() {
+    async function doSubscribe() {
         try {
+            label.textContent = '...';
             const resp = await fetch('/api/push/vapid-key');
-            const { key } = await resp.json();
-            if (!key) { setBtn('inactive'); return; }
+            const data = await resp.json();
+            if (!data.key) { setBtn('inactive'); return; }
             const sub = await swReg.pushManager.subscribe({
                 userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(key),
+                applicationServerKey: urlBase64ToUint8Array(data.key),
             });
             await fetch('/api/push/subscribe', {
                 method: 'POST',
@@ -981,34 +976,42 @@
             });
             setBtn('active');
         } catch (e) {
+            console.warn('[Push] doSubscribe error:', e);
             setBtn('inactive');
         }
     }
 
+    // Le clic est attaché immédiatement — pas conditionnel
+    btn.addEventListener('click', async () => {
+        if (Notification.permission === 'denied') {
+            alert('Les notifications sont bloquées dans votre navigateur.\nCliquez sur le cadenas 🔒 dans la barre d\'adresse et autorisez les notifications.');
+            return;
+        }
+        if (Notification.permission === 'granted') {
+            await doSubscribe();
+            return;
+        }
+        // 'default' → demander la permission
+        const result = await Notification.requestPermission();
+        if (result === 'granted') await doSubscribe();
+        else setBtn('blocked');
+    });
+
+    // Initialisation au chargement : détecter l'état actuel
     async function initPush() {
         swReg = await navigator.serviceWorker.register('/static/sw.js');
         await navigator.serviceWorker.ready;
-
         const perm = Notification.permission;
         if (perm === 'denied') { setBtn('blocked'); return; }
-
         if (perm === 'granted') {
             const existing = await swReg.pushManager.getSubscription();
-            if (existing) { setBtn('active'); }
-            else { await subscribePush(); }
-            return;
+            if (existing) { setBtn('active'); return; }
+            await doSubscribe();
         }
-
-        // 'default' → pas encore demandé
-        setBtn('inactive');
-        btn && btn.addEventListener('click', async () => {
-            const result = await Notification.requestPermission();
-            if (result === 'granted') await subscribePush();
-            else setBtn('blocked');
-        }, { once: true });
+        // 'default' → bouton reste en état inactif, attend le clic
     }
 
-    window.addEventListener('load', () => initPush().catch(() => setBtn('inactive')));
+    window.addEventListener('load', () => initPush().catch(e => console.warn('[Push] init error:', e)));
 })();
 </script>
 </body>
