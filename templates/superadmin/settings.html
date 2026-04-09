@@ -115,18 +115,23 @@ document.getElementById('btnTestEmail').addEventListener('click', function() {
     fd.append('csrf_token', '{{ csrf_token() }}');
 
     fetch('{{ url_for("superadmin_test_email") }}', { method: 'POST', body: fd })
-        .then(r => r.json())
-        .then(data => {
+        .then(r => r.text())
+        .then(text => {
             result.style.display = 'block';
-            if (data.ok) {
-                result.innerHTML = '<div class="alert alert-success mb-0"><i class="bi bi-check-circle me-2"></i>' + data.msg + '</div>';
-            } else {
-                result.innerHTML = '<div class="alert alert-danger mb-0"><i class="bi bi-x-circle me-2"></i><strong>Erreur :</strong> ' + data.error + '</div>';
+            try {
+                const data = JSON.parse(text);
+                if (data.ok) {
+                    result.innerHTML = '<div class="alert alert-success mb-0"><i class="bi bi-check-circle me-2"></i>' + data.msg + '</div>';
+                } else {
+                    result.innerHTML = '<div class="alert alert-danger mb-0"><i class="bi bi-x-circle me-2"></i><strong>Erreur :</strong> ' + data.error + '</div>';
+                }
+            } catch(e) {
+                result.innerHTML = '<div class="alert alert-danger mb-0"><i class="bi bi-x-circle me-2"></i>Réponse inattendue du serveur (500). Vérifiez les logs Render.<br><small>' + text.substring(0, 200) + '</small></div>';
             }
         })
-        .catch(() => {
+        .catch(err => {
             result.style.display = 'block';
-            result.innerHTML = '<div class="alert alert-danger mb-0">Erreur réseau.</div>';
+            result.innerHTML = '<div class="alert alert-danger mb-0">Erreur réseau : ' + err + '</div>';
         })
         .finally(() => {
             btn.disabled = false;

@@ -209,21 +209,28 @@ def superadmin_change_password():
 @login_required
 @superadmin_required
 def superadmin_test_email():
-    from utils_email import send_email, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS
-    to = request.form.get('to', '').strip()
-    if not to:
-        return jsonify({'ok': False, 'error': 'Adresse email manquante.'})
-    ok, err = send_email(
-        to=to,
-        subject='Test email SyndicPro',
-        html=f'<p>Ceci est un email de test envoyé depuis SyndicPro.</p>'
-             f'<p>Serveur : <b>{SMTP_HOST}:{SMTP_PORT}</b><br>'
-             f'Compte : <b>{SMTP_USER}</b><br>'
-             f'Mot de passe configuré : <b>{"Oui" if SMTP_PASS else "NON — variable manquante"}</b></p>'
-    )
-    if ok:
-        return jsonify({'ok': True, 'msg': f'Email envoyé à {to} avec succès.'})
-    return jsonify({'ok': False, 'error': err})
+    try:
+        import os
+        from utils_email import send_email, SMTP_HOST, SMTP_PORT, SMTP_USER
+        smtp_pass = os.environ.get('ZOHO_SMTP_PASSWORD', '')
+        to = request.form.get('to', '').strip()
+        if not to:
+            return jsonify({'ok': False, 'error': 'Adresse email manquante.'})
+        ok, err = send_email(
+            to=to,
+            subject='Test email SyndicPro',
+            html=(f'<p>Ceci est un email de test envoyé depuis SyndicPro.</p>'
+                  f'<p>Serveur : <b>{SMTP_HOST}:{SMTP_PORT}</b><br>'
+                  f'Compte : <b>{SMTP_USER}</b><br>'
+                  f'Mot de passe configuré : <b>{"Oui" if smtp_pass else "NON"}</b></p>')
+        )
+        if ok:
+            return jsonify({'ok': True, 'msg': f'Email envoyé à {to} avec succès.'})
+        return jsonify({'ok': False, 'error': err})
+    except Exception as e:
+        import traceback
+        print(f"[test-email] {traceback.format_exc()}")
+        return jsonify({'ok': False, 'error': str(e)})
 
 
 @app.route('/superadmin/settings', methods=['GET', 'POST'])
