@@ -691,6 +691,11 @@
             <i class="bi bi-door-open"></i> Registre Accès
         </a>
 
+        <a class="sidebar-link {% if request.endpoint in ['lifts','lift_detail'] %}active{% endif %}"
+           href="{{ url_for('lifts') }}">
+            <i class="bi bi-elevator"></i> Ascenseurs
+        </a>
+
         {% endif %}
 
         {% if user.role == 'resident' %}
@@ -729,6 +734,11 @@
         <a class="sidebar-link {% if request.endpoint == 'tickets' %}active{% endif %}"
            href="{{ url_for('tickets') }}">
             <i class="bi bi-chat-left-dots"></i> Tickets
+        </a>
+
+        <a class="sidebar-link {% if request.endpoint in ['lifts','lift_detail'] %}active{% endif %}"
+           href="{{ url_for('lifts') }}">
+            <i class="bi bi-elevator"></i> Ascenseurs
         </a>
 
         {% if user.role == 'resident' %}

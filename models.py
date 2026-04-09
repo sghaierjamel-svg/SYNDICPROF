@@ -462,6 +462,41 @@ class Intervenant(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
+class Lift(db.Model):
+    """Ascenseur d'une résidence"""
+    __tablename__ = 'lift'
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
+    block_id = db.Column(db.Integer, db.ForeignKey('block.id'), nullable=True)
+    name = db.Column(db.String(100), nullable=False)          # ex: "Ascenseur Bât A"
+    location = db.Column(db.String(200))                       # ex: "Entrée principale"
+    status = db.Column(db.String(20), default='ok')            # ok / warning / down
+    iot_api_key = db.Column(db.String(64), unique=True)        # clé secrète capteur IoT
+    last_maintenance = db.Column(db.Date, nullable=True)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    block = db.relationship('Block', backref='lifts', lazy=True)
+    incidents = db.relationship('LiftIncident', backref='lift', lazy=True, cascade='all, delete-orphan')
+
+
+class LiftIncident(db.Model):
+    """Incident / panne signalé sur un ascenseur"""
+    __tablename__ = 'lift_incident'
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
+    lift_id = db.Column(db.Integer, db.ForeignKey('lift.id'), nullable=False)
+    reported_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)   # résident ou admin
+    intervenant_id = db.Column(db.Integer, db.ForeignKey('intervenant.id'), nullable=True)  # réparateur assigné
+    source = db.Column(db.String(20), default='manuel')        # manuel / iot
+    description = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(20), default='ouvert')        # ouvert / en_cours / resolu
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    resolved_at = db.Column(db.DateTime, nullable=True)
+    admin_notes = db.Column(db.Text)
+    reported_by = db.relationship('User', backref='lift_incidents', lazy=True)
+    intervenant = db.relationship('Intervenant', backref='lift_incidents', lazy=True)
+
+
 class AccessLog(db.Model):
     """Registre des entrées/sorties de la résidence"""
     __tablename__ = 'access_log'
@@ -1005,6 +1040,67 @@ def init_db():
                 conn.commit()
     except Exception as e:
         print(f"Migration push_subscription : {e}")
+
+    # Migration : tables lift + lift_incident
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS lift (
+                        id SERIAL PRIMARY KEY,
+                        organization_id INTEGER REFERENCES organization(id) ON DELETE CASCADE,
+                        block_id INTEGER REFERENCES block(id) ON DELETE SET NULL,
+                        name VARCHAR(100) NOT NULL,
+                        location VARCHAR(200),
+                        status VARCHAR(20) DEFAULT 'ok',
+                        iot_api_key VARCHAR(64) UNIQUE,
+                        last_maintenance DATE,
+                        notes TEXT,
+                        created_at TIMESTAMP DEFAULT NOW()
+                    )
+                """))
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS lift_incident (
+                        id SERIAL PRIMARY KEY,
+                        organization_id INTEGER REFERENCES organization(id) ON DELETE CASCADE,
+                        lift_id INTEGER REFERENCES lift(id) ON DELETE CASCADE,
+                        reported_by_id INTEGER REFERENCES "user"(id) ON DELETE SET NULL,
+                        intervenant_id INTEGER REFERENCES intervenant(id) ON DELETE SET NULL,
+                        source VARCHAR(20) DEFAULT 'manuel',
+                        description TEXT NOT NULL,
+                        status VARCHAR(20) DEFAULT 'ouvert',
+                        created_at TIMESTAMP DEFAULT NOW(),
+                        resolved_at TIMESTAMP,
+                        admin_notes TEXT
+                    )
+                """))
+                conn.commit()
+            else:
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS lift (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        organization_id INTEGER, block_id INTEGER,
+                        name VARCHAR(100) NOT NULL, location VARCHAR(200),
+                        status VARCHAR(20) DEFAULT 'ok', iot_api_key VARCHAR(64),
+                        last_maintenance DATE, notes TEXT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """))
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS lift_incident (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        organization_id INTEGER, lift_id INTEGER,
+                        reported_by_id INTEGER, intervenant_id INTEGER,
+                        source VARCHAR(20) DEFAULT 'manuel',
+                        description TEXT NOT NULL, status VARCHAR(20) DEFAULT 'ouvert',
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        resolved_at DATETIME, admin_notes TEXT
+                    )
+                """))
+                conn.commit()
+            print("Migration : tables lift + lift_incident OK")
+    except Exception as e:
+        print(f"Migration lift : {e}")
 
     # Migration : colonne last_reminder_check sur super_admin_settings
     try:

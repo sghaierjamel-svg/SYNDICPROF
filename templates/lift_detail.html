@@ -1,0 +1,234 @@
+{% extends 'base.html' %}
+{% block content %}
+
+{% set status_color = '#10B981' if lift.status == 'ok' else ('#F59E0B' if lift.status == 'warning' else '#EF4444') %}
+{% set status_label = 'En service' if lift.status == 'ok' else ('Anomalie signalée' if lift.status == 'warning' else 'HORS SERVICE') %}
+
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <a href="{{ url_for('lifts') }}" class="btn btn-sm btn-secondary mb-2">
+            <i class="bi bi-arrow-left"></i> Retour
+        </a>
+        <h2 class="text-white mb-0">
+            <i class="bi bi-elevator"></i> {{ lift.name }}
+            <span class="ms-2" style="font-size:1rem;color:{{ status_color }};">● {{ status_label }}</span>
+        </h2>
+        {% if lift.location %}<div style="color:var(--muted);font-size:.9rem;"><i class="bi bi-geo-alt"></i> {{ lift.location }}</div>{% endif %}
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Colonne gauche : incidents -->
+    <div class="col-lg-8">
+
+        <!-- Signaler un incident (admin + résident) -->
+        {% set has_open = incidents | selectattr('status', 'in', ['ouvert','en_cours']) | list %}
+        {% if not has_open %}
+        <div class="card mb-4" style="border-color:rgba(245,158,11,0.3);">
+            <div class="card-header" style="color:#F59E0B;"><i class="bi bi-exclamation-triangle"></i> Signaler un problème</div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('lift_report_incident', lift_id=lift.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <textarea name="description" class="form-control" rows="3" required
+                                  placeholder="Décrivez le problème observé (bruit, blocage, vibration, porte...)"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-exclamation-triangle"></i> Signaler la panne
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert mb-4" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#F87171;">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            Un incident est actuellement ouvert sur cet ascenseur. Attendez sa résolution avant d'en signaler un nouveau.
+        </div>
+        {% endif %}
+
+        <!-- Liste des incidents -->
+        <div class="card">
+            <div class="card-header"><i class="bi bi-clock-history"></i> Historique des incidents</div>
+            <div class="card-body p-0">
+                {% for inc in incidents %}
+                {% set ic = '#EF4444' if inc.status == 'ouvert' else ('#F59E0B' if inc.status == 'en_cours' else '#10B981') %}
+                {% set il = 'Ouvert' if inc.status == 'ouvert' else ('En cours' if inc.status == 'en_cours' else 'Résolu') %}
+                <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border);">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <span style="color:{{ ic }};font-size:.8rem;font-weight:600;">
+                            ● {{ il }}
+                            {% if inc.source == 'iot' %}<span class="ms-2 badge" style="background:rgba(59,130,246,0.2);color:#93C5FD;font-size:.7rem;">📡 IoT</span>{% endif %}
+                        </span>
+                        <small style="color:var(--muted);">{{ inc.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
+                    </div>
+                    <div style="color:var(--text);margin-bottom:.4rem;">{{ inc.description }}</div>
+                    {% if inc.reported_by %}
+                    <small style="color:var(--muted);">Signalé par : {{ inc.reported_by.name or inc.reported_by.email }}</small>
+                    {% endif %}
+                    {% if inc.intervenant %}
+                    <div style="margin-top:.3rem;">
+                        <span class="badge" style="background:rgba(16,185,129,0.15);color:#34D399;font-size:.75rem;">
+                            <i class="bi bi-tools"></i> {{ inc.intervenant.prenom or '' }} {{ inc.intervenant.nom or inc.intervenant.nom_societe }}
+                        </span>
+                    </div>
+                    {% endif %}
+                    {% if inc.admin_notes %}
+                    <div style="margin-top:.5rem;padding:.5rem;background:rgba(16,185,129,0.08);border-radius:6px;font-size:.83rem;color:#34D399;">
+                        <i class="bi bi-check-circle"></i> {{ inc.admin_notes }}
+                    </div>
+                    {% endif %}
+
+                    <!-- Actions admin sur incident ouvert/en cours -->
+                    {% if user.role == 'admin' and inc.status in ['ouvert','en_cours'] %}
+                    <div class="mt-3 d-flex gap-2 flex-wrap">
+                        <!-- Assigner réparateur -->
+                        <form method="post" class="d-flex gap-2 align-items-center">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="action" value="assign_intervenant">
+                            <input type="hidden" name="incident_id" value="{{ inc.id }}">
+                            <select name="intervenant_id" class="form-select form-select-sm" style="width:auto;">
+                                <option value="">— Assigner un réparateur —</option>
+                                {% for iv in intervenants %}
+                                <option value="{{ iv.id }}" {% if inc.intervenant_id == iv.id %}selected{% endif %}>
+                                    {{ iv.prenom or '' }} {{ iv.nom or iv.nom_societe }} ({{ iv.categorie }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-primary">
+                                <i class="bi bi-person-check"></i> Assigner
+                            </button>
+                        </form>
+                        <!-- Clore l'incident -->
+                        <button class="btn btn-sm btn-success" data-bs-toggle="collapse"
+                                data-bs-target="#closeForm{{ inc.id }}">
+                            <i class="bi bi-check-circle"></i> Résoudre
+                        </button>
+                    </div>
+                    <div class="collapse mt-2" id="closeForm{{ inc.id }}">
+                        <form method="post">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="action" value="close_incident">
+                            <input type="hidden" name="incident_id" value="{{ inc.id }}">
+                            <textarea name="admin_notes" class="form-control form-control-sm mb-2" rows="2"
+                                      placeholder="Note de résolution (optionnel)..."></textarea>
+                            <button type="submit" class="btn btn-sm btn-success">
+                                <i class="bi bi-check-lg"></i> Confirmer la résolution
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div style="padding:2rem;text-align:center;color:var(--muted);">
+                    <i class="bi bi-check-circle" style="font-size:2rem;display:block;margin-bottom:.5rem;color:#10B981;"></i>
+                    Aucun incident enregistré
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Colonne droite : infos + admin -->
+    <div class="col-lg-4">
+
+        <!-- Statut rapide (admin) -->
+        {% if user.role == 'admin' %}
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-sliders"></i> Changer le statut</div>
+            <div class="card-body">
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action" value="update_status">
+                    <div class="d-grid gap-2">
+                        <button type="submit" name="status" value="ok"
+                                class="btn btn-sm {% if lift.status == 'ok' %}btn-success{% else %}btn-outline-success{% endif %}">
+                            ✅ En service
+                        </button>
+                        <button type="submit" name="status" value="warning"
+                                class="btn btn-sm {% if lift.status == 'warning' %}btn-warning{% else %}btn-outline-warning{% endif %}">
+                            ⚠️ Anomalie
+                        </button>
+                        <button type="submit" name="status" value="down"
+                                class="btn btn-sm {% if lift.status == 'down' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+                            🔴 Hors service
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modifier les infos -->
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-pencil"></i> Informations</div>
+            <div class="card-body">
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action" value="update_info">
+                    <div class="mb-2">
+                        <label class="form-label" style="font-size:.82rem;">Nom</label>
+                        <input type="text" name="name" class="form-control form-control-sm" value="{{ lift.name }}">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" style="font-size:.82rem;">Localisation</label>
+                        <input type="text" name="location" class="form-control form-control-sm" value="{{ lift.location or '' }}">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" style="font-size:.82rem;">Dernière maintenance</label>
+                        <input type="date" name="last_maintenance" class="form-control form-control-sm"
+                               value="{{ lift.last_maintenance.strftime('%Y-%m-%d') if lift.last_maintenance else '' }}">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" style="font-size:.82rem;">Notes</label>
+                        <textarea name="notes" class="form-control form-control-sm" rows="2">{{ lift.notes or '' }}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary w-100">
+                        <i class="bi bi-save"></i> Enregistrer
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Clé IoT -->
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-cpu"></i> Capteur IoT</div>
+            <div class="card-body">
+                <p style="font-size:.8rem;color:var(--muted);">Clé secrète à configurer sur le capteur physique :</p>
+                <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:.5rem .75rem;
+                            font-family:monospace;font-size:.75rem;word-break:break-all;color:#93C5FD;">
+                    {{ lift.iot_api_key }}
+                </div>
+                <p style="font-size:.75rem;color:var(--muted);margin-top:.5rem;">
+                    Endpoint : <code style="color:#93C5FD;">POST /api/v1/iot/telemetry</code><br>
+                    Header : <code style="color:#93C5FD;">X-API-Key: [clé ci-dessus]</code>
+                </p>
+            </div>
+        </div>
+
+        <!-- Supprimer -->
+        <div class="card" style="border-color:rgba(239,68,68,0.3);">
+            <div class="card-body">
+                <form method="post" action="{{ url_for('lift_supprimer', lift_id=lift.id) }}"
+                      onsubmit="return confirm('Supprimer cet ascenseur et tout son historique ?')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                        <i class="bi bi-trash"></i> Supprimer l'ascenseur
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if user.role == 'resident' %}
+        <div class="card">
+            <div class="card-body">
+                <div class="text-center" style="color:{{ status_color }};">
+                    <i class="bi bi-elevator" style="font-size:3rem;"></i>
+                    <div style="font-size:1.1rem;font-weight:600;margin-top:.5rem;">{{ status_label }}</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

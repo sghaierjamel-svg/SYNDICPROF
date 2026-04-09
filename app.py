@@ -27,6 +27,7 @@ import routes.litiges
 import routes.appel_fonds
 import routes.onboarding
 import routes.push
+import routes.lifts
 
 
 @app.before_request
