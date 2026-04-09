@@ -133,6 +133,68 @@ class MiscReceipt(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
+class AppelFonds(db.Model):
+    """Campagne d'appel de fonds pour grands travaux / réparations exceptionnelles"""
+    __tablename__ = 'appel_fonds'
+    id              = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
+    titre           = db.Column(db.String(200), nullable=False)
+    description     = db.Column(db.Text)
+    budget_total    = db.Column(db.Float, default=0.0)
+    date_lancement  = db.Column(db.Date, nullable=True)
+    date_echeance   = db.Column(db.Date, nullable=True)
+    status          = db.Column(db.String(20), default='ouvert')   # ouvert / clos
+    # Devis du projet (fichier joint)
+    devis_data      = db.Column(db.Text)       # base64
+    devis_mime      = db.Column(db.String(30))
+    devis_nom       = db.Column(db.String(200))
+    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
+    quotas    = db.relationship('AppelFondsQuota',    backref='appel', cascade='all, delete-orphan', lazy=True)
+    paiements = db.relationship('AppelFondsPaiement', backref='appel', cascade='all, delete-orphan', lazy=True)
+    depenses  = db.relationship('AppelFondsDepense',  backref='appel', cascade='all, delete-orphan', lazy=True)
+
+
+class AppelFondsQuota(db.Model):
+    """Quote-part d'un appartement pour un appel de fonds"""
+    __tablename__ = 'appel_fonds_quota'
+    id           = db.Column(db.Integer, primary_key=True)
+    appel_id     = db.Column(db.Integer, db.ForeignKey('appel_fonds.id'), nullable=False)
+    apartment_id = db.Column(db.Integer, db.ForeignKey('apartment.id'), nullable=False)
+    montant_attendu = db.Column(db.Float, default=0.0)
+    apartment = db.relationship('Apartment', backref='quotas_appels', lazy=True)
+
+
+class AppelFondsPaiement(db.Model):
+    """Paiement d'un copropriétaire pour un appel de fonds"""
+    __tablename__ = 'appel_fonds_paiement'
+    id              = db.Column(db.Integer, primary_key=True)
+    appel_id        = db.Column(db.Integer, db.ForeignKey('appel_fonds.id'), nullable=False)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
+    apartment_id    = db.Column(db.Integer, db.ForeignKey('apartment.id'), nullable=False)
+    amount          = db.Column(db.Float, nullable=False)
+    payment_date    = db.Column(db.Date, nullable=False)
+    notes           = db.Column(db.String(300))
+    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
+    apartment = db.relationship('Apartment', backref='appel_fonds_paiements', lazy=True)
+
+
+class AppelFondsDepense(db.Model):
+    """Dépense imputée à un fonds de travaux (paiement entrepreneur, matériau...)"""
+    __tablename__ = 'appel_fonds_depense'
+    id              = db.Column(db.Integer, primary_key=True)
+    appel_id        = db.Column(db.Integer, db.ForeignKey('appel_fonds.id'), nullable=False)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
+    amount          = db.Column(db.Float, nullable=False)
+    date            = db.Column(db.Date, nullable=False)
+    libelle         = db.Column(db.String(200), nullable=False)
+    notes           = db.Column(db.Text)
+    # Facture / devis joint
+    facture_data    = db.Column(db.Text)       # base64
+    facture_mime    = db.Column(db.String(30))
+    facture_nom     = db.Column(db.String(200))
+    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 class Expense(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
@@ -786,6 +848,66 @@ def init_db():
     except Exception as e:
         print(f"Migration litiges : {e}")
 
+    # Migration : tables appel de fonds
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS appel_fonds (
+                        id SERIAL PRIMARY KEY,
+                        organization_id INTEGER REFERENCES organization(id),
+                        titre VARCHAR(200) NOT NULL,
+                        description TEXT,
+                        budget_total FLOAT DEFAULT 0,
+                        date_lancement DATE,
+                        date_echeance DATE,
+                        status VARCHAR(20) DEFAULT 'ouvert',
+                        devis_data TEXT,
+                        devis_mime VARCHAR(30),
+                        devis_nom VARCHAR(200),
+                        created_at TIMESTAMP DEFAULT NOW()
+                    )
+                """))
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS appel_fonds_quota (
+                        id SERIAL PRIMARY KEY,
+                        appel_id INTEGER REFERENCES appel_fonds(id) ON DELETE CASCADE,
+                        apartment_id INTEGER REFERENCES apartment(id) ON DELETE CASCADE,
+                        montant_attendu FLOAT DEFAULT 0
+                    )
+                """))
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS appel_fonds_paiement (
+                        id SERIAL PRIMARY KEY,
+                        appel_id INTEGER REFERENCES appel_fonds(id) ON DELETE CASCADE,
+                        organization_id INTEGER REFERENCES organization(id),
+                        apartment_id INTEGER REFERENCES apartment(id),
+                        amount FLOAT NOT NULL,
+                        payment_date DATE NOT NULL,
+                        notes VARCHAR(300),
+                        created_at TIMESTAMP DEFAULT NOW()
+                    )
+                """))
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS appel_fonds_depense (
+                        id SERIAL PRIMARY KEY,
+                        appel_id INTEGER REFERENCES appel_fonds(id) ON DELETE CASCADE,
+                        organization_id INTEGER REFERENCES organization(id),
+                        amount FLOAT NOT NULL,
+                        date DATE NOT NULL,
+                        libelle VARCHAR(200) NOT NULL,
+                        notes TEXT,
+                        facture_data TEXT,
+                        facture_mime VARCHAR(30),
+                        facture_nom VARCHAR(200),
+                        created_at TIMESTAMP DEFAULT NOW()
+                    )
+                """))
+                conn.commit()
+                print("Migration PostgreSQL : tables appel_fonds créées.")
+    except Exception as e:
+        print(f"Migration appel_fonds : {e}")
+
     # Migration : table camera
     try:
         with db.engine.connect() as conn:
@@ -844,7 +966,8 @@ def init_db():
                     'payment', 'expense', 'ticket', 'super_admin_settings',
                     'konnect_payment', 'flouci_payment', 'unpaid_alert', 'announcement', 'announcement_read', 'access_log',
                     'direct_message', 'assembly_general', 'ag_item', 'ag_vote', 'intervenant',
-                    'litige', 'autre_litige', 'litige_document', 'misc_receipt', 'camera'
+                    'litige', 'autre_litige', 'litige_document', 'misc_receipt', 'camera',
+                    'appel_fonds', 'appel_fonds_quota', 'appel_fonds_paiement', 'appel_fonds_depense'
                 ]
                 for table in tables:
                     conn.execute(db.text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY"))

@@ -1,6 +1,6 @@
 from flask import render_template, send_file, jsonify
 from core import app
-from models import Apartment, Payment, Expense
+from models import Apartment, Payment, Expense, MiscReceipt
 from utils import (current_user, current_organization, login_required,
                    subscription_required, last_n_months, get_month_name,
                    get_unpaid_months_count, get_next_unpaid_month)
@@ -19,6 +19,8 @@ def tresorerie():
     apartments = Apartment.query.filter_by(organization_id=org.id).order_by(Apartment.block_id, Apartment.number).all()
     expenses = Expense.query.filter_by(organization_id=org.id).all()
     payments = Payment.query.filter_by(organization_id=org.id).all()
+    misc_receipts = MiscReceipt.query.filter_by(organization_id=org.id).all()
+
     data = []
     for apt in apartments:
         row = {'apartment': f"{apt.block.name}-{apt.number}", 'months': {}}
@@ -30,6 +32,16 @@ def tresorerie():
                        and p.payment_date.month == month)
             row['months'][month_key] = total
         data.append(row)
+
+    # Ligne encaissements divers
+    misc_row = {'apartment': 'ENCAISSEMENTS DIVERS', 'months': {}}
+    for year, month in months:
+        month_key = f"{year}-{month:02d}"
+        misc_row['months'][month_key] = sum(
+            m.amount for m in misc_receipts
+            if m.payment_date.year == year and m.payment_date.month == month
+        )
+
     expense_row = {'apartment': 'DÉPENSES', 'months': {}}
     for year, month in months:
         month_key = f"{year}-{month:02d}"
@@ -37,14 +49,17 @@ def tresorerie():
                    if e.expense_date.year == year
                    and e.expense_date.month == month)
         expense_row['months'][month_key] = total
+
     solde_row = {'apartment': 'SOLDE', 'months': {}}
     for year, month in months:
         month_key = f"{year}-{month:02d}"
-        total_in = sum(row['months'][month_key] for row in data)
+        total_in = sum(row['months'][month_key] for row in data) + misc_row['months'][month_key]
         total_out = expense_row['months'][month_key]
         solde_row['months'][month_key] = total_in - total_out
+
     return render_template('tresorerie.html',
                          data=data,
+                         misc_row=misc_row,
                          expense_row=expense_row,
                          solde_row=solde_row,
                          months=months,

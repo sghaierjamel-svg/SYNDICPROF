@@ -276,10 +276,46 @@
                             <td><strong style="color:#00C896;">{{ '{:.2f}'.format(m.amount) }} DT</strong></td>
                             <td style="color:var(--muted);">{{ m.description or '—' }}</td>
                             <td>
-                                <form method="POST" action="{{ url_for('delete_misc_receipt', receipt_id=m.id) }}"
-                                      onsubmit="return confirm('Supprimer ?')">
+                                <div class="d-flex gap-1">
+                                    <button class="btn btn-sm btn-outline-secondary"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#editMisc{{ m.id }}">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <form method="POST" action="{{ url_for('delete_misc_receipt', receipt_id=m.id) }}"
+                                          onsubmit="return confirm('Supprimer ?')">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        <!-- Formulaire édition inline -->
+                        <tr class="collapse" id="editMisc{{ m.id }}">
+                            <td colspan="5" style="background:rgba(0,200,150,0.05);padding:.75rem 1rem;">
+                                <form method="POST" action="{{ url_for('edit_misc_receipt', receipt_id=m.id) }}" class="row g-2 align-items-end">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
+                                    <div class="col-md-2">
+                                        <input type="date" name="payment_date" class="form-control form-control-sm"
+                                               value="{{ m.payment_date.strftime('%Y-%m-%d') }}" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <input class="form-control form-control-sm" name="libelle"
+                                               value="{{ m.libelle }}" required maxlength="100">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <input type="number" step="0.01" name="amount" class="form-control form-control-sm"
+                                               value="{{ m.amount }}" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <input class="form-control form-control-sm" name="description"
+                                               value="{{ m.description or '' }}" maxlength="300" placeholder="Description">
+                                    </div>
+                                    <div class="col-md-1">
+                                        <button type="submit" class="btn btn-sm btn-success w-100">
+                                            <i class="bi bi-save"></i>
+                                        </button>
+                                    </div>
                                 </form>
                             </td>
                         </tr>

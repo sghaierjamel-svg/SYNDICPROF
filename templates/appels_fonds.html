@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Appels de Fonds{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h2 class="text-white mb-0">
+        <i class="bi bi-piggy-bank" style="color:#60A5FA;"></i> Appels de Fonds
+    </h2>
+    <button class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#formNouveau">
+        <i class="bi bi-plus-circle"></i> Nouveau appel de fonds
+    </button>
+</div>
+
+<!-- Formulaire création -->
+<div class="collapse mb-4" id="formNouveau">
+    <div class="card">
+        <div class="card-header"><i class="bi bi-plus-circle"></i> Créer un appel de fonds</div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('appel_fonds_nouveau') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Titre du projet *</label>
+                        <input class="form-control" name="titre" placeholder="Ex: Rénovation ascenseur 2025" required maxlength="200">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Budget total (DT)</label>
+                        <input type="number" step="0.001" class="form-control" name="budget_total" placeholder="50000.000">
+                        <small style="color:var(--muted);">Les quotes-parts seront calculées automatiquement à parts égales.</small>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Date d'échéance</label>
+                        <input type="date" class="form-control" name="date_echeance">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Date de lancement</label>
+                        <input type="date" class="form-control" name="date_lancement" value="{{ '' }}">
+                    </div>
+                    <div class="col-md-9">
+                        <label class="form-label">Description</label>
+                        <input class="form-control" name="description" placeholder="Travaux de rénovation de l'ascenseur principal…">
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-save"></i> Créer le projet
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Liste des appels -->
+{% if not appels %}
+<div class="card text-center py-5">
+    <div class="card-body">
+        <i class="bi bi-piggy-bank" style="font-size:3rem;color:var(--muted);"></i>
+        <h5 class="mt-3" style="color:var(--muted);">Aucun appel de fonds</h5>
+        <p style="color:var(--muted);">Créez un appel de fonds pour financer un grand projet.</p>
+    </div>
+</div>
+{% else %}
+<div class="row g-4">
+{% for af in appels %}
+{% set s = stats[af.id] %}
+<div class="col-md-6 col-xl-4">
+    <div class="card h-100" style="border-left:4px solid {% if af.status == 'ouvert' %}#60A5FA{% else %}#6b7280{% endif %};">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h6 class="text-white mb-0" style="font-size:.95rem;">
+                    <i class="bi bi-folder2" style="color:#60A5FA;"></i>
+                    {{ af.titre }}
+                </h6>
+                <span class="badge {% if af.status == 'ouvert' %}bg-primary{% else %}bg-secondary{% endif %}">
+                    {{ 'Ouvert' if af.status == 'ouvert' else 'Clôturé' }}
+                </span>
+            </div>
+            {% if af.description %}
+            <p style="font-size:.8rem;color:var(--muted);" class="mb-2">
+                {{ af.description[:80] }}{% if af.description|length > 80 %}…{% endif %}
+            </p>
+            {% endif %}
+
+            <!-- Barre de progression -->
+            <div class="mb-2">
+                <div class="d-flex justify-content-between" style="font-size:.78rem;color:var(--muted);">
+                    <span>Collecté : <strong style="color:#60A5FA;">{{ "%.3f"|format(s.total_collecte) }} DT</strong></span>
+                    <span>/ {{ "%.3f"|format(s.total_attendu) }} DT</span>
+                </div>
+                <div class="progress mt-1" style="height:6px;background:var(--border2);">
+                    <div class="progress-bar" style="width:{{ s.pct }}%;background:#60A5FA;"></div>
+                </div>
+                <div style="font-size:.72rem;color:var(--muted);margin-top:2px;">{{ s.pct }}% collecté</div>
+            </div>
+
+            <!-- Chiffres clés -->
+            <div class="row g-1 mb-3" style="font-size:.78rem;">
+                <div class="col-4 text-center p-1 rounded" style="background:rgba(96,165,250,0.08);">
+                    <div style="color:var(--muted);">Attendu</div>
+                    <div class="fw-bold" style="color:#60A5FA;">{{ "%.0f"|format(s.total_attendu) }}</div>
+                </div>
+                <div class="col-4 text-center p-1 rounded" style="background:rgba(0,200,150,0.08);">
+                    <div style="color:var(--muted);">Dépensé</div>
+                    <div class="fw-bold" style="color:#f87171;">{{ "%.0f"|format(s.total_depense) }}</div>
+                </div>
+                <div class="col-4 text-center p-1 rounded" style="background:rgba(0,200,150,0.08);">
+                    <div style="color:var(--muted);">Solde</div>
+                    <div class="fw-bold" style="color:#00C896;">{{ "%.0f"|format(s.solde_fonds) }}</div>
+                </div>
+            </div>
+
+            {% if af.date_echeance %}
+            <div style="font-size:.75rem;color:var(--muted);" class="mb-2">
+                <i class="bi bi-calendar3"></i> Échéance : {{ af.date_echeance.strftime('%d/%m/%Y') }}
+            </div>
+            {% endif %}
+
+            <a href="{{ url_for('appel_fonds_detail', af_id=af.id) }}" class="btn btn-sm btn-outline-primary w-100">
+                <i class="bi bi-folder2-open"></i> Gérer ce projet
+            </a>
+        </div>
+    </div>
+</div>
+{% endfor %}
+</div>
+{% endif %}
+{% endblock %}

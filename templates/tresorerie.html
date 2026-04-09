@@ -128,9 +128,29 @@
                             </tr>
                             {% endfor %}
                             
+                            <!-- Ligne Encaissements Divers -->
+                            <tr style="background:rgba(96,165,250,0.08);">
+                                <td class="fw-bold sticky-column" style="background:rgba(96,165,250,0.12);color:#60A5FA;">
+                                    <i class="bi bi-plus-circle"></i> Encaissements divers
+                                </td>
+                                {% for year, month in months %}
+                                    {% set month_key = '%04d-%02d'|format(year, month) %}
+                                    {% set amount = misc_row.months[month_key] %}
+                                    <td class="text-center amount-cell">
+                                        {% if amount > 0 %}
+                                            <span class="badge" style="background:#60A5FA;color:#0A0E1A;">
+                                                +{{ '{:,.2f}'.format(amount) }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+
                             <!-- Ligne Séparatrice -->
                             <tr style="height: 3px; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);"></tr>
-                            
+
                             <!-- Ligne Dépenses -->
                             <tr class="expense-row table-danger">
                                 <td class="fw-bold sticky-column" style="background: #fee2e2;">

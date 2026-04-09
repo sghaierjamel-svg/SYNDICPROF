@@ -599,6 +599,11 @@
             <i class="bi bi-shield-exclamation" style="color:{% if request.endpoint in ['litiges','litige_detail','autre_litige_dossier'] %}inherit{% else %}#f87171{% endif %};"></i> Litiges
         </a>
 
+        <a class="sidebar-link {% if request.endpoint in ['appels_fonds','appel_fonds_detail'] %}active{% endif %}"
+           href="{{ url_for('appels_fonds') }}">
+            <i class="bi bi-piggy-bank" style="color:#60A5FA;"></i> Appels de Fonds
+        </a>
+
         <div class="sidebar-section">Rapports</div>
 
         <a class="sidebar-link {% if request.endpoint == 'tresorerie' %}active{% endif %}"
@@ -709,6 +714,11 @@
         </a>
 
         {% if user.role == 'resident' %}
+        <a class="sidebar-link {% if request.endpoint == 'appels_fonds_resident' %}active{% endif %}"
+           href="{{ url_for('appels_fonds_resident') }}">
+            <i class="bi bi-piggy-bank" style="color:#60A5FA;"></i> Appels de Fonds
+        </a>
+
         <a class="sidebar-link {% if request.endpoint in ['assembly_list','assembly_detail','assembly_pv'] %}active{% endif %}"
            href="{{ url_for('assembly_list') }}">
             <i class="bi bi-people-fill"></i> Assemblées Générales

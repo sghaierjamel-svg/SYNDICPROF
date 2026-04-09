@@ -24,6 +24,7 @@ import routes.announcements
 import routes.assembly
 import routes.intervenants
 import routes.litiges
+import routes.appel_fonds
 
 
 @app.errorhandler(404)

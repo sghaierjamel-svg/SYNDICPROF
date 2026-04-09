@@ -359,9 +359,36 @@
                             </tr>
                             <tr>
                                 <td class="px-3 py-1" style="color:var(--muted);font-size:0.72rem;">74x</td>
-                                <td class="px-3 py-1" style="color:var(--muted);">Autres produits d'exploitation</td>
-                                <td class="px-3 py-1 text-end" style="color:var(--muted);">0,000</td>
+                                <td class="px-3 py-1">
+                                    Autres produits d'exploitation
+                                    {% if autres_produits_detail %}
+                                    <button class="btn btn-link btn-sm p-0 ms-1" style="font-size:.7rem;color:var(--muted);"
+                                            data-bs-toggle="collapse" data-bs-target="#autresProdDetail">
+                                        <i class="bi bi-chevron-down"></i>
+                                    </button>
+                                    {% endif %}
+                                </td>
+                                <td class="px-3 py-1 text-end" style="color:{% if autres_produits > 0 %}var(--green){% else %}var(--muted){% endif %};">
+                                    {{ "%.3f"|format(autres_produits) }}
+                                </td>
                             </tr>
+                            {% if autres_produits_detail %}
+                            <tr>
+                                <td colspan="3" class="p-0">
+                                    <div class="collapse" id="autresProdDetail">
+                                        <table class="table table-sm mb-0" style="font-size:.75rem;">
+                                        {% for d in autres_produits_detail %}
+                                        <tr style="background:rgba(0,200,150,0.03);">
+                                            <td style="color:var(--muted);padding:.2rem 2rem;">{{ d.date.strftime('%d/%m/%Y') }}</td>
+                                            <td style="color:var(--text);">{{ d.libelle }}</td>
+                                            <td class="text-end" style="color:var(--green);padding-right:1rem;">{{ "%.3f"|format(d.montant) }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                        </table>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endif %}
                             <tr style="background:var(--border);font-weight:700;">
                                 <td class="px-3 py-2" colspan="2" style="color:var(--green);">TOTAL PRODUITS</td>
                                 <td class="px-3 py-2 text-end" style="color:var(--green);">{{ "%.3f"|format(total_produits) }}</td>

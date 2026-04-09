@@ -5,7 +5,7 @@ Normes Comptables Tunisiennes (NCT 01 et suivantes)
 """
 from flask import render_template, request, send_file
 from core import app
-from models import Apartment, Payment, Expense, Organization
+from models import Apartment, Payment, Expense, Organization, MiscReceipt
 from utils import current_user, current_organization, login_required, admin_required, subscription_required
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
@@ -52,9 +52,11 @@ def _compute_financial_data(org, year):
     apartments = Apartment.query.filter_by(organization_id=org.id).all()
     all_payments = Payment.query.filter_by(organization_id=org.id).all()
     all_expenses = Expense.query.filter_by(organization_id=org.id).all()
+    all_misc = MiscReceipt.query.filter_by(organization_id=org.id).all()
 
     year_payments = [p for p in all_payments if p.payment_date.year == year]
     year_expenses = [e for e in all_expenses if e.expense_date.year == year]
+    year_misc = [m for m in all_misc if m.payment_date.year == year]
 
     # Séparer immobilisations (22x) des charges courantes (6xx)
     all_immos   = [e for e in all_expenses  if e.category == 'Immobilisation']
@@ -65,7 +67,7 @@ def _compute_financial_data(org, year):
     # ── BILAN — ACTIF ─────────────────────────────────────────────────────────
 
     # 511/530 — Liquidités : trésorerie nette cumulée (tous décaissements inclus)
-    total_encaisse_cumul = sum(p.amount for p in all_payments)
+    total_encaisse_cumul = sum(p.amount for p in all_payments) + sum(m.amount for m in all_misc)
     total_depenses_cumul = sum(e.amount for e in all_expenses)  # immos incluses car argent sorti
     tresorerie_nette = total_encaisse_cumul - total_depenses_cumul
     liquidites = max(0.0, tresorerie_nette)
@@ -159,6 +161,13 @@ def _compute_financial_data(org, year):
     # Cotisations appelées théoriques (ce qui aurait dû être encaissé)
     cotisations_appelees = sum(apt.monthly_fee * 12 for apt in apartments)
 
+    # Autres produits d'exploitation (encaissements divers)
+    autres_produits = sum(m.amount for m in year_misc)
+    autres_produits_detail = [
+        {'libelle': m.libelle, 'date': m.payment_date, 'montant': m.amount}
+        for m in sorted(year_misc, key=lambda x: x.payment_date)
+    ]
+
     # Charges par catégorie SCE (immobilisations exclues — elles sont au bilan, pas en charges)
     charges_par_compte = {}
     for e in year_charges:
@@ -173,7 +182,7 @@ def _compute_financial_data(org, year):
     ], key=lambda x: x['compte'])
 
     total_charges = sum(c['montant'] for c in charges_sce)
-    total_produits = cotisations_encaissees
+    total_produits = cotisations_encaissees + autres_produits
     resultat_net = total_produits - total_charges
 
     # ── FLUX DE TRÉSORERIE (mensuel pour l'exercice) ─────────────────────────
@@ -232,6 +241,8 @@ def _compute_financial_data(org, year):
         'cotisations_encaissees': cotisations_encaissees,
         'cotisations_appelees': cotisations_appelees,
         'taux_recouvrement': taux_recouvrement,
+        'autres_produits': autres_produits,
+        'autres_produits_detail': autres_produits_detail,
         'charges_sce': charges_sce,
         'total_charges': total_charges,
         'total_produits': total_produits,

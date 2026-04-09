@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Mes Appels de Fonds{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2 class="text-white mb-1">
+        <i class="bi bi-piggy-bank" style="color:#60A5FA;"></i> Appels de Fonds
+    </h2>
+    <p style="color:var(--muted);">Cotisations spéciales pour les travaux de la résidence.</p>
+</div>
+
+{% if not resident_data %}
+<div class="card text-center py-5">
+    <div class="card-body">
+        <i class="bi bi-check-circle" style="font-size:3rem;color:#00C896;"></i>
+        <h5 class="mt-3" style="color:var(--muted);">Aucun appel de fonds en cours</h5>
+    </div>
+</div>
+{% else %}
+{% for rd in resident_data %}
+{% set af = rd.af %}
+<div class="card mb-4" style="border-left:4px solid #60A5FA;">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+            <div>
+                <h5 class="text-white mb-1">
+                    <i class="bi bi-folder2" style="color:#60A5FA;"></i> {{ af.titre }}
+                </h5>
+                {% if af.description %}
+                <p style="color:var(--muted);font-size:.85rem;" class="mb-0">{{ af.description }}</p>
+                {% endif %}
+                {% if af.date_echeance %}
+                <small style="color:var(--muted);">
+                    <i class="bi bi-calendar3"></i> Échéance : {{ af.date_echeance.strftime('%d/%m/%Y') }}
+                </small>
+                {% endif %}
+            </div>
+            {% if af.devis_data %}
+            <a href="{{ url_for('appel_fonds_devis', af_id=af.id) }}" target="_blank"
+               class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-file-earmark-text"></i> Voir le devis
+            </a>
+            {% endif %}
+        </div>
+
+        <!-- Résumé quota -->
+        <div class="row g-3 mb-3">
+            <div class="col-sm-3">
+                <div class="p-2 rounded text-center" style="background:rgba(96,165,250,0.08);">
+                    <div style="font-size:.72rem;color:var(--muted);">Ma quote-part</div>
+                    <div class="fw-bold" style="color:#60A5FA;">{{ "%.3f"|format(rd.quota) }} DT</div>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="p-2 rounded text-center" style="background:rgba(0,200,150,0.08);">
+                    <div style="font-size:.72rem;color:var(--muted);">Versé</div>
+                    <div class="fw-bold" style="color:#00C896;">{{ "%.3f"|format(rd.total_verse) }} DT</div>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="p-2 rounded text-center" style="background:rgba(248,113,113,0.08);">
+                    <div style="font-size:.72rem;color:var(--muted);">Reste à payer</div>
+                    <div class="fw-bold" style="color:{% if rd.reste == 0 %}#00C896{% else %}#f87171{% endif %};">
+                        {{ "%.3f"|format(rd.reste) }} DT
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="p-2 rounded text-center" style="background:rgba(96,165,250,0.08);">
+                    <div style="font-size:.72rem;color:var(--muted);">Avancement</div>
+                    <div class="fw-bold" style="color:#60A5FA;">{{ rd.pct }}%</div>
+                    <div class="progress mt-1" style="height:4px;background:var(--border2);">
+                        <div class="progress-bar" style="width:{{ rd.pct }}%;background:#60A5FA;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mes paiements + reçus -->
+        {% if rd.paiements %}
+        <div>
+            <div style="font-size:.78rem;color:var(--muted);margin-bottom:.4rem;">
+                <i class="bi bi-receipt"></i> Mes versements :
+            </div>
+            <div class="list-group list-group-flush rounded" style="border:1px solid var(--border);">
+            {% for p in rd.paiements %}
+            <div class="list-group-item d-flex justify-content-between align-items-center"
+                 style="background:transparent;border-color:var(--border);color:var(--text);padding:.5rem 1rem;">
+                <div>
+                    <span style="font-size:.85rem;">{{ p.payment_date.strftime('%d/%m/%Y') }}</span>
+                    {% if p.notes %}
+                    <span style="color:var(--muted);font-size:.75rem;margin-left:.5rem;">— {{ p.notes }}</span>
+                    {% endif %}
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="fw-bold" style="color:#00C896;">{{ "%.3f"|format(p.amount) }} DT</span>
+                    <a href="{{ url_for('appel_fonds_recu', af_id=af.id, p_id=p.id) }}"
+                       class="btn btn-sm btn-outline-primary" title="Télécharger le reçu PDF">
+                        <i class="bi bi-file-earmark-pdf"></i> Reçu
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <p style="color:var(--muted);font-size:.85rem;" class="mb-0">
+            <i class="bi bi-info-circle"></i> Aucun versement enregistré pour cet appel.
+        </p>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}

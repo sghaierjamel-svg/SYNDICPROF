@@ -219,6 +219,34 @@ def add_misc_receipt():
     return redirect(url_for('payments') + '#divers')
 
 
+@app.route('/misc-receipt/edit/<int:receipt_id>', methods=['POST'])
+@login_required
+@admin_required
+@subscription_required
+def edit_misc_receipt(receipt_id):
+    org = current_organization()
+    m = MiscReceipt.query.filter_by(id=receipt_id, organization_id=org.id).first_or_404()
+    try:
+        amount = float(request.form['amount'])
+        if amount <= 0 or amount > 9_999_999:
+            flash('Montant invalide.', 'danger')
+            return redirect(url_for('payments') + '#divers')
+        m.amount = amount
+        m.payment_date = datetime.strptime(request.form['payment_date'], '%Y-%m-%d').date()
+        libelle = request.form.get('libelle', '').strip()[:100]
+        if not libelle:
+            flash('Le libellé est obligatoire.', 'danger')
+            return redirect(url_for('payments') + '#divers')
+        m.libelle = libelle
+        m.description = request.form.get('description', '').strip()[:300] or None
+        db.session.commit()
+        flash('Encaissement modifié.', 'success')
+    except Exception as e:
+        print(f"ERREUR edit_misc_receipt: {e}")
+        flash('Une erreur est survenue.', 'danger')
+    return redirect(url_for('payments') + '#divers')
+
+
 @app.route('/misc-receipt/delete/<int:receipt_id>', methods=['POST'])
 @login_required
 @admin_required

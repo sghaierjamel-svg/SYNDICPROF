@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+{% block title %}{{ af.titre }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <a href="{{ url_for('appels_fonds') }}" class="btn btn-sm btn-secondary mb-2">
+            <i class="bi bi-arrow-left"></i> Retour
+        </a>
+        <h2 class="text-white mb-0">
+            <i class="bi bi-piggy-bank" style="color:#60A5FA;"></i> {{ af.titre }}
+        </h2>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+        <span class="badge {% if af.status == 'ouvert' %}bg-primary{% else %}bg-secondary{% endif %} fs-6">
+            {{ 'Ouvert' if af.status == 'ouvert' else 'Clôturé' }}
+        </span>
+        <form method="POST" class="d-flex gap-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="change_status">
+            <select name="status" class="form-select form-select-sm" style="width:130px;">
+                <option value="ouvert" {% if af.status == 'ouvert' %}selected{% endif %}>Ouvert</option>
+                <option value="clos"   {% if af.status == 'clos'   %}selected{% endif %}>Clôturé</option>
+            </select>
+            <button class="btn btn-sm btn-outline-primary"><i class="bi bi-arrow-repeat"></i></button>
+        </form>
+    </div>
+</div>
+
+<!-- Tableau de bord du fonds -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-3">
+        <div class="card text-center" style="border-color:rgba(96,165,250,0.3);">
+            <div class="card-body py-3">
+                <div style="font-size:.75rem;color:var(--muted);">Budget total</div>
+                <div class="fw-bold" style="font-size:1.2rem;color:#60A5FA;">{{ "%.3f"|format(af.budget_total) }} DT</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-3">
+        <div class="card text-center" style="border-color:rgba(0,200,150,0.3);">
+            <div class="card-body py-3">
+                <div style="font-size:.75rem;color:var(--muted);">Collecté</div>
+                <div class="fw-bold" style="font-size:1.2rem;color:#00C896;">{{ "%.3f"|format(stats.total_collecte) }} DT</div>
+                <div style="font-size:.7rem;color:var(--muted);">{{ stats.pct }}%</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-3">
+        <div class="card text-center" style="border-color:rgba(248,113,113,0.3);">
+            <div class="card-body py-3">
+                <div style="font-size:.75rem;color:var(--muted);">Dépensé</div>
+                <div class="fw-bold" style="font-size:1.2rem;color:#f87171;">{{ "%.3f"|format(stats.total_depense) }} DT</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-3">
+        <div class="card text-center" style="border-color:rgba(0,200,150,0.3);background:rgba(0,200,150,0.05);">
+            <div class="card-body py-3">
+                <div style="font-size:.75rem;color:var(--muted);">Solde du fonds</div>
+                <div class="fw-bold" style="font-size:1.2rem;color:{% if stats.solde_fonds >= 0 %}#00C896{% else %}#f87171{% endif %};">
+                    {{ "%.3f"|format(stats.solde_fonds) }} DT
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Barre de progression globale -->
+<div class="card mb-4">
+    <div class="card-body py-2">
+        <div class="d-flex justify-content-between" style="font-size:.82rem;">
+            <span>Progression de la collecte</span>
+            <span style="color:#60A5FA;">{{ stats.total_collecte|round(3) }} / {{ stats.total_attendu|round(3) }} DT</span>
+        </div>
+        <div class="progress mt-1" style="height:10px;background:var(--border2);">
+            <div class="progress-bar" style="width:{{ stats.pct }}%;background:#60A5FA;"></div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+
+<!-- ── COLONNE GAUCHE ── -->
+<div class="col-lg-8">
+
+<!-- QUOTAS PAR APPARTEMENT + PAIEMENTS -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-table"></i> Suivi par appartement</span>
+        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#formQuotas">
+            <i class="bi bi-pencil"></i> Modifier les quotas
+        </button>
+    </div>
+
+    <!-- Formulaire modification quotas -->
+    <div class="collapse" id="formQuotas">
+        <div class="card-body" style="background:rgba(0,0,0,0.2);">
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="save_quotas">
+                <div class="row g-2 mb-3">
+                {% for apt in apartments %}
+                <div class="col-md-4 col-sm-6">
+                    <label class="form-label" style="font-size:.78rem;color:var(--muted);">
+                        {{ apt.block.name }}-{{ apt.number }}
+                    </label>
+                    <input type="number" step="0.001" class="form-control form-control-sm"
+                           name="quota_{{ apt.id }}"
+                           value="{{ quota_map.get(apt.id, 0)|round(3) }}">
+                </div>
+                {% endfor %}
+                </div>
+                <button type="submit" class="btn btn-sm btn-primary">
+                    <i class="bi bi-save"></i> Enregistrer les quotas
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-responsive">
+        <table class="table table-hover mb-0" style="font-size:.82rem;">
+            <thead>
+                <tr>
+                    <th>Appartement</th>
+                    <th class="text-end">Quota</th>
+                    <th class="text-end">Versé</th>
+                    <th class="text-end">Reste</th>
+                    <th>Avancement</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for apt in apartments %}
+            {% set quota = quota_map.get(apt.id, 0) %}
+            {% set paiements_apt = paie_par_apt.get(apt.id, []) %}
+            {% set verse = paiements_apt | sum(attribute='amount') %}
+            {% set reste = [quota - verse, 0] | max %}
+            {% set pct_apt = (verse / quota * 100)|int if quota > 0 else 0 %}
+            <tr>
+                <td><strong>{{ apt.block.name }}-{{ apt.number }}</strong></td>
+                <td class="text-end">{{ "%.3f"|format(quota) }}</td>
+                <td class="text-end" style="color:#00C896;">{{ "%.3f"|format(verse) }}</td>
+                <td class="text-end" style="color:{% if reste > 0 %}#f87171{% else %}#00C896{% endif %};">
+                    {{ "%.3f"|format(reste) }}
+                </td>
+                <td style="min-width:80px;">
+                    <div class="progress" style="height:5px;background:var(--border2);">
+                        <div class="progress-bar" style="width:{{ [pct_apt,100]|min }}%;background:{% if pct_apt >= 100 %}#00C896{% else %}#60A5FA{% endif %};"></div>
+                    </div>
+                </td>
+                <td>
+                    <!-- Mini liste des paiements -->
+                    {% for p in paiements_apt %}
+                    <div class="d-flex align-items-center gap-1 mb-1">
+                        <small style="color:var(--muted);">{{ p.payment_date.strftime('%d/%m/%Y') }} — {{ "%.3f"|format(p.amount) }} DT</small>
+                        <a href="{{ url_for('appel_fonds_recu', af_id=af.id, p_id=p.id) }}"
+                           class="btn btn-link btn-sm p-0" style="font-size:.7rem;color:#60A5FA;" title="Reçu PDF">
+                            <i class="bi bi-file-earmark-pdf"></i>
+                        </a>
+                        <form method="POST" style="display:inline;"
+                              onsubmit="return confirm('Supprimer ce paiement ?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="action" value="delete_paiement">
+                            <input type="hidden" name="paiement_id" value="{{ p.id }}">
+                            <button class="btn btn-link btn-sm p-0" style="color:#f87171;font-size:.7rem;">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+</div>
+
+<!-- AJOUTER UN PAIEMENT -->
+<div class="card mb-4">
+    <div class="card-header"><i class="bi bi-cash-coin" style="color:#00C896;"></i> Enregistrer un paiement</div>
+    <div class="card-body">
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="add_paiement">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Appartement *</label>
+                    <select name="apartment_id" class="form-select" required>
+                        <option value="">-- Choisir --</option>
+                        {% for apt in apartments %}
+                        <option value="{{ apt.id }}">{{ apt.block.name }}-{{ apt.number }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Montant (DT) *</label>
+                    <input type="number" step="0.001" name="amount" class="form-control" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Date *</label>
+                    <input type="date" name="payment_date" class="form-control"
+                           value="{{ '' }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Notes</label>
+                    <input class="form-control" name="notes" placeholder="Chèque, espèces…">
+                </div>
+                <div class="col-md-1">
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-plus"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- DÉPENSES DU FONDS -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between">
+        <span><i class="bi bi-tools" style="color:#f87171;"></i> Dépenses du projet</span>
+        <button class="btn btn-sm btn-outline-danger" data-bs-toggle="collapse" data-bs-target="#formDepense">
+            <i class="bi bi-plus"></i> Ajouter
+        </button>
+    </div>
+
+    <!-- Formulaire ajout dépense -->
+    <div class="collapse" id="formDepense">
+        <div class="card-body" style="background:rgba(248,113,113,0.05);border-bottom:1px solid var(--border);">
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="add_depense">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label">Libellé *</label>
+                        <input class="form-control" name="libelle" placeholder="Ex: Acompte entreprise XYZ" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Montant *</label>
+                        <input type="number" step="0.001" name="amount" class="form-control" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Date *</label>
+                        <input type="date" name="date" class="form-control" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Facture / Devis <small style="color:var(--muted);">(PDF/image, 10Mo)</small></label>
+                        <input type="file" name="facture_file" class="form-control form-control-sm"
+                               accept="image/jpeg,image/png,image/webp,application/pdf">
+                    </div>
+                    <div class="col-12">
+                        <input class="form-control" name="notes" placeholder="Notes (optionnel)">
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-sm btn-danger">
+                            <i class="bi bi-save"></i> Enregistrer la dépense
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if not af.depenses %}
+    <div class="card-body text-center py-4" style="color:var(--muted);">
+        <i class="bi bi-inbox"></i> Aucune dépense enregistrée
+    </div>
+    {% else %}
+    <div class="list-group list-group-flush">
+    {% for dep in af.depenses | sort(attribute='date', reverse=True) %}
+    <div class="list-group-item" style="background:transparent;border-color:var(--border);color:var(--text);">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <div class="fw-bold" style="font-size:.88rem;">{{ dep.libelle }}</div>
+                <div style="font-size:.75rem;color:var(--muted);">
+                    {{ dep.date.strftime('%d/%m/%Y') }}
+                    {% if dep.notes %} · {{ dep.notes[:60] }}{% endif %}
+                </div>
+                {% if dep.facture_data %}
+                <a href="{{ url_for('appel_fonds_facture', af_id=af.id, dep_id=dep.id) }}"
+                   target="_blank" style="color:#60A5FA;font-size:.75rem;">
+                    <i class="bi bi-paperclip"></i> {{ dep.facture_nom or 'Facture' }}
+                </a>
+                <a href="{{ url_for('appel_fonds_facture', af_id=af.id, dep_id=dep.id, dl=1) }}"
+                   class="ms-1" style="color:var(--muted);font-size:.75rem;">
+                    <i class="bi bi-download"></i>
+                </a>
+                {% endif %}
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="fw-bold" style="color:#f87171;">-{{ "%.3f"|format(dep.amount) }} DT</span>
+                <form method="POST" onsubmit="return confirm('Supprimer cette dépense ?')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action" value="delete_depense">
+                    <input type="hidden" name="depense_id" value="{{ dep.id }}">
+                    <button class="btn btn-sm btn-outline-danger p-1">
+                        <i class="bi bi-trash" style="font-size:.7rem;"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    </div>
+    <div class="card-footer d-flex justify-content-end" style="background:transparent;">
+        <strong style="color:#f87171;">Total dépensé : {{ "%.3f"|format(stats.total_depense) }} DT</strong>
+    </div>
+    {% endif %}
+</div>
+
+</div><!-- /col gauche -->
+
+<!-- ── COLONNE DROITE ── -->
+<div class="col-lg-4">
+
+    <!-- Infos projet + édition -->
+    <div class="card mb-4">
+        <div class="card-header"><i class="bi bi-pencil"></i> Infos du projet</div>
+        <div class="card-body">
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="edit_info">
+                <div class="mb-2">
+                    <label class="form-label">Titre *</label>
+                    <input class="form-control form-control-sm" name="titre" value="{{ af.titre }}" required>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control form-control-sm" name="description" rows="2"
+                              style="background:var(--bg);color:var(--text);border-color:var(--border2);">{{ af.description or '' }}</textarea>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Budget total (DT)</label>
+                    <input type="number" step="0.001" class="form-control form-control-sm"
+                           name="budget_total" value="{{ af.budget_total }}">
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label">Lancement</label>
+                        <input type="date" class="form-control form-control-sm" name="date_lancement"
+                               value="{{ af.date_lancement.strftime('%Y-%m-%d') if af.date_lancement else '' }}">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">Échéance</label>
+                        <input type="date" class="form-control form-control-sm" name="date_echeance"
+                               value="{{ af.date_echeance.strftime('%Y-%m-%d') if af.date_echeance else '' }}">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-sm btn-primary w-100">
+                    <i class="bi bi-save"></i> Sauvegarder
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Devis du projet -->
+    <div class="card mb-4">
+        <div class="card-header"><i class="bi bi-file-earmark-text"></i> Devis du projet</div>
+        <div class="card-body">
+            {% if af.devis_data %}
+            <div class="mb-3 p-2 rounded" style="background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.2);">
+                <div class="d-flex align-items-center gap-2">
+                    {% if af.devis_mime == 'application/pdf' %}
+                    <i class="bi bi-file-earmark-pdf-fill" style="color:#f87171;font-size:1.3rem;"></i>
+                    {% else %}
+                    <i class="bi bi-image-fill" style="color:#60A5FA;font-size:1.3rem;"></i>
+                    {% endif %}
+                    <a href="{{ url_for('appel_fonds_devis', af_id=af.id) }}" target="_blank" style="color:#60A5FA;">
+                        {{ af.devis_nom or 'Devis joint' }}
+                    </a>
+                    <a href="{{ url_for('appel_fonds_devis', af_id=af.id, dl=1) }}"
+                       class="btn btn-sm btn-outline-secondary ms-auto">
+                        <i class="bi bi-download"></i>
+                    </a>
+                </div>
+            </div>
+            <p style="font-size:.78rem;color:var(--muted);">Remplacer :</p>
+            {% else %}
+            <p style="font-size:.84rem;color:var(--muted);" class="mb-2">Aucun devis joint.</p>
+            {% endif %}
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="upload_devis">
+                <div class="d-flex gap-2">
+                    <input type="file" name="devis_file" class="form-control form-control-sm"
+                           accept="image/jpeg,image/png,image/webp,application/pdf">
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="bi bi-upload"></i>
+                    </button>
+                </div>
+                <small style="color:var(--muted);font-size:.72rem;">PDF ou image, max 10 Mo</small>
+            </form>
+        </div>
+    </div>
+
+    <!-- Supprimer -->
+    <div class="card" style="border-color:rgba(248,113,113,0.2);">
+        <div class="card-body text-center">
+            <form method="POST" action="{{ url_for('appel_fonds_supprimer', af_id=af.id) }}"
+                  onsubmit="return confirm('Supprimer définitivement cet appel de fonds et tous ses paiements ?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-outline-danger w-100">
+                    <i class="bi bi-trash"></i> Supprimer ce projet
+                </button>
+            </form>
+        </div>
+    </div>
+
+</div><!-- /col droite -->
+</div><!-- /row -->
+{% endblock %}
