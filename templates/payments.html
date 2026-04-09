@@ -96,10 +96,44 @@
                         <input type="text" class="form-control" name="description" placeholder="Optionnel">
                     </div>
                 </div>
-                <div class="mt-3">
+                <div class="mt-3 d-flex align-items-center gap-3 flex-wrap">
                     <button type="submit" class="btn btn-primary px-4">
                         <i class="bi bi-floppy"></i> Enregistrer
                     </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                            data-bs-toggle="collapse" data-bs-target="#guideCollapse">
+                        <i class="bi bi-info-circle"></i> Comment ça marche ?
+                    </button>
+                </div>
+
+                <!-- Guide replié -->
+                <div class="collapse mt-3" id="guideCollapse">
+                    <div class="p-3 rounded" style="background:rgba(0,200,150,0.06);border:1px solid rgba(0,200,150,0.2);font-size:.83rem;">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <p class="fw-bold mb-1" style="color:#00C896;">💳 Système de crédit</p>
+                                <p class="text-muted mb-0">
+                                    Si le montant ne couvre pas un nombre exact de mois, le reste est mis en
+                                    <strong>crédit</strong> et utilisé automatiquement au prochain paiement.<br>
+                                    <em>Ex : redevance 100 DT, paiement 350 DT → 3 mois payés + 50 DT en crédit.</em>
+                                </p>
+                            </div>
+                            <div class="col-md-4">
+                                <p class="fw-bold mb-1" style="color:#00C896;">🤖 Mode automatique (recommandé)</p>
+                                <p class="text-muted mb-0">
+                                    Laissez le champ <strong>Mois de départ</strong> vide.
+                                    Le système commence au premier mois impayé et paie dans l'ordre chronologique.
+                                </p>
+                            </div>
+                            <div class="col-md-4">
+                                <p class="fw-bold mb-1" style="color:#00C896;">📅 Mode manuel</p>
+                                <p class="text-muted mb-0">
+                                    Renseignez le <strong>Mois de départ</strong> pour choisir à partir de quel mois
+                                    appliquer le paiement. Utile pour solder un mois précis ou payer hors ordre.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
