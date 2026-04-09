@@ -149,9 +149,9 @@ def send_welcome_admin(org_name: str, email: str, days_trial: int = 30) -> bool:
 </p>
 
 {_info_box([
-    ('Email de connexion', email),
-    ('Durée de l\'essai', f'{days_trial} jours gratuits'),
-    ('Lien de connexion', f'<a href="{SITE_URL}/login" style="color:#1D4ED8;">{SITE_URL}/login</a>'),
+    ("Email de connexion", email),
+    ("Duree de l'essai", f"{days_trial} jours gratuits"),
+    ("Lien de connexion", f'<a href="{SITE_URL}/login" style="color:#1D4ED8;">{SITE_URL}/login</a>'),
 ])}
 
 <p style="font-size:14px;color:#374151;line-height:1.7;margin:16px 0 8px;">
