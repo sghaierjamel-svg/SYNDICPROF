@@ -780,12 +780,13 @@
 {% if user and user.role == 'admin' %}
 <!-- BARRE NOTIFICATIONS -->
 <div class="notif-topbar">
-    <!-- Bouton activation notifications push (masqué par défaut, JS l'affiche si nécessaire) -->
-    <button id="pushActivateBtn" title="Activer les notifications push"
-            style="display:none;align-items:center;gap:6px;background:rgba(59,130,246,0.15);
+    <!-- Bouton notifications push -->
+    <button id="pushActivateBtn" title="Notifications push"
+            style="display:flex;align-items:center;gap:6px;background:rgba(59,130,246,0.15);
                    border:1px solid rgba(59,130,246,0.4);color:#93C5FD;border-radius:8px;
                    padding:4px 10px;font-size:0.78rem;cursor:pointer;margin-right:6px;">
-        <i class="bi bi-bell-slash"></i> Activer les notifs
+        <i class="bi bi-bell-slash" id="pushBtnIcon"></i>
+        <span id="pushBtnLabel">Notifs push</span>
     </button>
     <div class="dropdown">
         <button class="notif-btn" id="notifBtn" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
@@ -920,37 +921,68 @@
 <script>
 // ── Service Worker + Web Push ──────────────────────────────────────────────
 (function() {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    const btn   = document.getElementById('pushActivateBtn');
+    const icon  = document.getElementById('pushBtnIcon');
+    const label = document.getElementById('pushBtnLabel');
+
+    function setBtn(state) {
+        if (!btn) return;
+        if (state === 'active') {
+            btn.style.background = 'rgba(16,185,129,0.15)';
+            btn.style.borderColor = 'rgba(16,185,129,0.4)';
+            btn.style.color = '#34D399';
+            btn.style.cursor = 'default';
+            icon.className = 'bi bi-bell-fill';
+            label.textContent = 'Notifs actives';
+        } else if (state === 'blocked') {
+            btn.style.background = 'rgba(239,68,68,0.12)';
+            btn.style.borderColor = 'rgba(239,68,68,0.4)';
+            btn.style.color = '#F87171';
+            btn.style.cursor = 'help';
+            icon.className = 'bi bi-bell-slash-fill';
+            label.textContent = 'Notifs bloquées';
+            btn.title = 'Autorisez les notifications dans les paramètres de votre navigateur';
+        } else {
+            btn.style.cursor = 'pointer';
+            icon.className = 'bi bi-bell-slash';
+            label.textContent = 'Activer les notifs';
+        }
+    }
+
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        if (btn) btn.style.display = 'none';
+        return;
+    }
 
     let swReg = null;
 
-    // Convertit la clé VAPID base64url → Uint8Array
-    function urlBase64ToUint8Array(base64String) {
-        const padding = '='.repeat((4 - base64String.length % 4) % 4);
-        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-        const raw = atob(base64);
+    function urlBase64ToUint8Array(b64) {
+        const pad = '='.repeat((4 - b64.length % 4) % 4);
+        const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
         return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
     }
 
     async function subscribePush() {
-        if (!swReg) return;
         try {
             const resp = await fetch('/api/push/vapid-key');
             const { key } = await resp.json();
-            if (!key) return;
+            if (!key) { setBtn('inactive'); return; }
             const sub = await swReg.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(key),
             });
             await fetch('/api/push/subscribe', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.content || '' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.content || ''
+                },
                 body: JSON.stringify(sub.toJSON()),
             });
-            // Masquer le bouton d'activation
-            const btn = document.getElementById('pushActivateBtn');
-            if (btn) btn.remove();
-        } catch (e) { /* permission refusée ou erreur réseau */ }
+            setBtn('active');
+        } catch (e) {
+            setBtn('inactive');
+        }
     }
 
     async function initPush() {
@@ -958,28 +990,25 @@
         await navigator.serviceWorker.ready;
 
         const perm = Notification.permission;
+        if (perm === 'denied') { setBtn('blocked'); return; }
+
         if (perm === 'granted') {
-            // Vérifier si déjà abonné
             const existing = await swReg.pushManager.getSubscription();
-            if (!existing) await subscribePush();
+            if (existing) { setBtn('active'); }
+            else { await subscribePush(); }
             return;
         }
-        if (perm === 'denied') return;
 
-        // Permission non encore demandée → afficher le bouton d'activation
-        const btn = document.getElementById('pushActivateBtn');
-        if (btn) {
-            btn.style.display = 'flex';
-            btn.addEventListener('click', async () => {
-                const result = await Notification.requestPermission();
-                if (result === 'granted') await subscribePush();
-                else btn.remove();
-            });
-        }
+        // 'default' → pas encore demandé
+        setBtn('inactive');
+        btn && btn.addEventListener('click', async () => {
+            const result = await Notification.requestPermission();
+            if (result === 'granted') await subscribePush();
+            else setBtn('blocked');
+        }, { once: true });
     }
 
-    // Lancer après chargement complet
-    window.addEventListener('load', () => initPush().catch(() => {}));
+    window.addEventListener('load', () => initPush().catch(() => setBtn('inactive')));
 })();
 </script>
 </body>
