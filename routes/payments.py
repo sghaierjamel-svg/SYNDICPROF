@@ -128,12 +128,15 @@ def payments():
                 try:
                     from utils_push import push_to_admins
                     apt_label = f"{apt.block.name}-{apt.number}"
-                    months_str = ", ".join(paid_months_list) if len(paid_months_list) <= 3 else f"{paid_months_list[0]} … {paid_months_list[-1]}"
+                    months_str = ", ".join(paid_months_list) if len(paid_months_list) <= 3 else f"{paid_months_list[0]} → {paid_months_list[-1]}"
+                    resident = User.query.filter_by(apartment_id=apartment_id, role='resident').first()
+                    resident_name = resident.name or resident.email if resident else 'Résident'
                     push_to_admins(
                         org.id,
-                        title=f"💰 Paiement reçu — {apt_label}",
-                        body=f"{total_recorded_amount:.2f} DT — {months_str}",
+                        title=f"💰 Paiement reçu — Apt {apt_label}",
+                        body=f"Montant : {total_recorded_amount:.2f} DT\nMois : {months_str}\nRésident : {resident_name}",
                         url="/payments",
+                        tag=f"payment-{apartment_id}",
                     )
                 except Exception:
                     pass

@@ -58,11 +58,13 @@ def tickets():
             from utils_push import push_to_admins
             apt = ticket.apartment
             apt_label = f"{apt.block.name}-{apt.number}" if apt else ''
+            priority_fr = {'normale': 'Normale', 'haute': 'Haute ⚠️', 'urgente': 'URGENTE 🚨', 'basse': 'Basse'}.get(ticket.priority, ticket.priority)
             push_to_admins(
                 org.id,
-                title=f"🎫 Nouveau ticket — {apt_label}",
-                body=f"{ticket.subject}\nPriorité : {ticket.priority}",
+                title=f"🎫 Nouveau ticket — Apt {apt_label}",
+                body=f"{ticket.subject}\nDe : {user.name or user.email}\nPriorité : {priority_fr}",
                 url=f"/ticket/{ticket.id}",
+                tag=f"ticket-{ticket.id}",
             )
         except Exception:
             pass
@@ -100,11 +102,14 @@ def ticket_detail(ticket_id):
         try:
             if ticket.admin_response and ticket.user_id:
                 from utils_push import push_to_user
+                status_fr = {'ouvert': 'Ouvert', 'en_cours': 'En cours 🔧', 'resolu': 'Résolu ✅', 'ferme': 'Fermé'}.get(ticket.status, ticket.status)
+                short_resp = ticket.admin_response[:120] + ('…' if len(ticket.admin_response) > 120 else '')
                 push_to_user(
                     ticket.user_id,
                     title=f"📋 Réponse à votre ticket",
-                    body=f"{ticket.subject}\nStatut : {ticket.status}",
+                    body=f"{ticket.subject}\nStatut : {status_fr}\n{short_resp}",
                     url=f"/ticket/{ticket_id}",
+                    tag=f"ticket-reply-{ticket_id}",
                 )
         except Exception:
             pass
