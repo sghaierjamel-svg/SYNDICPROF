@@ -1,7 +1,7 @@
 from flask import render_template, request, redirect, url_for, flash, jsonify, send_file
 import io
 from core import app, db
-from models import Apartment, Payment, User
+from models import Apartment, Payment, User, MiscReceipt
 from utils import (current_user, current_organization, login_required,
                    admin_required, subscription_required,
                    get_unpaid_months_count, get_next_unpaid_month)
@@ -139,6 +139,9 @@ def payments():
 
         return redirect(url_for('payments'))
 
+    # Encaissements divers
+    misc_list = MiscReceipt.query.filter_by(organization_id=org.id).order_by(MiscReceipt.payment_date.desc()).all()
+
     # Charger TOUS les paiements de l'org en UNE seule requête (évite le N+1)
     payments_list = Payment.query.filter_by(organization_id=org.id).order_by(Payment.payment_date.desc()).all()
 
@@ -173,7 +176,54 @@ def payments():
                 break
             cur += relativedelta(months=1)
 
-    return render_template('payments.html', apartments=apartments, payments=payments_list, user=current_user())
+    return render_template('payments.html', apartments=apartments, payments=payments_list,
+                           misc_list=misc_list, user=current_user())
+
+
+@app.route('/misc-receipt/add', methods=['POST'])
+@login_required
+@admin_required
+@subscription_required
+def add_misc_receipt():
+    org = current_organization()
+    try:
+        amount = float(request.form['amount'])
+        if amount <= 0 or amount > 9_999_999:
+            flash('Montant invalide.', 'danger')
+            return redirect(url_for('payments') + '#divers')
+        payment_date = datetime.strptime(request.form['payment_date'], '%Y-%m-%d').date()
+        libelle = request.form.get('libelle', '').strip()[:100]
+        if not libelle:
+            flash('Le libellé est obligatoire.', 'danger')
+            return redirect(url_for('payments') + '#divers')
+        description = request.form.get('description', '').strip()[:300]
+        m = MiscReceipt(
+            organization_id=org.id,
+            amount=amount,
+            payment_date=payment_date,
+            libelle=libelle,
+            description=description or None,
+        )
+        db.session.add(m)
+        db.session.commit()
+        flash(f'Encaissement divers "{libelle}" enregistré ({amount:.2f} DT).', 'success')
+    except Exception as e:
+        print(f"ERREUR misc_receipt: {e}")
+        flash('Une erreur est survenue.', 'danger')
+    return redirect(url_for('payments') + '#divers')
+
+
+@app.route('/misc-receipt/delete/<int:receipt_id>', methods=['POST'])
+@login_required
+@admin_required
+@subscription_required
+def delete_misc_receipt(receipt_id):
+    org = current_organization()
+    m = MiscReceipt.query.filter_by(id=receipt_id, organization_id=org.id).first_or_404()
+    db.session.delete(m)
+    db.session.commit()
+    flash('Encaissement supprimé.', 'success')
+    return redirect(url_for('payments') + '#divers')
 
 
 @app.route('/api/next_unpaid/<int:apartment_id>')

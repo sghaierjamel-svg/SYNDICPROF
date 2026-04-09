@@ -1,20 +1,39 @@
 {% extends "base.html" %}
-
 {% block title %}Encaissements{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-    <div class="row">
-        <div class="col-12">
-            <h2 class="mb-4 text-white">
-                <i class="bi bi-cash-coin" style="color:#00C896;"></i> Gestion des Encaissements
-            </h2>
-        </div>
-    </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="text-white mb-0">
+        <i class="bi bi-cash-coin" style="color:#00C896;"></i> Encaissements
+    </h2>
+</div>
 
-    <!-- Formulaire d'ajout d'encaissement -->
-    <div class="row mb-4">
-        <div class="col-lg-6">
+<!-- Onglets -->
+<ul class="nav nav-tabs mb-4" id="payTabs" role="tablist" style="border-bottom-color:var(--border);">
+    <li class="nav-item">
+        <a class="nav-link active" id="tab-rev" data-bs-toggle="tab" href="#redevances" role="tab"
+           style="color:var(--muted);">
+            <i class="bi bi-house-door"></i> Redevances
+            <span class="badge bg-primary ms-1">{{ payments|length }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" id="tab-div" data-bs-toggle="tab" href="#divers" role="tab"
+           style="color:var(--muted);">
+            <i class="bi bi-collection"></i> Encaissements divers
+            <span class="badge bg-secondary ms-1">{{ misc_list|length }}</span>
+        </a>
+    </li>
+</ul>
+
+<div class="tab-content">
+
+<!-- ══════════════════ TAB REDEVANCES ══════════════════ -->
+<div class="tab-pane fade show active" id="redevances" role="tabpanel">
+    <div class="row g-3 mb-4">
+
+        <!-- Formulaire encaissement -->
+        <div class="col-lg-5">
             <div class="card">
                 <div class="card-header">
                     <i class="bi bi-plus-circle" style="color:#00C896;"></i> Nouvel Encaissement
@@ -22,462 +41,405 @@
                 <div class="card-body">
                     <form method="POST" id="paymentForm">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <div class="form-group mb-3">
-                            <label for="apartment_id" class="form-label fw-bold">
-                                <i class="bi bi-building"></i> Appartement *
-                            </label>
-                            <select class="form-select" id="apartment_id" name="apartment_id" required onchange="updateApartmentInfo()">
-                                <option value="">-- Sélectionner un appartement --</option>
+
+                        <div class="mb-3">
+                            <label class="form-label">Appartement *</label>
+                            <select class="form-select" id="apartment_id" name="apartment_id"
+                                    required onchange="updateAptInfo()">
+                                <option value="">-- Sélectionner --</option>
                                 {% for apt in apartments %}
                                 <option value="{{ apt.id }}"
                                         data-fee="{{ apt.monthly_fee }}"
                                         data-unpaid="{{ apt.unpaid_count }}"
                                         data-next="{{ apt.next_unpaid }}"
                                         data-credit="{{ apt.credit_balance }}">
-                                    {{ apt.block.name }} - Appt {{ apt.number }}
-                                    ({{ apt.monthly_fee }} DT/mois - {{ apt.unpaid_count }} mois impayés)
-                                    {% if apt.credit_balance > 0 %}
-                                    💳 Crédit: {{ "%.2f"|format(apt.credit_balance) }} DT
-                                    {% endif %}
+                                    {{ apt.block.name }}-{{ apt.number }}
+                                    ({{ '{:.0f}'.format(apt.monthly_fee) }} DT · {{ apt.unpaid_count }} impayés{% if apt.credit_balance > 0 %} · crédit {{ '{:.0f}'.format(apt.credit_balance) }} DT{% endif %})
                                 </option>
                                 {% endfor %}
                             </select>
                         </div>
 
-                        <!-- Informations de l'appartement avec crédit -->
-                        <div id="aptInfo" class="alert alert-info d-none mb-3">
-                            <strong>📊 Informations :</strong><br>
+                        <!-- Info appartement compacte -->
+                        <div id="aptInfo" class="d-none mb-3 p-2 rounded" style="background:rgba(0,200,150,0.07);border:1px solid rgba(0,200,150,0.2);font-size:.82rem;">
                             <span id="aptInfoText"></span>
-                            <div id="creditInfo" class="mt-2 p-2 rounded d-none" style="background:rgba(0,200,150,0.1); border:1px solid rgba(0,200,150,0.3);">
-                                <strong style="color:#00C896;">💳 Crédit disponible : <span id="creditAmount">0.00</span> DT</strong><br>
-                                <small class="text-muted">Ce crédit sera automatiquement utilisé pour ce paiement</small>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-7">
+                                <label class="form-label">Montant (DT) *</label>
+                                <input type="number" step="0.01" class="form-control" id="amount" name="amount"
+                                       placeholder="0.00" required oninput="calcMonths()">
+                                <div id="monthsInfo" class="mt-1" style="font-size:.78rem;"></div>
+                            </div>
+                            <div class="col-5">
+                                <label class="form-label">Date *</label>
+                                <input type="date" class="form-control" id="payment_date" name="payment_date" required>
                             </div>
                         </div>
 
-                        <div class="form-group mb-3">
-                            <label for="amount" class="form-label fw-bold">
-                                <i class="bi bi-coin"></i> Montant (DT) *
+                        <div class="mb-3">
+                            <label class="form-label">
+                                Mois de départ
+                                <small style="color:var(--muted);">(vide = automatique)</small>
                             </label>
-                            <input type="number" step="0.01" class="form-control" id="amount" name="amount"
-                                   placeholder="Ex: 300.00" required onchange="calculateMonths()">
-                            <small class="form-text text-muted" id="monthsInfo"></small>
+                            <input type="month" class="form-control" id="start_month" name="start_month">
                         </div>
 
-                        <div class="form-group mb-3">
-                            <label for="payment_date" class="form-label fw-bold">
-                                <i class="bi bi-calendar"></i> Date de Paiement *
-                            </label>
-                            <input type="date" class="form-control" id="payment_date" name="payment_date"
-                                   value="{{ today }}" required>
-                        </div>
-
-                        <!-- Champ Mois de redevance -->
-                        <div class="form-group mb-3">
-                            <label for="start_month" class="form-label fw-bold">
-                                <i class="bi bi-calendar2"></i> Mois de Redevance
-                                <span class="badge bg-info">Optionnel</span>
-                            </label>
-                            <input type="month" class="form-control" id="start_month" name="start_month"
-                                   placeholder="YYYY-MM">
-                            <small class="form-text text-muted">
-                                <strong>💡 Conseil :</strong><br>
-                                • <strong>Laissez vide</strong> → Le système commence automatiquement au premier mois impayé<br>
-                                • <strong>Remplissez</strong> → Choisissez le mois de départ (utile pour payer des mois anciens)
-                            </small>
-                            <div id="modeInfo" class="alert-sm mt-2 d-none"></div>
-                        </div>
-
-                        <div class="form-group mb-3">
-                            <label for="description" class="form-label fw-bold">
-                                <i class="bi bi-chat-left"></i> Description
-                            </label>
-                            <input type="text" class="form-control" id="description" name="description"
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <input type="text" class="form-control" name="description"
                                    placeholder="Ex: Paiement redevances">
                         </div>
 
-                        <button type="submit" class="btn btn-primary btn-lg w-100">
-                            <i class="bi bi-floppy"></i> Enregistrer l'Encaissement
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-floppy"></i> Enregistrer
                         </button>
                     </form>
                 </div>
             </div>
-        </div>
 
-        <!-- Paiement Konnect -->
-        <div class="col-lg-6">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <i class="bi bi-credit-card" style="color:#00C896;"></i> Générer un Lien de Paiement Konnect
-                </div>
-                <div class="card-body">
-                    <p class="text-muted mb-3">
-                        Générez un lien de paiement sécurisé à partager avec le résident (WhatsApp, SMS, email).
-                        Une fois le paiement effectué, il est enregistré automatiquement.
-                    </p>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold"><i class="bi bi-building"></i> Appartement</label>
-                        <select class="form-select" id="konnect_apartment_id" onchange="fillKonnectInfo()">
-                            <option value="">-- Sélectionner --</option>
-                            {% for apt in apartments %}
-                            <option value="{{ apt.id }}"
-                                    data-fee="{{ apt.monthly_fee }}"
-                                    data-next="{{ apt.next_unpaid }}">
-                                {{ apt.block.name }}-{{ apt.number }}
-                                ({{ '{:.0f}'.format(apt.monthly_fee) }} DT — {{ apt.unpaid_count }} mois impayés)
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold"><i class="bi bi-calendar2"></i> Mois concerné</label>
-                        <input type="month" class="form-control" id="konnect_month">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold"><i class="bi bi-coin"></i> Montant (DT)</label>
-                        <input type="number" step="0.01" class="form-control" id="konnect_amount" placeholder="Ex: 150.00">
-                    </div>
-                    <button class="btn btn-primary w-100" id="konnectBtn" onclick="generateKonnectLink()">
-                        <i class="bi bi-link-45deg"></i> Générer le lien
-                    </button>
-                    <div id="konnectResult" class="mt-3 d-none">
-                        <label class="form-label fw-bold text-white">Lien de paiement :</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="konnectUrl" readonly>
-                            <button class="btn btn-outline-primary" onclick="copyKonnectLink()" title="Copier">
-                                <i class="bi bi-clipboard"></i>
+            <!-- Konnect (accordéon) -->
+            <div class="accordion mt-3" id="konnectAccordion">
+                <div class="accordion-item" style="background:var(--card);border:1px solid var(--border);">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#konnectPanel"
+                                style="background:var(--card);color:var(--muted);font-size:.85rem;">
+                            <i class="bi bi-link-45deg me-2" style="color:#00C896;"></i>
+                            Générer un lien Konnect
+                        </button>
+                    </h2>
+                    <div id="konnectPanel" class="accordion-collapse collapse">
+                        <div class="accordion-body pt-2">
+                            <div class="mb-2">
+                                <select class="form-select form-select-sm" id="konnect_apt" onchange="fillKonnect()">
+                                    <option value="">-- Appartement --</option>
+                                    {% for apt in apartments %}
+                                    <option value="{{ apt.id }}" data-fee="{{ apt.monthly_fee }}" data-next="{{ apt.next_unpaid }}">
+                                        {{ apt.block.name }}-{{ apt.number }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <input type="month" class="form-control form-control-sm" id="konnect_month">
+                                </div>
+                                <div class="col-6">
+                                    <input type="number" step="0.01" class="form-control form-control-sm"
+                                           id="konnect_amount" placeholder="Montant DT">
+                                </div>
+                            </div>
+                            <button class="btn btn-sm btn-primary w-100" id="konnectBtn" onclick="genKonnect()">
+                                <i class="bi bi-link-45deg"></i> Générer
                             </button>
+                            <div id="konnectResult" class="mt-2 d-none">
+                                <div class="input-group input-group-sm">
+                                    <input type="text" class="form-control" id="konnectUrl" readonly>
+                                    <button class="btn btn-outline-secondary" onclick="copyKonnect()">
+                                        <i class="bi bi-clipboard"></i>
+                                    </button>
+                                </div>
+                                <small style="color:#00C896;"><i class="bi bi-check-circle"></i> Lien généré</small>
+                            </div>
+                            <div id="konnectError" class="alert alert-danger mt-2 p-2 d-none" style="font-size:.8rem;"></div>
+                            <div class="mt-2">
+                                <a href="{{ url_for('konnect_links') }}" class="btn btn-outline-secondary btn-sm w-100">
+                                    <i class="bi bi-list-ul"></i> Voir tous les liens
+                                </a>
+                            </div>
                         </div>
-                        <small style="color:#00C896;" class="mt-1 d-block">
-                            <i class="bi bi-check-circle"></i> Lien généré — partagez-le au résident
-                        </small>
                     </div>
-                    <div id="konnectError" class="alert alert-danger mt-3 d-none"></div>
-                    <div class="mt-3">
-                        <a href="{{ url_for('konnect_links') }}" class="btn btn-outline-secondary btn-sm">
-                            <i class="bi bi-list-ul"></i> Voir tous les liens Konnect
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-        <!-- Aide contextuelle -->
-            <div class="card">
-                <div class="card-header">
-                    <i class="bi bi-question-circle" style="color:#00C896;"></i> Guide d'Utilisation
-                </div>
-                <div class="card-body">
-                    <h6 class="fw-bold" style="color:#00C896;">💳 Système de Crédit</h6>
-                    <p class="text-muted">
-                        Si le montant payé ne couvre pas exactement un nombre de mois complets,
-                        le reste est automatiquement mis en <strong>crédit</strong> et sera utilisé
-                        lors du prochain paiement.
-                    </p>
-
-                    <div class="alert alert-success">
-                        <strong>✅ Exemple :</strong><br>
-                        Redevance : 100 DT/mois<br>
-                        Paiement 1 : 350 DT → 3 mois payés + 50 DT en crédit<br>
-                        Paiement 2 : 80 DT → Total 130 DT → 1 mois payé + 30 DT en crédit
-                    </div>
-
-                    <hr>
-
-                    <h6 class="fw-bold" style="color:#00C896;">🤖 Mode Automatique (Recommandé)</h6>
-                    <p class="text-muted">
-                        Laissez le champ <strong>"Mois de Redevance"</strong> vide.
-                        Le système paiera automatiquement les mois dans l'ordre chronologique
-                        depuis le premier mois impayé.
-                    </p>
-
-                    <hr>
-
-                    <h6 class="fw-bold" style="color:#00C896;">📅 Mode Manuel (Avancé)</h6>
-                    <p class="text-muted">
-                        Remplissez le champ <strong>"Mois de Redevance"</strong> pour choisir
-                        à partir de quel mois commencer le paiement.
-                    </p>
-
-                    <div class="alert alert-warning">
-                        <strong>💡 Exemple :</strong><br>
-                        Un résident a 5 mois impayés (Jan, Fév, Mar, Avr, Mai).<br>
-                        Il paye d'abord Mai (le mois courant), puis revient payer Jan-Avr.<br><br>
-                        <strong>Solution :</strong><br>
-                        1️⃣ Saisir "2025-05" dans "Mois de Redevance" pour payer Mai<br>
-                        2️⃣ Saisir "2025-01" dans "Mois de Redevance" pour payer Jan-Avr
-                    </div>
-
-                    <hr>
-
-                    <h6 class="fw-bold" style="color:#00C896;">✅ Fonctionnalités</h6>
-                    <ul class="list-unstyled">
-                        <li><i class="bi bi-check-circle" style="color:#00C896;"></i> Paiement multiple automatique</li>
-                        <li><i class="bi bi-check-circle" style="color:#00C896;"></i> Système de crédit automatique</li>
-                        <li><i class="bi bi-check-circle" style="color:#00C896;"></i> Détection des doublons</li>
-                        <li><i class="bi bi-check-circle" style="color:#00C896;"></i> Calcul du reste non utilisé</li>
-                        <li><i class="bi bi-check-circle" style="color:#00C896;"></i> Historique détaillé</li>
-                    </ul>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Liste des encaissements -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <i class="bi bi-list-ul" style="color:#00C896;"></i> Historique des Encaissements
+        <!-- Tableau historique redevances -->
+        <div class="col-lg-7">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-list-ul" style="color:#00C896;"></i> Historique Redevances</span>
+                    <small style="color:var(--muted);">{{ payments|length }} enregistrement{{ 's' if payments|length > 1 }}</small>
                 </div>
-                <div class="card-body">
-                    {% if payments %}
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover mb-0" style="font-size:.83rem;">
                             <thead>
                                 <tr>
-                                    <th>ID</th>
+                                    <th>Date</th>
                                     <th>Appartement</th>
+                                    <th>Mois</th>
                                     <th>Montant</th>
-                                    <th>💳 Crédit Utilisé</th>
-                                    <th>Date Paiement</th>
-                                    <th>Mois Payé</th>
-                                    <th>Description</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for p in payments %}
                                 <tr>
-                                    <td>{{ p.id }}</td>
+                                    <td style="white-space:nowrap;">{{ p.payment_date.strftime('%d/%m/%Y') }}</td>
                                     <td>
-                                        <strong>{{ p.apartment.block.name }}</strong> - Appt {{ p.apartment.number }}
-                                        {% if p.apartment.credit_balance > 0 %}
-                                        <br><small style="color:#00C896;">💳 Crédit: {{ "%.2f"|format(p.apartment.credit_balance) }} DT</small>
-                                        {% endif %}
-                                    </td>
-                                    <td><span class="badge bg-success">{{ "%.2f"|format(p.amount) }} DT</span></td>
-                                    <td>
+                                        <strong>{{ p.apartment.block.name }}-{{ p.apartment.number }}</strong>
                                         {% if p.credit_used > 0 %}
-                                        <span class="badge bg-info">{{ "%.2f"|format(p.credit_used) }} DT</span>
-                                        {% else %}
-                                        <span class="text-muted">-</span>
+                                        <br><small style="color:#00C896;font-size:.72rem;">
+                                            crédit {{ '{:.2f}'.format(p.credit_used) }} DT
+                                        </small>
                                         {% endif %}
                                     </td>
-                                    <td>{{ p.payment_date.strftime('%d/%m/%Y') }}</td>
                                     <td><span class="badge bg-primary">{{ p.month_paid }}</span></td>
-                                    <td>{{ p.description }}</td>
+                                    <td><strong style="color:#00C896;">{{ '{:.2f}'.format(p.amount) }} DT</strong></td>
                                     <td>
-                                        <a href="{{ url_for('payment_receipt', payment_id=p.id) }}"
-                                           class="btn btn-sm btn-outline-secondary" title="Télécharger le reçu PDF">
-                                            <i class="bi bi-file-earmark-pdf"></i>
-                                        </a>
-                                        <a href="{{ url_for('edit_payment', payment_id=p.id) }}"
-                                           class="btn btn-sm btn-warning">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-                                        <form method="POST" action="{{ url_for('delete_payment', payment_id=p.id) }}" style="display:inline;">
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="btn btn-sm btn-danger"
-                                                    onclick="return confirm('Supprimer cet encaissement ?')">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
+                                        <div class="d-flex gap-1">
+                                            <a href="{{ url_for('payment_receipt', payment_id=p.id) }}"
+                                               class="btn btn-sm btn-outline-secondary" title="Reçu PDF">
+                                                <i class="bi bi-file-earmark-pdf"></i>
+                                            </a>
+                                            <a href="{{ url_for('edit_payment', payment_id=p.id) }}"
+                                               class="btn btn-sm btn-warning" title="Modifier">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <form method="POST" action="{{ url_for('delete_payment', payment_id=p.id) }}"
+                                                  style="display:inline;" onsubmit="return confirm('Supprimer ?')">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-4" style="color:var(--muted);">
+                                        Aucun encaissement enregistré
                                     </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
-                    {% else %}
-                    <div class="alert alert-info text-center">
-                        <i class="bi bi-info-circle"></i> Aucun encaissement enregistré.
-                    </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<style>
-.alert-sm {
-    padding: 0.5rem;
-    font-size: 0.875rem;
-    border-radius: 8px;
-}
-</style>
+<!-- ══════════════════ TAB ENCAISSEMENTS DIVERS ══════════════════ -->
+<div class="tab-pane fade" id="divers" role="tabpanel">
+    <div class="row g-3">
+
+        <!-- Formulaire -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-plus-circle" style="color:#00C896;"></i> Nouvel encaissement divers
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('add_misc_receipt') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <div class="mb-3">
+                            <label class="form-label">Libellé *</label>
+                            <input class="form-control" name="libelle" list="libelles_list"
+                                   placeholder="Ex: Badge accès, Télécommande..." required>
+                            <datalist id="libelles_list">
+                                <option value="Badge d'accès">
+                                <option value="Télécommande porte sous-sol">
+                                <option value="Duplicata de clé">
+                                <option value="Caution">
+                                <option value="Pénalité de retard">
+                                <option value="Participation travaux">
+                                <option value="Autre">
+                            </datalist>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label">Montant (DT) *</label>
+                                <input type="number" step="0.01" class="form-control"
+                                       name="amount" placeholder="0.00" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Date *</label>
+                                <input type="date" class="form-control" name="payment_date"
+                                       id="misc_date" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <input class="form-control" name="description"
+                                   placeholder="Détails optionnels...">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-floppy"></i> Enregistrer
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Total -->
+            {% if misc_list %}
+            <div class="card mt-3">
+                <div class="card-body text-center">
+                    <div style="font-size:1.5rem;font-weight:700;color:#00C896;">
+                        {{ '{:.2f}'.format(misc_list | sum(attribute='amount')) }} DT
+                    </div>
+                    <div style="font-size:.8rem;color:var(--muted);">Total encaissements divers</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Tableau -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-collection" style="color:#00C896;"></i> Historique</span>
+                    <small style="color:var(--muted);">{{ misc_list|length }} enregistrement{{ 's' if misc_list|length > 1 }}</small>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" style="font-size:.83rem;">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Libellé</th>
+                                    <th>Montant</th>
+                                    <th>Description</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for m in misc_list %}
+                                <tr>
+                                    <td style="white-space:nowrap;">{{ m.payment_date.strftime('%d/%m/%Y') }}</td>
+                                    <td><strong>{{ m.libelle }}</strong></td>
+                                    <td><strong style="color:#00C896;">{{ '{:.2f}'.format(m.amount) }} DT</strong></td>
+                                    <td style="color:var(--muted);">{{ m.description or '—' }}</td>
+                                    <td>
+                                        <form method="POST" action="{{ url_for('delete_misc_receipt', receipt_id=m.id) }}"
+                                              onsubmit="return confirm('Supprimer ?')">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-4" style="color:var(--muted);">
+                                        Aucun encaissement divers enregistré
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div><!-- /tab-content -->
+{% endblock %}
 
 {% block extra_js %}
 <script>
-let currentFee = 0;
-let currentUnpaid = 0;
-let currentNextMonth = '';
-let currentCredit = 0;
+// ── Redevances ────────────────────────────────────────────────────────────────
+let fee = 0, credit = 0;
 
-function updateApartmentInfo() {
-    const select = document.getElementById('apartment_id');
-    const option = select.options[select.selectedIndex];
-    const infoDiv = document.getElementById('aptInfo');
-    const infoText = document.getElementById('aptInfoText');
-    const creditInfo = document.getElementById('creditInfo');
-    const creditAmount = document.getElementById('creditAmount');
-    const startMonthInput = document.getElementById('start_month');
-
-    if (option.value) {
-        currentFee = parseFloat(option.dataset.fee);
-        currentUnpaid = parseInt(option.dataset.unpaid);
-        currentNextMonth = option.dataset.next;
-        currentCredit = parseFloat(option.dataset.credit || 0);
-
-        infoText.innerHTML = `
-            <strong>Redevance mensuelle :</strong> ${currentFee} DT<br>
-            <strong>Mois impayés :</strong> ${currentUnpaid}<br>
-            <strong>Prochain mois impayé :</strong> ${currentNextMonth}
-        `;
-        infoDiv.classList.remove('d-none');
-
-        if (currentCredit > 0) {
-            creditAmount.textContent = currentCredit.toFixed(2);
-            creditInfo.classList.remove('d-none');
-        } else {
-            creditInfo.classList.add('d-none');
-        }
-
-        startMonthInput.placeholder = `Suggestion : ${currentNextMonth}`;
-        calculateMonths();
-    } else {
-        infoDiv.classList.add('d-none');
-        creditInfo.classList.add('d-none');
-        currentFee = 0;
-        currentUnpaid = 0;
-        currentNextMonth = '';
-        currentCredit = 0;
-    }
-}
-
-function calculateMonths() {
-    const amount = parseFloat(document.getElementById('amount').value);
-    const monthsInfo = document.getElementById('monthsInfo');
-
-    if (amount && currentFee > 0) {
-        const totalAvailable = amount + currentCredit;
-        const months = Math.floor(totalAvailable / currentFee);
-        const remainder = (totalAvailable % currentFee).toFixed(2);
-
-        let infoHtml = '';
-
-        if (currentCredit > 0) {
-            infoHtml += `<span style="color:#67e8f9;">💳 Crédit actuel : ${currentCredit.toFixed(2)} DT<br></span>`;
-            infoHtml += `<span style="color:#00C896;">💰 Total disponible : ${totalAvailable.toFixed(2)} DT<br></span>`;
-        }
-
-        if (months > 0) {
-            infoHtml += `
-                <span style="color:#6ee7b7;">
-                    ✅ Ce montant couvre <strong>${months} mois</strong>
-                    ${remainder > 0 ? `<br>💳 Nouveau crédit : ${remainder} DT` : '<br>✅ Montant exact'}
-                </span>
-            `;
-        } else {
-            infoHtml += `
-                <span style="color:#fcd34d;">
-                    💰 Montant insuffisant pour 1 mois (redevance: ${currentFee} DT)<br>
-                    💳 ${totalAvailable.toFixed(2)} DT sera mis en crédit
-                </span>
-            `;
-        }
-
-        monthsInfo.innerHTML = infoHtml;
-    } else {
-        monthsInfo.innerHTML = '';
-    }
-}
-
-document.getElementById('start_month').addEventListener('input', function() {
-    const modeInfo = document.getElementById('modeInfo');
-
-    if (this.value) {
-        modeInfo.style.cssText = 'background:rgba(0,200,150,0.1);border:1px solid rgba(0,200,150,0.3);color:#6ee7b7;padding:.5rem;border-radius:8px;font-size:.875rem;';
-        modeInfo.innerHTML = `<strong>📅 Mode MANUEL activé</strong><br>Le paiement commencera à partir de <strong>${this.value}</strong>`;
-        modeInfo.classList.remove('d-none');
-    } else {
-        modeInfo.style.cssText = 'background:rgba(0,200,150,0.1);border:1px solid rgba(0,200,150,0.3);color:#6ee7b7;padding:.5rem;border-radius:8px;font-size:.875rem;';
-        modeInfo.innerHTML = `<strong>🤖 Mode AUTO activé</strong><br>Le système paiera automatiquement depuis le premier mois impayé`;
-        modeInfo.classList.remove('d-none');
-    }
-});
-
-document.getElementById('amount').addEventListener('input', calculateMonths);
-
-document.addEventListener('DOMContentLoaded', function() {
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('payment_date').value = today;
-});
-
-// ─── Konnect ─────────────────────────────────────────────────────────────────
-function fillKonnectInfo() {
-    const sel = document.getElementById('konnect_apartment_id');
+function updateAptInfo() {
+    const sel = document.getElementById('apartment_id');
     const opt = sel.options[sel.selectedIndex];
+    const box = document.getElementById('aptInfo');
+    if (!opt.value) { box.classList.add('d-none'); fee = 0; credit = 0; return; }
+    fee    = parseFloat(opt.dataset.fee);
+    credit = parseFloat(opt.dataset.credit || 0);
+    const unpaid = opt.dataset.unpaid;
+    const next   = opt.dataset.next;
+    document.getElementById('aptInfoText').innerHTML =
+        `<strong style="color:#00C896;">${fee} DT/mois</strong> · ${unpaid} mois impayé(s) · prochain : <strong>${next}</strong>`
+        + (credit > 0 ? ` · <span style="color:#00C896;">crédit ${credit.toFixed(2)} DT</span>` : '');
+    box.classList.remove('d-none');
+    document.getElementById('start_month').placeholder = next;
+    calcMonths();
+}
+
+function calcMonths() {
+    const val = parseFloat(document.getElementById('amount').value);
+    const box = document.getElementById('monthsInfo');
+    if (!val || fee <= 0) { box.innerHTML = ''; return; }
+    const total  = val + credit;
+    const months = Math.floor(total / fee);
+    const rem    = (total % fee).toFixed(2);
+    if (months > 0) {
+        box.innerHTML = `<span style="color:#6ee7b7;">✅ ${months} mois${rem > 0 ? ' · crédit restant : ' + rem + ' DT' : ''}</span>`;
+    } else {
+        box.innerHTML = `<span style="color:#fcd34d;">Insuffisant (${fee} DT/mois) · mis en crédit</span>`;
+    }
+}
+
+document.getElementById('amount').addEventListener('input', calcMonths);
+document.getElementById('payment_date').value = new Date().toISOString().split('T')[0];
+
+// ── Konnect ───────────────────────────────────────────────────────────────────
+function fillKonnect() {
+    const opt = document.getElementById('konnect_apt').options[document.getElementById('konnect_apt').selectedIndex];
     if (opt.value) {
         document.getElementById('konnect_amount').value = parseFloat(opt.dataset.fee).toFixed(2);
-        document.getElementById('konnect_month').value = opt.dataset.next;
-    } else {
-        document.getElementById('konnect_amount').value = '';
-        document.getElementById('konnect_month').value = '';
+        document.getElementById('konnect_month').value  = opt.dataset.next;
     }
     document.getElementById('konnectResult').classList.add('d-none');
     document.getElementById('konnectError').classList.add('d-none');
 }
 
-function generateKonnectLink() {
-    const aptId = document.getElementById('konnect_apartment_id').value;
-    const month = document.getElementById('konnect_month').value;
+function genKonnect() {
+    const aptId  = document.getElementById('konnect_apt').value;
+    const month  = document.getElementById('konnect_month').value;
     const amount = document.getElementById('konnect_amount').value;
-
-    if (!aptId || !month || !amount) {
-        alert('Veuillez remplir tous les champs Konnect.');
-        return;
-    }
-
+    if (!aptId || !month || !amount) { alert('Remplissez tous les champs Konnect.'); return; }
     const btn = document.getElementById('konnectBtn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Génération...';
-
-    const formData = new FormData();
-    formData.append('apartment_id', aptId);
-    formData.append('month_target', month);
-    formData.append('amount', amount);
-    formData.append('csrf_token', '{{ csrf_token() }}');
-
-    fetch('/konnect/admin/generate-link', {method: 'POST', body: formData})
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>...';
+    const fd = new FormData();
+    fd.append('apartment_id', aptId);
+    fd.append('month_target', month);
+    fd.append('amount', amount);
+    fd.append('csrf_token', '{{ csrf_token() }}');
+    fetch('/konnect/admin/generate-link', {method:'POST', body:fd})
         .then(r => r.json())
-        .then(data => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-link-45deg"></i> Générer le lien';
-            if (data.ok) {
-                document.getElementById('konnectUrl').value = data.pay_url;
+        .then(d => {
+            btn.disabled = false; btn.innerHTML = '<i class="bi bi-link-45deg"></i> Générer';
+            if (d.ok) {
+                document.getElementById('konnectUrl').value = d.pay_url;
                 document.getElementById('konnectResult').classList.remove('d-none');
                 document.getElementById('konnectError').classList.add('d-none');
             } else {
-                document.getElementById('konnectError').textContent = data.message;
+                document.getElementById('konnectError').textContent = d.message;
                 document.getElementById('konnectError').classList.remove('d-none');
                 document.getElementById('konnectResult').classList.add('d-none');
             }
         })
         .catch(() => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-link-45deg"></i> Générer le lien';
-            document.getElementById('konnectError').textContent = 'Erreur réseau, réessayez.';
+            btn.disabled = false; btn.innerHTML = '<i class="bi bi-link-45deg"></i> Générer';
+            document.getElementById('konnectError').textContent = 'Erreur réseau.';
             document.getElementById('konnectError').classList.remove('d-none');
         });
 }
 
-function copyKonnectLink() {
-    const input = document.getElementById('konnectUrl');
-    navigator.clipboard.writeText(input.value);
-    const btn = event.target.closest('button');
-    btn.innerHTML = '<i class="bi bi-check-lg"></i>';
-    setTimeout(() => { btn.innerHTML = '<i class="bi bi-clipboard"></i>'; }, 2000);
+function copyKonnect() {
+    navigator.clipboard.writeText(document.getElementById('konnectUrl').value);
+    event.target.closest('button').innerHTML = '<i class="bi bi-check-lg"></i>';
+    setTimeout(() => event.target.closest('button').innerHTML = '<i class="bi bi-clipboard"></i>', 2000);
+}
+
+// Date par défaut encaissements divers
+document.getElementById('misc_date').value = new Date().toISOString().split('T')[0];
+
+// Activer l'onglet divers si hash #divers dans l'URL
+if (window.location.hash === '#divers') {
+    const tab = document.getElementById('tab-div');
+    if (tab) new bootstrap.Tab(tab).show();
 }
 </script>
-{% endblock %}
 {% endblock %}

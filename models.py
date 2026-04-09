@@ -120,6 +120,18 @@ class Payment(db.Model):
     credit_used = db.Column(db.Float, default=0.0)
 
 
+class MiscReceipt(db.Model):
+    """Encaissements divers (badges, télécommandes, clés, pénalités...)"""
+    __tablename__ = 'misc_receipt'
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    payment_date = db.Column(db.Date, nullable=False)
+    libelle = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.String(300))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 class Expense(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
@@ -611,6 +623,26 @@ def init_db():
                 print("Migration PostgreSQL : table announcement_read vérifiée.")
     except Exception as e:
         print(f"Migration announcement_read : {e}")
+
+    # Migration : table misc_receipt
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS misc_receipt (
+                        id SERIAL PRIMARY KEY,
+                        organization_id INTEGER REFERENCES organization(id),
+                        amount FLOAT NOT NULL,
+                        payment_date DATE NOT NULL,
+                        libelle VARCHAR(100) NOT NULL,
+                        description VARCHAR(300),
+                        created_at TIMESTAMP DEFAULT NOW()
+                    )
+                """))
+                conn.commit()
+                print("Migration PostgreSQL : table misc_receipt créée.")
+    except Exception as e:
+        print(f"Migration misc_receipt : {e}")
 
     # Migration : colonnes facture + intervenant_id sur expense (PostgreSQL)
     try:
