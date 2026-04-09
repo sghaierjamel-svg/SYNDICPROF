@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SyndicPro — Présentation Commerciale</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+  :root {
+    --blue-deep: #0F172A;
+    --blue-dark: #1E3A8A;
+    --blue-mid:  #1D4ED8;
+    --blue-light:#3B82F6;
+    --green:     #10B981;
+    --gold:      #F59E0B;
+    --muted:     #94A3B8;
+    --card-bg:   #1E293B;
+    --border:    #334155;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--blue-deep);
+    color: #F1F5F9;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    margin: 0;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 60%, #1D4ED8 100%);
+    padding: 80px 20px 60px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: rgba(59,130,246,0.08);
+    top: -200px; right: -150px;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    width: 400px; height: 400px;
+    border-radius: 50%;
+    background: rgba(16,185,129,0.06);
+    bottom: -150px; left: -100px;
+  }
+  .hero-logo {
+    height: 90px;
+    mix-blend-mode: screen;
+    filter: brightness(1.1);
+    margin-bottom: 24px;
+  }
+  .hero h1 {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 16px;
+    position: relative; z-index:1;
+  }
+  .hero h1 span { color: #60A5FA; }
+  .hero p.lead {
+    font-size: clamp(1rem, 2vw, 1.25rem);
+    color: #CBD5E1;
+    max-width: 680px;
+    margin: 0 auto 36px;
+    line-height: 1.7;
+    position: relative; z-index:1;
+  }
+  .badge-hero {
+    display: inline-block;
+    background: rgba(16,185,129,0.15);
+    border: 1px solid rgba(16,185,129,0.4);
+    color: #6EE7B7;
+    border-radius: 50px;
+    padding: 6px 18px;
+    font-size: .85rem;
+    font-weight: 600;
+    margin-bottom: 28px;
+    position: relative; z-index:1;
+  }
+  .btn-cta {
+    background: linear-gradient(135deg, #1D4ED8, #3B82F6);
+    color: #fff;
+    border: none;
+    padding: 14px 40px;
+    border-radius: 50px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    text-decoration: none;
+    display: inline-block;
+    transition: .2s;
+    box-shadow: 0 8px 32px rgba(29,78,216,0.4);
+    position: relative; z-index:1;
+  }
+  .btn-cta:hover { transform: translateY(-2px); color:#fff; box-shadow: 0 12px 40px rgba(29,78,216,0.5); }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    background: var(--card-bg);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 28px 20px;
+  }
+  .stat-item { text-align: center; }
+  .stat-item .num {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #60A5FA;
+    display: block;
+  }
+  .stat-item .label { color: var(--muted); font-size: .85rem; }
+
+  /* ── SECTIONS ── */
+  section { padding: 70px 20px; }
+  .section-label {
+    display: inline-block;
+    background: rgba(59,130,246,0.12);
+    border: 1px solid rgba(59,130,246,0.3);
+    color: #93C5FD;
+    border-radius: 50px;
+    padding: 5px 16px;
+    font-size: .8rem;
+    font-weight: 600;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  h2.section-title {
+    font-size: clamp(1.6rem, 3vw, 2.4rem);
+    font-weight: 800;
+    letter-spacing: -.5px;
+    margin-bottom: 12px;
+  }
+  .section-sub { color: var(--muted); font-size: 1rem; max-width: 600px; margin: 0 auto 48px; }
+
+  /* ── FEATURE CARDS ── */
+  .feat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    height: 100%;
+    transition: .2s;
+  }
+  .feat-card:hover { border-color: var(--blue-light); transform: translateY(-3px); }
+  .feat-icon {
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    margin-bottom: 18px;
+    flex-shrink: 0;
+  }
+  .feat-card h5 { font-weight: 700; font-size: 1.05rem; margin-bottom: 10px; }
+  .feat-card p { color: var(--muted); font-size: .9rem; line-height: 1.6; margin: 0; }
+
+  /* ── MODULE LIST ── */
+  .module-row {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    transition: .2s;
+  }
+  .module-row:hover { border-color: var(--blue-light); }
+  .module-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; flex-shrink: 0;
+  }
+  .module-row h6 { font-weight: 700; margin: 0 0 4px; font-size: .95rem; }
+  .module-row p { color: var(--muted); font-size: .83rem; margin: 0; line-height: 1.5; }
+  .badge-new {
+    background: rgba(16,185,129,0.15);
+    border: 1px solid rgba(16,185,129,0.35);
+    color: #6EE7B7;
+    font-size: .68rem;
+    padding: 2px 8px;
+    border-radius: 50px;
+    font-weight: 600;
+    vertical-align: middle;
+    margin-left: 6px;
+  }
+
+  /* ── WORKFLOW ── */
+  .step-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 24px;
+    position: relative;
+    height: 100%;
+  }
+  .step-num {
+    width: 36px; height: 36px;
+    background: var(--blue-mid);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: .9rem;
+    margin-bottom: 16px;
+  }
+  .step-card h6 { font-weight: 700; margin-bottom: 8px; }
+  .step-card p { color: var(--muted); font-size: .87rem; margin: 0; line-height: 1.6; }
+
+  /* ── PRICING ── */
+  .price-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px 28px;
+    text-align: center;
+    height: 100%;
+    transition: .2s;
+    position: relative;
+  }
+  .price-card.featured {
+    border-color: var(--blue-light);
+    background: linear-gradient(135deg, #1E293B, #1E3A5F);
+    box-shadow: 0 0 40px rgba(29,78,216,0.2);
+  }
+  .price-badge {
+    position: absolute;
+    top: -12px; left: 50%; transform: translateX(-50%);
+    background: linear-gradient(135deg, #1D4ED8, #3B82F6);
+    color: #fff; font-size: .75rem; font-weight: 700;
+    padding: 4px 16px; border-radius: 50px;
+    white-space: nowrap;
+  }
+  .price-card .plan-name { font-size: .85rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 8px; }
+  .price-card .price { font-size: 2.6rem; font-weight: 800; color: #F1F5F9; }
+  .price-card .price span { font-size: 1rem; font-weight: 400; color: var(--muted); }
+  .price-card .desc { color: var(--muted); font-size: .85rem; margin: 12px 0 24px; }
+  .price-card ul { list-style: none; padding: 0; margin: 0 0 28px; text-align: left; }
+  .price-card ul li { padding: 7px 0; font-size: .88rem; color: #CBD5E1; display: flex; align-items: center; gap: 10px; }
+  .price-card ul li i { color: var(--green); flex-shrink: 0; }
+  .btn-plan {
+    display: block; width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    font-weight: 700; font-size: .95rem;
+    text-align: center;
+    text-decoration: none;
+    transition: .2s;
+    border: none; cursor: pointer;
+  }
+  .btn-plan-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: #F1F5F9;
+  }
+  .btn-plan-outline:hover { border-color: var(--blue-light); color: var(--blue-light); }
+  .btn-plan-fill {
+    background: linear-gradient(135deg, #1D4ED8, #3B82F6);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(29,78,216,0.3);
+  }
+  .btn-plan-fill:hover { transform: translateY(-1px); color:#fff; }
+
+  /* ── TESTIMONIAL / QUOTE ── */
+  .quote-block {
+    background: linear-gradient(135deg, #1E293B, #1E3A5F);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--blue-light);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 20px;
+  }
+  .quote-block p { font-size: 1rem; color: #CBD5E1; line-height: 1.7; font-style: italic; margin-bottom: 16px; }
+  .quote-author { font-weight: 700; color: #F1F5F9; font-size: .9rem; }
+  .quote-role { color: var(--muted); font-size: .82rem; }
+
+  /* ── TECH ── */
+  .tech-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: .83rem;
+    color: #CBD5E1;
+    margin: 4px;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    background: #080E1A;
+    border-top: 1px solid var(--border);
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--muted);
+    font-size: .85rem;
+  }
+  footer a { color: var(--blue-light); text-decoration: none; }
+
+  /* ── DIVIDER ── */
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 0 auto;
+    max-width: 800px;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    section { padding: 48px 16px; }
+    .stats-bar .col { margin-bottom: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ HERO ═══════════════════ -->
+<div class="hero">
+  <div class="badge-hero"><i class="bi bi-shield-check me-1"></i> Solution SaaS 100% Tunisienne</div>
+  <br>
+  <img src="img/logo.png" alt="SyndicPro" class="hero-logo" onerror="this.style.display='none'">
+  <h1>Gérez votre résidence<br><span>intelligemment</span></h1>
+  <p class="lead">
+    SyndicPro est la plateforme de gestion de syndic de copropriété conçue pour le marché tunisien.
+    Finances, résidents, communication, juridique — tout en un seul endroit.
+  </p>
+  <a href="https://www.syndicpro.tn/register" class="btn-cta" target="_blank">
+    <i class="bi bi-rocket-takeoff me-2"></i>Essayer gratuitement 30 jours
+  </a>
+  <div class="mt-3" style="color:#64748B; font-size:.82rem;">Aucune carte bancaire requise · Accès immédiat</div>
+</div>
+
+<!-- ═══════════════════ STATS BAR ═══════════════════ -->
+<div class="stats-bar">
+  <div class="container">
+    <div class="row justify-content-center g-4">
+      <div class="col-6 col-md-3"><div class="stat-item"><span class="num">100%</span><span class="label">Web · aucune installation</span></div></div>
+      <div class="col-6 col-md-3"><div class="stat-item"><span class="num">30j</span><span class="label">Essai gratuit offert</span></div></div>
+      <div class="col-6 col-md-3"><div class="stat-item"><span class="num">20+</span><span class="label">Modules intégrés</span></div></div>
+      <div class="col-6 col-md-3"><div class="stat-item"><span class="num">24/7</span><span class="label">Accès depuis partout</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ POURQUOI ═══════════════════ -->
+<section>
+  <div class="container text-center">
+    <div class="section-label">Pourquoi SyndicPro</div>
+    <h2 class="section-title">La gestion de syndic, enfin simple</h2>
+    <p class="section-sub">Fini les tableaux Excel, les cahiers papier et les appels téléphoniques. SyndicPro centralise tout.</p>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="feat-card">
+          <div class="feat-icon" style="background:rgba(29,78,216,0.15);">
+            <i class="bi bi-lightning-charge" style="color:#60A5FA;"></i>
+          </div>
+          <h5>Gain de temps immédiat</h5>
+          <p>Générez vos appels de fonds, reçus PDF, états financiers et relances en quelques clics. Ce qui prenait des heures prend désormais des minutes.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="feat-card">
+          <div class="feat-icon" style="background:rgba(16,185,129,0.15);">
+            <i class="bi bi-shield-lock" style="color:#34D399;"></i>
+          </div>
+          <h5>Sécurité & conformité</h5>
+          <p>Données hébergées sur infrastructure sécurisée, accès par rôles (admin / résident), sessions protégées, conformité SCE tunisien pour les états financiers.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="feat-card">
+          <div class="feat-icon" style="background:rgba(245,158,11,0.15);">
+            <i class="bi bi-people" style="color:#FCD34D;"></i>
+          </div>
+          <h5>Résidents connectés</h5>
+          <p>Chaque résident accède à son espace personnel : solde, historique, tickets, annonces. Moins d'appels, plus de transparence.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════ MODULES ═══════════════════ -->
+<section>
+  <div class="container">
+    <div class="text-center mb-5">
+      <div class="section-label">Fonctionnalités</div>
+      <h2 class="section-title">Tous les modules dont vous avez besoin</h2>
+      <p class="section-sub">Une suite complète pensée pour les syndics tunisiens.</p>
+    </div>
+
+    <div class="row g-4">
+
+      <!-- Colonne gauche -->
+      <div class="col-lg-6">
+
+        <div class="module-row">
+          <div class="module-icon" style="background:rgba(29,78,216,0.15);">
+            <i class="bi bi-cash-coin" style="color:#60A5FA;"></i>
+          </div>
+          <div>
+            <h6>Gestion Financière Complète</h6>
+            <p>Encaissements, dépenses, trésorerie en temps réel. Paiement en ligne via <strong>Konnect</strong> ou <strong>Flouci</strong>. Génération automatique de reçus PDF.</p>
+          </div>
+        </div>
+
+        <div class="module-row">
+          <div class="module-icon" style="background:rgba(16,185,129,0.15);">
+            <i class="bi bi-file-earmark-bar-graph" style="color:#34D399;"></i>
+          </div>
+          <div>
+            <h6>États Financiers SCE <span class="badge-new">Tunisie</span></h6>
+            <p>Bilan, État de résultat, Flux de trésorerie conformes à la norme tunisienne (Loi 96-112 / NCT 01). Export PDF professionnel.</p>
+          </div>
+        </div>
+
+        <div class="module-row">
+          <div class="module-icon" style="background:rgba(245,158,11,0.15);">
+            <i class="bi bi-building-fill-add" style="color:#FCD34D;"></i>
+          </div>
+          <div>
+            <h6>Appels de Fonds Travaux <span class="badge-new">Nouveau</span></h6>
+            <p>Fonds travaux séparé, quotes-parts calculées automatiquement, devis joint, suivi dépenses avec factures, reçus PDF par résident.</p>
+          </div>
+        </div>
+
+        <div class="module-row">
+          <div class="module-icon" style="background:rgba(239,68,68,0.15);">
+            <i class="bi bi-gavel" style="color:#F87171;"></i>
+          </div>
+          <div>
+            <h6>Module Litiges <span class="badge-new">Nouveau</span></h6>
+            <p>Suivi impayés 3+ mois, lettre de mise en demeure éditable, dossier huissier, accusé de réception, documents joints.</p>
+          </div>
+        </div>
+
+        <div class="module-row">
+          <div class="module-icon" style="background:rgba(139,92,246,0.15);">
+            <i class="bi bi-graph-up-arrow" style="color:#A78BFA;"></i>
+          </div>
+          <div>
+            <h6>Automatisation & Relances</h6>
+            <p>Relances WhatsApp groupées en un clic, rapport mensuel PDF automatique, alertes impayés détectées automatiquement.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Colonne droite -->
+      <div class="col-lg-6">
+
+        <div class="module-row">
+          <div class="module-icon" style="background:rgba(6,182,212,0.15);">
+            <i class="bi bi-person-lines-fill" style="color:#67E8F9;"></i>
+          </div>
+          <div>
+            <h6>Espace Résident</h6>
+            <p>Chaque résident voit ses charges, paye en ligne, consulte ses reçus, ouvre des tickets, lit les annonces. Import Excel en masse pour onboarding rapide.</p>
+          </div>
+        </div>
+
+        <div class="module-row">
+          <div class="module-icon" style="background:rgba(16,185,129,0.15);">
+            <i class="bi bi-megaphone" style="color:#34D399;"></i>
+          </div>
+          <div>
+            <h6>Annonces & Communication</h6>
+            <p>Publiez des annonces avec notification WhatsApp automatique. Suivi de lecture par résident, badge non-lues dans la sidebar.</p>
+          </div>
+        </div>
+
+        <div class="module-row">
+          <div class="module-icon" style="background:rgba(245,158,11,0.15);">
+            <i class="bi bi-whatsapp" style="color:#FCD34D;"></i>
+          </div>
+          <div>
+            <h6>Notifications WhatsApp</h6>
+            <p>Chaque paiement, ticket, annonce déclenche une notification WhatsApp instantanée. Résidents et admin informés en temps réel.</p>
+          </div>
+        </div>
+
+        <div class="module-row">
+          <div class="module-icon" style="background:rgba(99,102,241,0.15);">
+            <i class="bi bi-calendar3" style="color:#818CF8;"></i>
+          </div>
+          <div>
+            <h6>Assemblées Générales</h6>
+            <p>Ordre du jour structuré, votes par point, génération automatique du PV en PDF prêt à distribuer.</p>
+          </div>
+        </div>
+
+        <div class="module-row">
+          <div class="module-icon" style="background:rgba(239,68,68,0.12);">
+            <i class="bi bi-robot" style="color:#F87171;"></i>
+          </div>
+          <div>
+            <h6>Assistant IA intégré <span class="badge-new">IA</span></h6>
+            <p>Claude AI analyse vos données : impayés, trésorerie, tickets ouverts. Réponses instantanées aux questions sur votre résidence.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Extras -->
+    <div class="row g-3 mt-2">
+      <div class="col-md-4">
+        <div class="module-row">
+          <div class="module-icon" style="background:rgba(6,182,212,0.15);"><i class="bi bi-camera-video" style="color:#67E8F9;"></i></div>
+          <div><h6>Caméras de Surveillance</h6><p>Annuaire caméras, aperçu snapshot live auto-rafraîchi, accès cloud ou local.</p></div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="module-row">
+          <div class="module-icon" style="background:rgba(16,185,129,0.15);"><i class="bi bi-door-open" style="color:#34D399;"></i></div>
+          <div><h6>Registre d'Accès</h6><p>Journal numérique des entrées/sorties de visiteurs avec motif et appartement.</p></div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="module-row">
+          <div class="module-icon" style="background:rgba(245,158,11,0.15);"><i class="bi bi-envelope-check" style="color:#FCD34D;"></i></div>
+          <div><h6>Emails Automatiques</h6><p>Bienvenue à l'inscription, identifiants résidents envoyés automatiquement par email.</p></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════ WORKFLOW ═══════════════════ -->
+<section style="background:rgba(30,41,59,0.5);">
+  <div class="container">
+    <div class="text-center mb-5">
+      <div class="section-label">Mise en place</div>
+      <h2 class="section-title">Opérationnel en moins d'une heure</h2>
+      <p class="section-sub">Un processus d'onboarding guidé pour démarrer sans stress.</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-3">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <h6>Créer votre compte</h6>
+          <p>Inscription en 2 minutes sur syndicpro.tn. Essai gratuit 30 jours activé immédiatement, sans carte bancaire.</p>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <h6>Importer vos données</h6>
+          <p>Téléchargez le modèle Excel, remplissez appartements et résidents, importez en un clic. Comptes créés automatiquement.</p>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <h6>Configurer les paiements</h6>
+          <p>Connectez votre compte Konnect ou Flouci. Vos résidents peuvent payer en ligne dès le premier jour.</p>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <h6>C'est parti !</h6>
+          <p>Suivez votre trésorerie, envoyez des annonces, gérez les tickets — tout depuis votre téléphone ou ordinateur.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════ TARIFS ═══════════════════ -->
+<section>
+  <div class="container">
+    <div class="text-center mb-5">
+      <div class="section-label">Tarification</div>
+      <h2 class="section-title">Des tarifs adaptés à chaque résidence</h2>
+      <p class="section-sub">Prix transparents, sans engagement, sans frais cachés.</p>
+    </div>
+    <div class="row g-4 justify-content-center">
+
+      <div class="col-md-4">
+        <div class="price-card">
+          <div class="plan-name">Starter</div>
+          <div class="price">30 <span>DT/mois</span></div>
+          <div class="desc">Idéal pour les petites résidences</div>
+          <ul>
+            <li><i class="bi bi-check-lg"></i> Jusqu'à 20 appartements</li>
+            <li><i class="bi bi-check-lg"></i> Tous les modules inclus</li>
+            <li><i class="bi bi-check-lg"></i> Paiement en ligne Konnect/Flouci</li>
+            <li><i class="bi bi-check-lg"></i> Emails automatiques</li>
+            <li><i class="bi bi-check-lg"></i> Support par email</li>
+          </ul>
+          <a href="https://www.syndicpro.tn/register" class="btn-plan btn-plan-outline" target="_blank">Commencer l'essai</a>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="price-card featured">
+          <div class="price-badge"><i class="bi bi-star-fill me-1"></i> Le plus populaire</div>
+          <div class="plan-name">Pro</div>
+          <div class="price">50 <span>DT/mois</span></div>
+          <div class="desc">Pour les résidences de taille moyenne</div>
+          <ul>
+            <li><i class="bi bi-check-lg"></i> Jusqu'à 75 appartements</li>
+            <li><i class="bi bi-check-lg"></i> Tous les modules inclus</li>
+            <li><i class="bi bi-check-lg"></i> WhatsApp + IA intégrée</li>
+            <li><i class="bi bi-check-lg"></i> États financiers SCE</li>
+            <li><i class="bi bi-check-lg"></i> Multi-résidences (1 compte)</li>
+            <li><i class="bi bi-check-lg"></i> Support prioritaire</li>
+          </ul>
+          <a href="https://www.syndicpro.tn/register" class="btn-plan btn-plan-fill" target="_blank">Commencer l'essai</a>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="price-card">
+          <div class="plan-name">Enterprise</div>
+          <div class="price">75 <span>DT/mois</span></div>
+          <div class="desc">Pour les grandes copropriétés</div>
+          <ul>
+            <li><i class="bi bi-check-lg"></i> Appartements illimités</li>
+            <li><i class="bi bi-check-lg"></i> Tous les modules inclus</li>
+            <li><i class="bi bi-check-lg"></i> Caméras de surveillance</li>
+            <li><i class="bi bi-check-lg"></i> Registre d'accès avancé</li>
+            <li><i class="bi bi-check-lg"></i> Multi-résidences illimité</li>
+            <li><i class="bi bi-check-lg"></i> Support dédié &amp; formation</li>
+          </ul>
+          <a href="mailto:contact@syndicpro.tn" class="btn-plan btn-plan-outline">Nous contacter</a>
+        </div>
+      </div>
+
+    </div>
+    <p class="text-center mt-4" style="color:var(--muted);font-size:.85rem;">
+      <i class="bi bi-gift me-1" style="color:var(--green);"></i>
+      Tous les plans incluent <strong style="color:#F1F5F9;">30 jours d'essai gratuit</strong> — aucune carte bancaire requise.
+    </p>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════ TECHNOLOGIE ═══════════════════ -->
+<section style="background:rgba(30,41,59,0.5);">
+  <div class="container">
+    <div class="text-center mb-5">
+      <div class="section-label">Infrastructure</div>
+      <h2 class="section-title">Une technologie fiable & moderne</h2>
+      <p class="section-sub">SyndicPro repose sur des technologies éprouvées, utilisées par les plus grandes entreprises mondiales.</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="feat-card text-center">
+          <div class="feat-icon mx-auto" style="background:rgba(29,78,216,0.15);">
+            <i class="bi bi-cloud-check" style="color:#60A5FA;"></i>
+          </div>
+          <h5>Hébergement Cloud</h5>
+          <p>Infrastructure Render.com (US) — haute disponibilité, déploiements automatiques, SSL inclus.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="feat-card text-center">
+          <div class="feat-icon mx-auto" style="background:rgba(16,185,129,0.15);">
+            <i class="bi bi-database-lock" style="color:#34D399;"></i>
+          </div>
+          <h5>Base de données sécurisée</h5>
+          <p>PostgreSQL sur Supabase avec Row Level Security (RLS) — isolation totale entre les organisations.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="feat-card text-center">
+          <div class="feat-icon mx-auto" style="background:rgba(245,158,11,0.15);">
+            <i class="bi bi-lock-fill" style="color:#FCD34D;"></i>
+          </div>
+          <h5>Sécurité renforcée</h5>
+          <p>HTTPS, CSRF, sessions sécurisées, rate limiting, contrôle d'accès par rôles, timeout automatique.</p>
+        </div>
+      </div>
+    </div>
+    <div class="text-center mt-4">
+      <span class="tech-chip"><i class="bi bi-filetype-py"></i> Python / Flask</span>
+      <span class="tech-chip"><i class="bi bi-server"></i> PostgreSQL</span>
+      <span class="tech-chip"><i class="bi bi-envelope"></i> Resend Email API</span>
+      <span class="tech-chip"><i class="bi bi-whatsapp"></i> Fonnte WhatsApp</span>
+      <span class="tech-chip"><i class="bi bi-credit-card"></i> Konnect / Flouci</span>
+      <span class="tech-chip"><i class="bi bi-robot"></i> Claude AI</span>
+      <span class="tech-chip"><i class="bi bi-filetype-pdf"></i> PDF automatiques</span>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════ CTA FINAL ═══════════════════ -->
+<section style="background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 60%, #0F172A 100%); text-align:center;">
+  <div class="container">
+    <div class="section-label">Démarrez aujourd'hui</div>
+    <h2 class="section-title mt-3">Prêt à moderniser votre résidence ?</h2>
+    <p style="color:#CBD5E1; max-width:520px; margin: 0 auto 36px; line-height:1.7;">
+      Rejoignez les syndics tunisiens qui ont choisi SyndicPro. Configuration en moins d'une heure, support inclus.
+    </p>
+    <div class="d-flex flex-wrap gap-3 justify-content-center">
+      <a href="https://www.syndicpro.tn/register" class="btn-cta" target="_blank">
+        <i class="bi bi-rocket-takeoff me-2"></i>Démarrer l'essai gratuit
+      </a>
+      <a href="https://www.syndicpro.tn/demo" class="btn-cta" target="_blank"
+         style="background: transparent; border: 1px solid rgba(255,255,255,0.25); box-shadow:none; backdrop-filter:blur(4px);">
+        <i class="bi bi-play-circle me-2"></i>Voir la démo
+      </a>
+    </div>
+    <p class="mt-4" style="color:#475569; font-size:.82rem;">
+      <i class="bi bi-telephone me-1"></i>
+      Questions ? <a href="mailto:contact@syndicpro.tn" style="color:#60A5FA;">contact@syndicpro.tn</a>
+    </p>
+  </div>
+</section>
+
+<!-- ═══════════════════ FOOTER ═══════════════════ -->
+<footer>
+  <div class="container">
+    <div class="mb-3">
+      <img src="img/logo.png" alt="SyndicPro" height="40" style="mix-blend-mode:screen;" onerror="this.style.display='none'">
+    </div>
+    <p class="mb-1">
+      <strong style="color:#F1F5F9;">SyndicPro</strong> — Gestion de syndic intelligente, made in Tunisia
+    </p>
+    <p class="mb-2">
+      <a href="https://www.syndicpro.tn">www.syndicpro.tn</a> ·
+      <a href="mailto:contact@syndicpro.tn">contact@syndicpro.tn</a>
+    </p>
+    <p style="color:#334155; font-size:.78rem; margin:0;">
+      &copy; 2026 SyndicPro. Tous droits réservés.
+    </p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
