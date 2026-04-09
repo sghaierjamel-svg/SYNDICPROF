@@ -23,6 +23,7 @@ import routes.financial_statements
 import routes.announcements
 import routes.assembly
 import routes.intervenants
+import routes.litiges
 
 
 @app.errorhandler(404)

@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+{% block title %}Litige #{{ l.id }}{% endblock %}
+
+{% block content %}
+
+<!-- En-tête -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <a href="{{ url_for('litiges') }}" class="btn btn-sm btn-secondary mb-2">
+            <i class="bi bi-arrow-left"></i> Retour
+        </a>
+        <h2 class="text-white mb-0">
+            <i class="bi bi-folder2-open" style="color:#f87171;"></i>
+            Litige — {{ l.apartment.block.name }}-{{ l.apartment.number }}
+        </h2>
+    </div>
+    <!-- Statut + changement rapide -->
+    {% set lbl = status_labels[l.status] %}
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-{{ lbl[1] }} fs-6">{{ lbl[0] }}</span>
+        <form method="POST" class="d-flex gap-2 align-items-center">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="change_status">
+            <select name="status" class="form-select form-select-sm" style="width:140px;">
+                {% for key, (lab, col) in status_labels.items() %}
+                <option value="{{ key }}" {% if l.status == key %}selected{% endif %}>{{ lab }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-sm btn-outline-primary" type="submit">
+                <i class="bi bi-arrow-repeat"></i>
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Info box -->
+<div class="card mb-4" style="background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-sm-3">
+                <div style="color:var(--muted);font-size:.8rem;">Appartement</div>
+                <div class="fw-bold text-white">{{ l.apartment.block.name }}-{{ l.apartment.number }}</div>
+            </div>
+            <div class="col-sm-3">
+                <div style="color:var(--muted);font-size:.8rem;">Mois impayés (à l'ouverture)</div>
+                <div class="fw-bold text-white">{{ l.unpaid_count }} mois</div>
+                {% if current_unpaid != l.unpaid_count %}
+                <small style="color:#f59e0b;">
+                    Actuellement : {{ current_unpaid }} mois
+                </small>
+                {% endif %}
+            </div>
+            <div class="col-sm-3">
+                <div style="color:var(--muted);font-size:.8rem;">Montant dû</div>
+                <div class="fw-bold" style="color:#f87171;">{{ "%.3f"|format(l.amount_due) }} DT</div>
+            </div>
+            <div class="col-sm-3">
+                <div style="color:var(--muted);font-size:.8rem;">Ouvert le</div>
+                <div class="fw-bold text-white">{{ l.opened_at.strftime('%d/%m/%Y') }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+
+<!-- ── COLONNE GAUCHE ── -->
+<div class="col-lg-7">
+
+    <!-- LETTRE MISE EN DEMEURE -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-envelope-paper"></i> Lettre de mise en demeure</span>
+            {% if l.letter_sent_at %}
+            <span class="badge bg-success">
+                <i class="bi bi-envelope-check"></i>
+                Envoyée le {{ l.letter_sent_at.strftime('%d/%m/%Y') }}
+            </span>
+            {% else %}
+            <span class="badge bg-secondary">Non marquée comme envoyée</span>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="save_letter">
+                <textarea class="form-control mb-3" name="letter_content" rows="16"
+                          style="font-family:monospace;font-size:.82rem;background:var(--bg);color:var(--text);border-color:var(--border2);">{{ l.letter_content or '' }}</textarea>
+                <div class="d-flex gap-3 align-items-center">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-save"></i> Enregistrer
+                    </button>
+                    {% if not l.letter_sent_at %}
+                    <div class="form-check mb-0">
+                        <input class="form-check-input" type="checkbox" name="mark_sent" value="1" id="markSent">
+                        <label class="form-check-label" for="markSent" style="font-size:.85rem;">
+                            Marquer comme envoyée (LRAR)
+                        </label>
+                    </div>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="card mb-4">
+        <div class="card-header"><i class="bi bi-journal-text"></i> Notes du dossier</div>
+        <div class="card-body">
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="save_notes">
+                <textarea class="form-control mb-3" name="notes" rows="4"
+                          placeholder="Notes internes, historique des contacts, décisions prises…"
+                          style="background:var(--bg);color:var(--text);border-color:var(--border2);">{{ l.notes or '' }}</textarea>
+                <button type="submit" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-save"></i> Sauvegarder les notes
+                </button>
+            </form>
+        </div>
+    </div>
+
+</div><!-- /col gauche -->
+
+<!-- ── COLONNE DROITE ── -->
+<div class="col-lg-5">
+
+    <!-- HUISSIER -->
+    <div class="card mb-4">
+        <div class="card-header"><i class="bi bi-person-badge"></i> Huissier en charge</div>
+        <div class="card-body">
+            {% if l.huissier %}
+            <div class="mb-3 p-2 rounded" style="background:rgba(0,200,150,0.08);border:1px solid rgba(0,200,150,0.15);">
+                <div class="fw-bold text-white">
+                    <i class="bi bi-person-fill" style="color:#00C896;"></i>
+                    {{ l.huissier.prenom or '' }} {{ l.huissier.nom or '' }}
+                    {% if l.huissier.nom_societe %}<br><small style="color:var(--muted);">{{ l.huissier.nom_societe }}</small>{% endif %}
+                </div>
+                {% if l.huissier.telephone %}
+                <a href="https://wa.me/{{ l.huissier.telephone | replace(' ','') | replace('+','') }}"
+                   target="_blank" style="color:#25D366;font-size:.85rem;">
+                    <i class="bi bi-whatsapp"></i> {{ l.huissier.telephone }}
+                </a>
+                {% endif %}
+                {% if l.huissier.email %}
+                <div><a href="mailto:{{ l.huissier.email }}" style="color:#00C896;font-size:.85rem;">
+                    <i class="bi bi-envelope"></i> {{ l.huissier.email }}
+                </a></div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="assign_huissier">
+                <div class="d-flex gap-2">
+                    <select name="huissier_id" class="form-select form-select-sm">
+                        <option value="">— Aucun huissier —</option>
+                        {% for h in huissiers %}
+                        <option value="{{ h.id }}" {% if l.huissier_id == h.id %}selected{% endif %}>
+                            {{ h.prenom or '' }} {{ h.nom or '' }}
+                            {% if h.nom_societe %} — {{ h.nom_societe }}{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-check-lg"></i>
+                    </button>
+                </div>
+                {% if not huissiers %}
+                <small style="color:var(--muted);">
+                    <i class="bi bi-info-circle"></i>
+                    Aucun huissier dans l'annuaire.
+                    <a href="{{ url_for('intervenants') }}" style="color:#00C896;">Ajouter</a>
+                </small>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- ACCUSÉ DE RÉCEPTION -->
+    <div class="card mb-4">
+        <div class="card-header"><i class="bi bi-envelope-check"></i> Accusé de réception (AR)</div>
+        <div class="card-body">
+            {% if l.accuse_data %}
+            <div class="mb-3 p-2 rounded" style="background:rgba(0,200,150,0.08);border:1px solid rgba(0,200,150,0.15);">
+                <div class="d-flex align-items-center gap-2">
+                    {% if l.accuse_mime == 'application/pdf' %}
+                    <i class="bi bi-file-earmark-pdf-fill" style="color:#f87171;font-size:1.3rem;"></i>
+                    {% else %}
+                    <i class="bi bi-image-fill" style="color:#00C896;font-size:1.3rem;"></i>
+                    {% endif %}
+                    <a href="{{ url_for('litige_accuse', litige_id=l.id) }}" target="_blank"
+                       style="color:#00C896;">{{ l.accuse_nom or 'Accusé de réception' }}</a>
+                    <a href="{{ url_for('litige_accuse', litige_id=l.id, dl=1) }}"
+                       class="btn btn-sm btn-outline-secondary ms-auto">
+                        <i class="bi bi-download"></i>
+                    </a>
+                </div>
+            </div>
+            <p style="font-size:.8rem;color:var(--muted);">Remplacer :</p>
+            {% else %}
+            <p style="font-size:.85rem;color:var(--muted);" class="mb-2">
+                Aucun accusé scanné. Uploadez le scan de l'AR postal.
+            </p>
+            {% endif %}
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="upload_accuse">
+                <div class="d-flex gap-2">
+                    <input type="file" name="accuse_file" class="form-control form-control-sm"
+                           accept="image/jpeg,image/png,image/webp,application/pdf">
+                    <button type="submit" class="btn btn-sm btn-success">
+                        <i class="bi bi-upload"></i>
+                    </button>
+                </div>
+                <small style="color:var(--muted);font-size:.75rem;">Image ou PDF, max 10 Mo</small>
+            </form>
+        </div>
+    </div>
+
+    <!-- DÉCHARGE -->
+    <div class="card mb-4">
+        <div class="card-header"><i class="bi bi-file-earmark-check"></i> Décharge / Règlement</div>
+        <div class="card-body">
+            {% if l.decharge_data %}
+            <div class="mb-3 p-2 rounded" style="background:rgba(0,200,150,0.08);border:1px solid rgba(0,200,150,0.15);">
+                <div class="d-flex align-items-center gap-2">
+                    {% if l.decharge_mime == 'application/pdf' %}
+                    <i class="bi bi-file-earmark-pdf-fill" style="color:#f87171;font-size:1.3rem;"></i>
+                    {% else %}
+                    <i class="bi bi-image-fill" style="color:#00C896;font-size:1.3rem;"></i>
+                    {% endif %}
+                    <a href="{{ url_for('litige_decharge', litige_id=l.id) }}" target="_blank"
+                       style="color:#00C896;">{{ l.decharge_nom or 'Décharge' }}</a>
+                    <a href="{{ url_for('litige_decharge', litige_id=l.id, dl=1) }}"
+                       class="btn btn-sm btn-outline-secondary ms-auto">
+                        <i class="bi bi-download"></i>
+                    </a>
+                </div>
+            </div>
+            <p style="font-size:.8rem;color:var(--muted);">Remplacer :</p>
+            {% else %}
+            <p style="font-size:.85rem;color:var(--muted);" class="mb-2">
+                Aucune décharge scannée.
+            </p>
+            {% endif %}
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="upload_decharge">
+                <div class="d-flex gap-2">
+                    <input type="file" name="decharge_file" class="form-control form-control-sm"
+                           accept="image/jpeg,image/png,image/webp,application/pdf">
+                    <button type="submit" class="btn btn-sm btn-success">
+                        <i class="bi bi-upload"></i>
+                    </button>
+                </div>
+                <small style="color:var(--muted);font-size:.75rem;">Image ou PDF, max 10 Mo</small>
+            </form>
+        </div>
+    </div>
+
+    <!-- SUPPRIMER -->
+    <div class="card" style="border-color:rgba(248,113,113,0.2);">
+        <div class="card-body text-center">
+            <form method="POST" action="{{ url_for('litige_supprimer', litige_id=l.id) }}"
+                  onsubmit="return confirm('Supprimer définitivement ce dossier de litige ?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-trash"></i> Supprimer ce dossier
+                </button>
+            </form>
+        </div>
+    </div>
+
+</div><!-- /col droite -->
+</div><!-- /row -->
+
+{% endblock %}

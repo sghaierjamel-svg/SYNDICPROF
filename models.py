@@ -303,6 +303,54 @@ class AnnouncementRead(db.Model):
     __table_args__ = (db.UniqueConstraint('announcement_id', 'user_id', name='uq_ann_read_user'),)
 
 
+class Litige(db.Model):
+    """Litige impayé lié à un appartement"""
+    __tablename__ = 'litige'
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
+    apartment_id    = db.Column(db.Integer, db.ForeignKey('apartment.id'), nullable=False)
+    status          = db.Column(db.String(20), default='ouvert')  # ouvert / en_cours / resolu
+    opened_at       = db.Column(db.DateTime, default=datetime.utcnow)
+    unpaid_count    = db.Column(db.Integer, default=0)
+    amount_due      = db.Column(db.Float, default=0.0)
+    huissier_id     = db.Column(db.Integer, db.ForeignKey('intervenant.id'), nullable=True)
+    letter_content  = db.Column(db.Text, nullable=True)
+    letter_sent_at  = db.Column(db.DateTime, nullable=True)
+    accuse_data     = db.Column(db.Text, nullable=True)   # base64
+    accuse_mime     = db.Column(db.String(30), nullable=True)
+    accuse_nom      = db.Column(db.String(200), nullable=True)
+    decharge_data   = db.Column(db.Text, nullable=True)   # base64
+    decharge_mime   = db.Column(db.String(30), nullable=True)
+    decharge_nom    = db.Column(db.String(200), nullable=True)
+    notes           = db.Column(db.Text, nullable=True)
+    apartment       = db.relationship('Apartment', backref='litiges', lazy=True)
+    huissier        = db.relationship('Intervenant', backref='litiges_geres', lazy=True)
+
+
+class AutreLitige(db.Model):
+    """Dossier de litige divers (voisinage, sinistre, prestataire...)"""
+    __tablename__ = 'autre_litige'
+    id              = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
+    titre           = db.Column(db.String(200), nullable=False)
+    description     = db.Column(db.Text, nullable=True)
+    status          = db.Column(db.String(20), default='ouvert')  # ouvert / en_cours / resolu
+    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
+    documents       = db.relationship('LitigeDocument', backref='dossier', lazy=True,
+                                      cascade='all, delete-orphan')
+
+
+class LitigeDocument(db.Model):
+    """Document scanné rattaché à un dossier de litige"""
+    __tablename__ = 'litige_document'
+    id          = db.Column(db.Integer, primary_key=True)
+    litige_id   = db.Column(db.Integer, db.ForeignKey('autre_litige.id'), nullable=False)
+    nom         = db.Column(db.String(200), nullable=False)
+    data        = db.Column(db.Text, nullable=False)   # base64
+    mime        = db.Column(db.String(30), nullable=False)
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 class Intervenant(db.Model):
     """Annuaire des prestataires et intervenants de la résidence"""
     __tablename__ = 'intervenant'
@@ -669,6 +717,52 @@ def init_db():
     except Exception as e:
         print(f"Migration expense facture : {e}")
 
+    # Migration : tables litiges
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS litige (
+                        id SERIAL PRIMARY KEY,
+                        organization_id INTEGER REFERENCES organization(id),
+                        apartment_id INTEGER REFERENCES apartment(id),
+                        status VARCHAR(20) DEFAULT 'ouvert',
+                        opened_at TIMESTAMP DEFAULT NOW(),
+                        unpaid_count INTEGER DEFAULT 0,
+                        amount_due FLOAT DEFAULT 0,
+                        huissier_id INTEGER REFERENCES intervenant(id),
+                        letter_content TEXT,
+                        letter_sent_at TIMESTAMP,
+                        accuse_data TEXT, accuse_mime VARCHAR(30), accuse_nom VARCHAR(200),
+                        decharge_data TEXT, decharge_mime VARCHAR(30), decharge_nom VARCHAR(200),
+                        notes TEXT
+                    )
+                """))
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS autre_litige (
+                        id SERIAL PRIMARY KEY,
+                        organization_id INTEGER REFERENCES organization(id),
+                        titre VARCHAR(200) NOT NULL,
+                        description TEXT,
+                        status VARCHAR(20) DEFAULT 'ouvert',
+                        created_at TIMESTAMP DEFAULT NOW()
+                    )
+                """))
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS litige_document (
+                        id SERIAL PRIMARY KEY,
+                        litige_id INTEGER REFERENCES autre_litige(id) ON DELETE CASCADE,
+                        nom VARCHAR(200) NOT NULL,
+                        data TEXT NOT NULL,
+                        mime VARCHAR(30) NOT NULL,
+                        uploaded_at TIMESTAMP DEFAULT NOW()
+                    )
+                """))
+                conn.commit()
+                print("Migration PostgreSQL : tables litiges créées.")
+    except Exception as e:
+        print(f"Migration litiges : {e}")
+
     # Migration : table intervenant
     try:
         with db.engine.connect() as conn:
@@ -701,7 +795,8 @@ def init_db():
                     'organization', 'subscription', '"user"', 'block', 'apartment',
                     'payment', 'expense', 'ticket', 'super_admin_settings',
                     'konnect_payment', 'flouci_payment', 'unpaid_alert', 'announcement', 'announcement_read', 'access_log',
-                    'direct_message', 'assembly_general', 'ag_item', 'ag_vote', 'intervenant'
+                    'direct_message', 'assembly_general', 'ag_item', 'ag_vote', 'intervenant',
+                    'litige', 'autre_litige', 'litige_document', 'misc_receipt'
                 ]
                 for table in tables:
                     conn.execute(db.text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY"))

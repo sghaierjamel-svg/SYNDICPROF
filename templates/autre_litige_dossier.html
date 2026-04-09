@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block title %}Dossier — {{ al.titre }}{% endblock %}
+
+{% block content %}
+
+<!-- En-tête -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <a href="{{ url_for('litiges') }}#autres" class="btn btn-sm btn-secondary mb-2">
+            <i class="bi bi-arrow-left"></i> Retour
+        </a>
+        <h2 class="text-white mb-0">
+            <i class="bi bi-folder2-open" style="color:#00C896;"></i>
+            {{ al.titre }}
+        </h2>
+        {% if al.description %}
+        <p style="color:var(--muted);font-size:.9rem;" class="mb-0 mt-1">{{ al.description }}</p>
+        {% endif %}
+    </div>
+    <!-- Statut -->
+    {% set lbl = status_labels[al.status] %}
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-{{ lbl[1] }} fs-6">{{ lbl[0] }}</span>
+        <form method="POST" class="d-flex gap-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="change_status">
+            <select name="status" class="form-select form-select-sm" style="width:140px;">
+                {% for key, (lab, col) in status_labels.items() %}
+                <option value="{{ key }}" {% if al.status == key %}selected{% endif %}>{{ lab }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-sm btn-outline-primary" type="submit">
+                <i class="bi bi-arrow-repeat"></i>
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="row g-4">
+
+<!-- ── COLONNE GAUCHE : DOCUMENTS ── -->
+<div class="col-lg-8">
+
+    <!-- Upload document -->
+    <div class="card mb-4">
+        <div class="card-header"><i class="bi bi-cloud-upload"></i> Ajouter un document</div>
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="upload">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label">Fichier <small style="color:var(--muted);">(image ou PDF, max 10 Mo)</small></label>
+                        <input type="file" name="document" class="form-control"
+                               accept="image/jpeg,image/png,image/webp,application/pdf" required>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label">Nom du document</label>
+                        <input class="form-control" name="doc_nom" placeholder="Ex: Mise en demeure 12/2024" maxlength="200">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="bi bi-upload"></i> Scanner
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Liste des documents -->
+    {% if not al.documents %}
+    <div class="card text-center py-5">
+        <div class="card-body">
+            <i class="bi bi-files" style="font-size:3rem;color:var(--muted);"></i>
+            <h5 class="mt-3" style="color:var(--muted);">Aucun document dans ce dossier</h5>
+            <p style="color:var(--muted);">Utilisez le formulaire ci-dessus pour ajouter des documents scannés.</p>
+        </div>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-header">
+            <i class="bi bi-files"></i>
+            {{ al.documents|length }} document{{ 's' if al.documents|length > 1 else '' }}
+        </div>
+        <div class="list-group list-group-flush">
+        {% for doc in al.documents %}
+        <div class="list-group-item" style="background:transparent;border-color:var(--border);color:var(--text);">
+            <div class="d-flex align-items-center gap-3">
+                <!-- Icône type -->
+                <div style="flex-shrink:0;">
+                    {% if doc.mime == 'application/pdf' %}
+                    <i class="bi bi-file-earmark-pdf-fill" style="color:#f87171;font-size:1.8rem;"></i>
+                    {% else %}
+                    <i class="bi bi-image-fill" style="color:#00C896;font-size:1.8rem;"></i>
+                    {% endif %}
+                </div>
+
+                <!-- Infos -->
+                <div style="flex:1;min-width:0;">
+                    <div class="fw-bold text-white text-truncate" style="font-size:.9rem;">{{ doc.nom }}</div>
+                    <div style="color:var(--muted);font-size:.78rem;">
+                        <i class="bi bi-calendar3"></i>
+                        {{ doc.uploaded_at.strftime('%d/%m/%Y à %H:%M') }}
+                        &nbsp;·&nbsp;
+                        {{ doc.mime.split('/')[-1].upper() }}
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="d-flex gap-2 flex-shrink-0">
+                    <a href="{{ url_for('autre_litige_doc', al_id=al.id, doc_id=doc.id) }}"
+                       target="_blank" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                    <a href="{{ url_for('autre_litige_doc', al_id=al.id, doc_id=doc.id, dl=1) }}"
+                       class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-download"></i>
+                    </a>
+                    <form method="POST"
+                          action="{{ url_for('autre_litige_doc_supprimer', al_id=al.id, doc_id=doc.id) }}"
+                          onsubmit="return confirm('Supprimer ce document ?')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+</div><!-- /col gauche -->
+
+<!-- ── COLONNE DROITE : INFOS + ACTIONS ── -->
+<div class="col-lg-4">
+
+    <!-- Modifier les infos -->
+    <div class="card mb-4">
+        <div class="card-header"><i class="bi bi-pencil"></i> Modifier le dossier</div>
+        <div class="card-body">
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="edit_info">
+                <div class="mb-3">
+                    <label class="form-label">Titre *</label>
+                    <input class="form-control form-control-sm" name="titre"
+                           value="{{ al.titre }}" required maxlength="200">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control form-control-sm" name="description" rows="3"
+                              placeholder="Description du litige…"
+                              style="background:var(--bg);color:var(--text);border-color:var(--border2);">{{ al.description or '' }}</textarea>
+                </div>
+                <button type="submit" class="btn btn-sm btn-outline-primary w-100">
+                    <i class="bi bi-save"></i> Enregistrer
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Infos dossier -->
+    <div class="card mb-4" style="background:rgba(0,200,150,0.05);border-color:rgba(0,200,150,0.15);">
+        <div class="card-body">
+            <div class="mb-2">
+                <div style="color:var(--muted);font-size:.78rem;">Créé le</div>
+                <div style="font-size:.9rem;">{{ al.created_at.strftime('%d/%m/%Y à %H:%M') }}</div>
+            </div>
+            <div class="mb-2">
+                <div style="color:var(--muted);font-size:.78rem;">Statut</div>
+                {% set lbl = status_labels[al.status] %}
+                <span class="badge bg-{{ lbl[1] }}">{{ lbl[0] }}</span>
+            </div>
+            <div>
+                <div style="color:var(--muted);font-size:.78rem;">Documents</div>
+                <div style="font-size:.9rem;">{{ al.documents|length }} fichier{{ 's' if al.documents|length > 1 else '' }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supprimer dossier -->
+    <div class="card" style="border-color:rgba(248,113,113,0.2);">
+        <div class="card-body text-center">
+            <form method="POST" action="{{ url_for('autre_litige_supprimer', al_id=al.id) }}"
+                  onsubmit="return confirm('Supprimer ce dossier et tous ses documents définitivement ?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-outline-danger w-100">
+                    <i class="bi bi-trash"></i> Supprimer le dossier
+                </button>
+            </form>
+        </div>
+    </div>
+
+</div><!-- /col droite -->
+
+</div><!-- /row -->
+{% endblock %}

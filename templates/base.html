@@ -594,6 +594,11 @@
             <i class="bi bi-person-gear"></i> Intervenants
         </a>
 
+        <a class="sidebar-link {% if request.endpoint in ['litiges','litige_detail','autre_litige_dossier'] %}active{% endif %}"
+           href="{{ url_for('litiges') }}">
+            <i class="bi bi-shield-exclamation" style="color:{% if request.endpoint in ['litiges','litige_detail','autre_litige_dossier'] %}inherit{% else %}#f87171{% endif %};"></i> Litiges
+        </a>
+
         <div class="sidebar-section">Rapports</div>
 
         <a class="sidebar-link {% if request.endpoint == 'tresorerie' %}active{% endif %}"
