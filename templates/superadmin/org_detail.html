@@ -250,7 +250,7 @@
                     <form method="post" action="{{ url_for('superadmin_toggle_org', org_id=org.id) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         {% if org.is_active %}
-                            <button type="submit" class="btn btn-danger w-100" 
+                            <button type="submit" class="btn btn-danger w-100"
                                     onclick="return confirm('Confirmer la désactivation ?');">
                                 <i class="bi bi-x-circle"></i> Désactiver l'Organisation
                             </button>
@@ -259,6 +259,17 @@
                                 <i class="bi bi-check-circle"></i> Activer l'Organisation
                             </button>
                         {% endif %}
+                    </form>
+
+                    <hr style="border-color:#374151;margin:8px 0;">
+
+                    <form method="post" action="{{ url_for('superadmin_delete_org', org_id=org.id) }}"
+                          onsubmit="return confirmDelete('{{ org.name }}')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-outline-danger w-100"
+                                style="border-color:#7f1d1d;color:#f87171;">
+                            <i class="bi bi-trash3"></i> Supprimer définitivement
+                        </button>
                     </form>
                 </div>
             </div>
@@ -303,4 +314,10 @@
         </div>
     </div>
 </div>
+<script>
+function confirmDelete(name) {
+    if (!confirm('⚠️ ATTENTION — Suppression définitive\n\nCette action va supprimer :\n• Tous les appartements et résidents\n• Tout l\'historique financier\n• Tous les tickets et documents\n\nCette action est IRRÉVERSIBLE.\n\nConfirmer la suppression de « ' + name + ' » ?')) return false;
+    return confirm('Dernière confirmation — Supprimer « ' + name + ' » et toutes ses données ?');
+}
+</script>
 {% endblock %}

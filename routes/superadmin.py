@@ -43,6 +43,18 @@ def superadmin_org_detail(org_id):
     return render_template('superadmin/org_detail.html', org=org, apartments_count=apartments_count, users_count=users_count)
 
 
+@app.route('/superadmin/organization/<int:org_id>/delete', methods=['POST'])
+@login_required
+@superadmin_required
+def superadmin_delete_org(org_id):
+    org = Organization.query.get_or_404(org_id)
+    org_name = org.name
+    db.session.delete(org)
+    db.session.commit()
+    flash(f'Organisation « {org_name} » supprimée définitivement.', 'success')
+    return redirect(url_for('superadmin_dashboard'))
+
+
 @app.route('/superadmin/organization/<int:org_id>/toggle', methods=['POST'])
 @login_required
 @superadmin_required
