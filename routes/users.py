@@ -43,24 +43,6 @@ def users():
         u.set_password(password)
         db.session.add(u)
         db.session.commit()
-        # Email identifiants au résident (non bloquant)
-        if role == 'resident' and email:
-            try:
-                from utils_email import send_resident_credentials
-                apt_label = ''
-                if apt_id:
-                    apt_obj = Apartment.query.get(apt_id)
-                    if apt_obj and apt_obj.block:
-                        apt_label = f"{apt_obj.block.name}-{apt_obj.number}"
-                send_resident_credentials(
-                    org_name=org.name,
-                    resident_name=name or email,
-                    email=email,
-                    password_temp=password,
-                    apt_label=apt_label,
-                )
-            except Exception as _e:
-                print(f"[users] Email résident non envoyé : {_e}")
         flash('Utilisateur créé', 'success')
         return redirect(url_for('users'))
     users_list = User.query.filter_by(organization_id=org.id).all()

@@ -180,6 +180,30 @@ def superadmin_update_plan(org_id):
     return redirect(url_for('superadmin_org_detail', org_id=org_id))
 
 
+@app.route('/superadmin/organization/<int:org_id>/reset-admin-password', methods=['POST'])
+@login_required
+@superadmin_required
+def superadmin_reset_admin_password(org_id):
+    org = Organization.query.get_or_404(org_id)
+    new_password = request.form.get('new_password', '').strip()
+    if len(new_password) < 8:
+        flash('Le mot de passe doit contenir au moins 8 caractères.', 'danger')
+        return redirect(url_for('superadmin_org_detail', org_id=org_id))
+    # Réinitialise le mot de passe de TOUS les admins de cette org (et sync les autres comptes du même email)
+    admin = User.query.filter_by(organization_id=org.id, role='admin').first()
+    if not admin:
+        flash('Aucun admin trouvé pour cette organisation.', 'danger')
+        return redirect(url_for('superadmin_org_detail', org_id=org_id))
+    admin.set_password(new_password)
+    # Synchronise le même hash pour tous les comptes partageant cet email
+    same_email_users = User.query.filter_by(email=admin.email).all()
+    for u in same_email_users:
+        u.password_hash = admin.password_hash
+    db.session.commit()
+    flash(f'Mot de passe réinitialisé pour {admin.email} ({len(same_email_users)} compte(s) synchronisé(s)).', 'success')
+    return redirect(url_for('superadmin_org_detail', org_id=org_id))
+
+
 @app.route('/superadmin/change-password', methods=['GET', 'POST'])
 @login_required
 @superadmin_required

@@ -129,6 +129,12 @@ def register():
         if not re.search(r'[A-Z]', password):
             flash('Le mot de passe doit contenir au moins 1 lettre majuscule.', 'danger')
             return redirect(url_for('register'))
+        # Si l'email existe déjà, le mot de passe DOIT correspondre à l'existant
+        # (toutes les résidences d'un même email partagent le même mot de passe)
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user and not existing_user.check_password(password):
+            flash('Cet email gère déjà une résidence SyndicPro. Utilisez votre mot de passe habituel pour créer une nouvelle résidence.', 'warning')
+            return redirect(url_for('register'))
         # Un même email peut gérer plusieurs résidences — pas de blocage global
         base_slug = org_name.lower().replace(' ', '-').replace('é', 'e').replace('è', 'e')
         slug = base_slug
@@ -165,12 +171,6 @@ def register():
         admin.set_password(password)
         db.session.add(admin)
         db.session.commit()
-        # Email de bienvenue (non bloquant)
-        try:
-            from utils_email import send_welcome_admin
-            send_welcome_admin(org_name=org_name, email=email, days_trial=30)
-        except Exception as _e:
-            print(f"[register] Email bienvenue non envoyé : {_e}")
         flash(f'Organisation créée avec succès ! Essai gratuit de 30 jours activé.', 'success')
         return redirect(url_for('login'))
     return render_template('register.html')

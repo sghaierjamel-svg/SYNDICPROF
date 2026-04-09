@@ -275,6 +275,27 @@
             </div>
         </div>
 
+        <!-- Reset mot de passe admin -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-key"></i> Mot de passe Admin
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">Définir un nouveau mot de passe pour l'administrateur de cette résidence.</p>
+                <form method="post" action="{{ url_for('superadmin_reset_admin_password', org_id=org.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-2">
+                        <input type="password" name="new_password" class="form-control form-control-sm"
+                               placeholder="Nouveau mot de passe" required minlength="8">
+                    </div>
+                    <button type="submit" class="btn btn-warning btn-sm w-100"
+                            onclick="return confirm('Réinitialiser le mot de passe admin de {{ org.name }} ?')">
+                        <i class="bi bi-key"></i> Réinitialiser
+                    </button>
+                </form>
+            </div>
+        </div>
+
         <!-- Contacts -->
         <div class="card">
             <div class="card-header">
