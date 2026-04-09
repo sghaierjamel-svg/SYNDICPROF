@@ -49,9 +49,36 @@ def superadmin_org_detail(org_id):
 def superadmin_delete_org(org_id):
     org = Organization.query.get_or_404(org_id)
     org_name = org.name
-    db.session.delete(org)
-    db.session.commit()
-    flash(f'Organisation « {org_name} » supprimée définitivement.', 'success')
+    try:
+        oid = org_id
+        with db.engine.begin() as conn:
+            t = db.text
+            # Niveau 3 — enfants des enfants
+            conn.execute(t("DELETE FROM announcement_read WHERE announcement_id IN (SELECT id FROM announcement WHERE organization_id=:o)"), {"o": oid})
+            conn.execute(t("DELETE FROM ag_vote WHERE ag_item_id IN (SELECT i.id FROM ag_item i JOIN assembly_general a ON i.ag_id=a.id WHERE a.organization_id=:o)"), {"o": oid})
+            conn.execute(t("DELETE FROM ag_item WHERE ag_id IN (SELECT id FROM assembly_general WHERE organization_id=:o)"), {"o": oid})
+            conn.execute(t("DELETE FROM litige_document WHERE litige_id IN (SELECT id FROM autre_litige WHERE organization_id=:o)"), {"o": oid})
+            conn.execute(t("DELETE FROM appel_fonds_quota WHERE appel_id IN (SELECT id FROM appel_fonds WHERE organization_id=:o)"), {"o": oid})
+            conn.execute(t("DELETE FROM appel_fonds_paiement WHERE organization_id=:o"), {"o": oid})
+            conn.execute(t("DELETE FROM appel_fonds_depense WHERE organization_id=:o"), {"o": oid})
+            # Niveau 2 — tables directement liées à l'org
+            for table in [
+                'announcement', 'assembly_general', 'litige', 'autre_litige',
+                'appel_fonds', 'camera', 'access_log', 'misc_receipt',
+                'konnect_payment', 'flouci_payment', 'direct_message',
+                'unpaid_alert', 'ticket', 'payment', 'expense', 'intervenant',
+            ]:
+                conn.execute(t(f"DELETE FROM {table} WHERE organization_id=:o"), {"o": oid})
+            # Niveau 1 — appartements, blocs, users (après avoir vidé leurs dépendances)
+            conn.execute(t('DELETE FROM apartment WHERE organization_id=:o'), {"o": oid})
+            conn.execute(t('DELETE FROM block WHERE organization_id=:o'), {"o": oid})
+            conn.execute(t('DELETE FROM "user" WHERE organization_id=:o'), {"o": oid})
+            conn.execute(t('DELETE FROM subscription WHERE organization_id=:o'), {"o": oid})
+            # Organisation elle-même
+            conn.execute(t('DELETE FROM organization WHERE id=:o'), {"o": oid})
+        flash(f'Organisation « {org_name} » supprimée définitivement.', 'success')
+    except Exception as e:
+        flash(f'Erreur lors de la suppression : {e}', 'danger')
     return redirect(url_for('superadmin_dashboard'))
 
 
