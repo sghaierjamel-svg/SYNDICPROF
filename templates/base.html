@@ -9,13 +9,15 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         :root {
-            --bg: #0A0E1A;
-            --card-bg: #111827;
-            --border: #1F2937;
-            --border2: #374151;
-            --green: #00C896;
-            --text: #F9FAFB;
-            --muted: #9CA3AF;
+            --bg: #0F172A;
+            --card-bg: #1E293B;
+            --border: #334155;
+            --border2: #475569;
+            --green: #10B981;
+            --accent: #1D4ED8;
+            --accent-light: #3B82F6;
+            --text: #F1F5F9;
+            --muted: #94A3B8;
             --sidebar-width: 260px;
         }
 
@@ -32,12 +34,12 @@
         /* ── TABLES — override Bootstrap fond blanc ── */
         .table { color: var(--text) !important; --bs-table-bg: transparent; --bs-table-color: var(--text); }
         .table > :not(caption) > * > * { background-color: transparent !important; color: var(--text); border-bottom-color: var(--border); }
-        .table-hover > tbody > tr:hover > * { background-color: rgba(0,200,150,0.06) !important; color: var(--text); }
+        .table-hover > tbody > tr:hover > * { background-color: rgba(29,78,216,0.07) !important; color: var(--text); }
         .table thead th { background-color: var(--border2) !important; color: var(--muted) !important; border-bottom: 2px solid var(--border2); }
         .table-dark thead th { background-color: var(--border2) !important; color: var(--muted) !important; }
         .table-bordered > :not(caption) > * > * { border-color: var(--border) !important; }
         .table-warning > * { background-color: rgba(245,158,11,0.15) !important; color: var(--text) !important; }
-        .table-primary > * { background-color: rgba(0,200,150,0.12) !important; color: var(--text) !important; }
+        .table-primary > * { background-color: rgba(29,78,216,0.12) !important; color: var(--text) !important; }
         .text-muted { color: var(--muted) !important; }
 
         /* ── SIDEBAR ── */
@@ -63,6 +65,7 @@
             display: flex;
             align-items: center;
             gap: 0.6rem;
+            background: linear-gradient(135deg, rgba(30,58,138,0.3), rgba(30,41,59,0));
         }
 
         .sidebar-logo img {
@@ -108,9 +111,9 @@
         }
 
         .sidebar-link.active {
-            background: rgba(0, 200, 150, 0.12);
-            color: var(--green);
-            border-left: 3px solid var(--green);
+            background: rgba(29, 78, 216, 0.15);
+            color: var(--accent-light);
+            border-left: 3px solid var(--accent-light);
             padding-left: calc(0.85rem - 3px);
         }
 
@@ -138,11 +141,11 @@
             width: 32px;
             height: 32px;
             border-radius: 50%;
-            background: rgba(0,200,150,0.15);
+            background: rgba(29,78,216,0.2);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--green);
+            color: var(--accent-light);
             font-size: 1rem;
             flex-shrink: 0;
         }
@@ -238,20 +241,20 @@
 
         /* ── BUTTONS ── */
         .btn-primary {
-            background: var(--green);
+            background: linear-gradient(135deg, #1D4ED8, #3B82F6);
             border: none;
             padding: 0.6rem 1.5rem;
             border-radius: 8px;
             font-weight: 600;
-            color: #0A0E1A;
+            color: #fff;
             transition: all 0.3s ease;
         }
 
         .btn-primary:hover, .btn-primary:focus {
-            background: #00b386;
-            color: #0A0E1A;
+            background: linear-gradient(135deg, #1E40AF, #2563EB);
+            color: #fff;
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0,200,150,0.35);
+            box-shadow: 0 8px 20px rgba(29,78,216,0.4);
         }
 
         .btn-success {
@@ -284,11 +287,11 @@
         }
 
         .btn-outline-primary {
-            border: 2px solid var(--green); color: var(--green);
+            border: 2px solid var(--accent-light); color: var(--accent-light);
             border-radius: 8px; font-weight: 600; background: transparent;
         }
 
-        .btn-outline-primary:hover { background: var(--green); color: #0A0E1A; }
+        .btn-outline-primary:hover { background: var(--accent-light); color: #fff; }
 
         .btn-outline-secondary {
             border: 2px solid var(--border2); color: var(--muted);
@@ -302,7 +305,7 @@
             border-radius: 8px; font-weight: 600; background: transparent;
         }
 
-        .btn-outline-success:hover { background: var(--green); color: #0A0E1A; }
+        .btn-outline-success:hover { background: var(--green); color: #fff; }
 
         /* ── STAT CARDS ── */
         .stat-card {
@@ -334,8 +337,8 @@
         }
 
         .alert-success {
-            background: rgba(0,200,150,0.12);
-            border: 1px solid rgba(0,200,150,0.3);
+            background: rgba(16,185,129,0.12);
+            border: 1px solid rgba(16,185,129,0.3);
             color: #6ee7b7;
         }
 
@@ -381,9 +384,9 @@
 
         .form-control:focus, .form-select:focus {
             background: var(--border);
-            border-color: var(--green);
+            border-color: var(--accent-light);
             color: var(--text);
-            box-shadow: 0 0 0 3px rgba(0,200,150,0.15);
+            box-shadow: 0 0 0 3px rgba(29,78,216,0.18);
         }
 
         .form-control::placeholder { color: #6B7280; }
@@ -393,11 +396,11 @@
         /* ── DROPDOWN ── */
         .dropdown-menu { background: var(--card-bg); border: 1px solid var(--border2); }
         .dropdown-item { color: var(--text); }
-        .dropdown-item:hover { background: var(--border); color: var(--green); }
+        .dropdown-item:hover { background: var(--border); color: var(--accent-light); }
 
         /* ── STATUS BADGES ── */
         .status-paid {
-            background: rgba(0,200,150,0.15); color: var(--green);
+            background: rgba(16,185,129,0.15); color: var(--green);
             padding: 0.3rem 0.8rem; border-radius: 6px; font-weight: 600;
         }
 

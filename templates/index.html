@@ -1,477 +1,492 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SyndicPro — Gestion de syndic en Tunisie</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #0A0E1A;
-            --card-bg: #111827;
-            --border: #1F2937;
-            --green: #00C896;
-            --text: #F9FAFB;
-            --muted: #9CA3AF;
-        }
-        * { box-sizing: border-box; }
-        body {
-            background-color: var(--bg);
-            color: var(--text);
-            font-family: 'DM Sans', sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-        h1, h2, h3, h4, h5, .syne { font-family: 'Syne', sans-serif; }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SyndicPro — Gestion de syndic intelligente en Tunisie</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0F172A;
+    --card-bg:   #1E293B;
+    --border:    #334155;
+    --blue-dark: #1E3A8A;
+    --blue-mid:  #1D4ED8;
+    --blue-light:#3B82F6;
+    --green:     #10B981;
+    --gold:      #F59E0B;
+    --text:      #F1F5F9;
+    --muted:     #94A3B8;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; }
 
-        /* NAVBAR */
-        .lp-navbar {
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            background: rgba(10, 14, 26, 0.95);
-            backdrop-filter: blur(8px);
-            border-bottom: 1px solid var(--border);
-            padding: 1rem 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-        .lp-logo {
-            font-family: 'Syne', sans-serif;
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: var(--text);
-            text-decoration: none;
-        }
-        .lp-logo span { color: var(--green); }
-        .lp-nav-links {
-            display: flex;
-            gap: 1.5rem;
-            list-style: none;
-            margin: 0;
-            padding: 0;
-        }
-        .lp-nav-links a {
-            color: var(--muted);
-            text-decoration: none;
-            font-size: 0.95rem;
-            transition: color 0.2s;
-        }
-        .lp-nav-links a:hover { color: var(--text); }
-        .lp-nav-actions { display: flex; gap: 0.75rem; align-items: center; }
-        .btn-outline-lp {
-            border: 1px solid rgba(255,255,255,0.3);
-            color: var(--text);
-            background: transparent;
-            padding: 0.5rem 1.2rem;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            text-decoration: none;
-            transition: all 0.2s;
-        }
-        .btn-outline-lp:hover { border-color: white; color: white; }
-        .btn-green {
-            background: var(--green);
-            color: #000;
-            padding: 0.5rem 1.2rem;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            text-decoration: none;
-            transition: opacity 0.2s;
-        }
-        .btn-green:hover { opacity: 0.88; color: #000; }
+  /* ── NAVBAR ── */
+  .lp-nav {
+    position: sticky; top: 0; z-index: 999;
+    background: rgba(15,23,42,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: .9rem 2rem;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  }
+  .lp-logo { font-size: 1.35rem; font-weight: 800; color: var(--text); text-decoration: none; letter-spacing: -.3px; }
+  .lp-logo span { color: #60A5FA; }
+  .nav-links { display: flex; gap: 1.5rem; list-style: none; margin: 0; padding: 0; }
+  .nav-links a { color: var(--muted); text-decoration: none; font-size: .9rem; transition: color .2s; }
+  .nav-links a:hover { color: var(--text); }
+  .nav-actions { display: flex; gap: .6rem; align-items: center; }
+  .btn-nav-outline {
+    border: 1px solid rgba(255,255,255,.2); color: var(--text); background: transparent;
+    padding: .45rem 1.1rem; border-radius: 8px; font-size: .88rem; text-decoration: none; transition: .2s;
+  }
+  .btn-nav-outline:hover { border-color: rgba(255,255,255,.5); color: #fff; }
+  .btn-nav-fill {
+    background: linear-gradient(135deg,#1D4ED8,#3B82F6); color: #fff;
+    padding: .45rem 1.1rem; border-radius: 8px; font-size: .88rem; font-weight: 600;
+    text-decoration: none; border: none; transition: .2s;
+    box-shadow: 0 4px 16px rgba(29,78,216,.35);
+  }
+  .btn-nav-fill:hover { transform: translateY(-1px); color: #fff; }
+  @media(max-width:768px){ .nav-links { display:none; } }
 
-        /* HERO */
-        .hero {
-            padding: 5rem 2rem 4rem;
-            text-align: center;
-            max-width: 860px;
-            margin: 0 auto;
-        }
-        .hero-badge {
-            display: inline-block;
-            background: rgba(0,200,150,0.12);
-            color: var(--green);
-            border: 1px solid rgba(0,200,150,0.3);
-            padding: 0.4rem 1rem;
-            border-radius: 999px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            margin-bottom: 1.5rem;
-        }
-        .hero h1 {
-            font-size: clamp(2rem, 5vw, 3.2rem);
-            font-weight: 800;
-            line-height: 1.2;
-            margin-bottom: 1.2rem;
-        }
-        .hero h1 span { color: var(--green); }
-        .hero p {
-            color: var(--muted);
-            font-size: 1.1rem;
-            max-width: 600px;
-            margin: 0 auto 2rem;
-            line-height: 1.7;
-        }
-        .hero-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
-        .btn-hero-primary {
-            background: var(--green);
-            color: #000;
-            padding: 0.85rem 2rem;
-            border-radius: 10px;
-            font-weight: 700;
-            font-size: 1rem;
-            text-decoration: none;
-            transition: opacity 0.2s;
-        }
-        .btn-hero-primary:hover { opacity: 0.88; color: #000; }
-        .btn-hero-outline {
-            border: 1px solid rgba(255,255,255,0.3);
-            color: var(--text);
-            background: transparent;
-            padding: 0.85rem 2rem;
-            border-radius: 10px;
-            font-size: 1rem;
-            text-decoration: none;
-            transition: all 0.2s;
-        }
-        .btn-hero-outline:hover { border-color: white; color: white; }
-        .hero-stats {
-            border-top: 1px solid var(--border);
-            margin-top: 3rem;
-            padding-top: 2rem;
-            display: flex;
-            justify-content: center;
-            gap: 3rem;
-            flex-wrap: wrap;
-        }
-        .hero-stat strong {
-            display: block;
-            font-family: 'Syne', sans-serif;
-            font-size: 1.3rem;
-            font-weight: 800;
-            color: var(--text);
-        }
-        .hero-stat span {
-            font-size: 0.85rem;
-            color: var(--muted);
-        }
+  /* ── HERO ── */
+  .hero {
+    background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 55%, #1D4ED8 100%);
+    padding: 90px 20px 70px;
+    text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content:''; position:absolute; width:700px; height:700px; border-radius:50%;
+    background:rgba(59,130,246,.07); top:-250px; right:-200px; pointer-events:none;
+  }
+  .hero::after {
+    content:''; position:absolute; width:450px; height:450px; border-radius:50%;
+    background:rgba(16,185,129,.05); bottom:-180px; left:-120px; pointer-events:none;
+  }
+  .hero-badge {
+    display:inline-block; position:relative; z-index:1;
+    background:rgba(16,185,129,.13); border:1px solid rgba(16,185,129,.35);
+    color:#6EE7B7; border-radius:50px; padding:6px 18px;
+    font-size:.82rem; font-weight:600; margin-bottom:28px;
+  }
+  .hero-logo { height:90px; mix-blend-mode:screen; filter:brightness(1.1); margin-bottom:20px; display:block; margin-left:auto; margin-right:auto; position:relative; z-index:1; }
+  .hero h1 {
+    font-size: clamp(2rem,5vw,3.5rem); font-weight:800; letter-spacing:-1px;
+    margin-bottom:18px; position:relative; z-index:1; line-height:1.15;
+  }
+  .hero h1 span { color:#93C5FD; }
+  .hero .lead {
+    font-size:clamp(.95rem,2vw,1.2rem); color:#CBD5E1; max-width:660px;
+    margin:0 auto 36px; line-height:1.7; position:relative; z-index:1;
+  }
+  .hero-btns { display:flex; gap:.85rem; justify-content:center; flex-wrap:wrap; position:relative; z-index:1; }
+  .btn-hero-primary {
+    background:linear-gradient(135deg,#1D4ED8,#3B82F6); color:#fff;
+    padding:13px 36px; border-radius:50px; font-size:1rem; font-weight:700;
+    text-decoration:none; transition:.2s; box-shadow:0 8px 28px rgba(29,78,216,.4);
+  }
+  .btn-hero-primary:hover { transform:translateY(-2px); color:#fff; box-shadow:0 12px 36px rgba(29,78,216,.5); }
+  .btn-hero-outline {
+    background:transparent; border:1px solid rgba(255,255,255,.25); color:#fff;
+    padding:13px 36px; border-radius:50px; font-size:1rem; text-decoration:none; transition:.2s;
+    backdrop-filter:blur(4px);
+  }
+  .btn-hero-outline:hover { border-color:rgba(255,255,255,.6); color:#fff; }
+  .hero-note { color:#475569; font-size:.78rem; margin-top:14px; position:relative; z-index:1; }
 
-        /* FEATURES */
-        .section { padding: 4rem 2rem; max-width: 1100px; margin: 0 auto; }
-        .section-title {
-            text-align: center;
-            font-size: 1.8rem;
-            font-weight: 800;
-            margin-bottom: 2.5rem;
-        }
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.25rem;
-        }
-        @media (max-width: 768px) {
-            .features-grid { grid-template-columns: 1fr; }
-            .lp-nav-links { display: none; }
-        }
-        @media (max-width: 992px) and (min-width: 769px) {
-            .features-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-        .feature-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 1.5rem;
-        }
-        .feature-card.featured {
-            border-color: var(--green);
-            background: rgba(0,200,150,0.04);
-        }
-        .feature-card .icon { font-size: 1.8rem; margin-bottom: 0.75rem; }
-        .feature-card h5 {
-            font-family: 'Syne', sans-serif;
-            font-weight: 700;
-            font-size: 1rem;
-            margin-bottom: 0.5rem;
-        }
-        .feature-card p { color: var(--muted); font-size: 0.9rem; margin: 0; line-height: 1.6; }
-        .badge-exclu {
-            display: inline-block;
-            background: rgba(0,200,150,0.15);
-            color: var(--green);
-            font-size: 0.7rem;
-            font-weight: 700;
-            padding: 0.2rem 0.6rem;
-            border-radius: 4px;
-            margin-bottom: 0.5rem;
-            letter-spacing: 0.05em;
-        }
+  /* ── STATS BAR ── */
+  .stats-bar {
+    background: var(--card-bg); border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+    padding:26px 20px;
+  }
+  .stat-item { text-align:center; }
+  .stat-item .num { font-size:2rem; font-weight:800; color:#60A5FA; display:block; }
+  .stat-item .lbl { color:var(--muted); font-size:.82rem; }
 
-        /* PRICING */
-        .pricing-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.25rem;
-        }
-        @media (max-width: 768px) { .pricing-grid { grid-template-columns: 1fr; } }
-        @media (max-width: 992px) and (min-width: 769px) { .pricing-grid { grid-template-columns: 1fr; } }
-        .pricing-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 2rem;
-            position: relative;
-        }
-        .pricing-card.popular {
-            border-color: var(--green);
-        }
-        .badge-popular {
-            position: absolute;
-            top: -1px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--green);
-            color: #000;
-            font-size: 0.75rem;
-            font-weight: 700;
-            padding: 0.3rem 1rem;
-            border-radius: 0 0 8px 8px;
-        }
-        .pricing-plan {
-            font-size: 0.75rem;
-            font-weight: 700;
-            letter-spacing: 0.1em;
-            color: var(--muted);
-            text-transform: uppercase;
-            margin-bottom: 0.5rem;
-        }
-        .pricing-price {
-            font-family: 'Syne', sans-serif;
-            font-size: 2.5rem;
-            font-weight: 800;
-            margin-bottom: 0;
-        }
-        .pricing-price span { font-size: 1rem; font-weight: 400; color: var(--muted); }
-        .pricing-desc { color: var(--muted); font-size: 0.85rem; margin-bottom: 1.5rem; margin-top: 0.25rem; }
-        .pricing-features { list-style: none; padding: 0; margin: 0 0 1.5rem; }
-        .pricing-features li {
-            font-size: 0.9rem;
-            color: var(--muted);
-            padding: 0.35rem 0;
-            border-bottom: 1px solid var(--border);
-        }
-        .pricing-features li:last-child { border-bottom: none; }
-        .pricing-features li::before { content: "✓ "; color: var(--green); font-weight: 700; }
-        .btn-pricing-outline {
-            display: block;
-            text-align: center;
-            border: 1px solid rgba(255,255,255,0.3);
-            color: var(--text);
-            background: transparent;
-            padding: 0.7rem;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            text-decoration: none;
-            transition: all 0.2s;
-        }
-        .btn-pricing-outline:hover { border-color: white; color: white; }
-        .btn-pricing-green {
-            display: block;
-            text-align: center;
-            background: var(--green);
-            color: #000;
-            padding: 0.7rem;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 700;
-            text-decoration: none;
-            transition: opacity 0.2s;
-        }
-        .btn-pricing-green:hover { opacity: 0.88; color: #000; }
+  /* ── SECTIONS ── */
+  section { padding:70px 20px; }
+  .section-label {
+    display:inline-block; background:rgba(59,130,246,.1); border:1px solid rgba(59,130,246,.25);
+    color:#93C5FD; border-radius:50px; padding:5px 16px; font-size:.78rem; font-weight:600;
+    letter-spacing:.5px; text-transform:uppercase; margin-bottom:12px;
+  }
+  h2.section-title { font-size:clamp(1.6rem,3vw,2.3rem); font-weight:800; letter-spacing:-.5px; margin-bottom:10px; }
+  .section-sub { color:var(--muted); font-size:.95rem; max-width:580px; margin:0 auto 46px; line-height:1.7; }
 
-        /* FOOTER */
-        .lp-footer {
-            border-top: 1px solid var(--border);
-            padding: 1.5rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            color: var(--muted);
-            font-size: 0.85rem;
-            max-width: 1100px;
-            margin: 0 auto;
-        }
+  /* ── CARDS POURQUOI ── */
+  .why-card {
+    background:var(--card-bg); border:1px solid var(--border); border-radius:16px;
+    padding:28px; height:100%; transition:.2s;
+  }
+  .why-card:hover { border-color:var(--blue-light); transform:translateY(-3px); }
+  .why-icon {
+    width:50px; height:50px; border-radius:13px;
+    display:flex; align-items:center; justify-content:center; font-size:1.35rem; margin-bottom:16px;
+  }
+  .why-card h5 { font-weight:700; font-size:1rem; margin-bottom:9px; }
+  .why-card p { color:var(--muted); font-size:.88rem; line-height:1.6; margin:0; }
 
-        /* FLASH MESSAGES */
-        .flash-container { max-width: 860px; margin: 1rem auto; padding: 0 2rem; }
-    </style>
+  /* ── MODULE LIST ── */
+  .mod-row {
+    background:var(--card-bg); border:1px solid var(--border); border-radius:12px;
+    padding:18px 22px; margin-bottom:10px; display:flex; align-items:flex-start; gap:14px; transition:.2s;
+  }
+  .mod-row:hover { border-color:var(--blue-light); }
+  .mod-icon {
+    width:42px; height:42px; border-radius:11px;
+    display:flex; align-items:center; justify-content:center; font-size:1.15rem; flex-shrink:0;
+  }
+  .mod-row h6 { font-weight:700; margin:0 0 3px; font-size:.92rem; }
+  .mod-row p { color:var(--muted); font-size:.81rem; margin:0; line-height:1.5; }
+  .badge-new {
+    background:rgba(16,185,129,.13); border:1px solid rgba(16,185,129,.3);
+    color:#6EE7B7; font-size:.65rem; padding:2px 7px; border-radius:50px; font-weight:600;
+    vertical-align:middle; margin-left:5px;
+  }
+
+  /* ── STEPS ── */
+  .step-card {
+    background:var(--card-bg); border:1px solid var(--border);
+    border-radius:16px; padding:26px 22px; height:100%;
+  }
+  .step-num {
+    width:34px; height:34px; background:var(--blue-mid); border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-weight:800; font-size:.88rem; margin-bottom:14px;
+  }
+  .step-card h6 { font-weight:700; margin-bottom:7px; }
+  .step-card p { color:var(--muted); font-size:.85rem; margin:0; line-height:1.6; }
+
+  /* ── PRICING ── */
+  .price-card {
+    background:var(--card-bg); border:1px solid var(--border);
+    border-radius:20px; padding:32px 26px; text-align:center; height:100%;
+    transition:.2s; position:relative;
+  }
+  .price-card.featured {
+    border-color:var(--blue-light); background:linear-gradient(135deg,#1E293B,#1E3A5F);
+    box-shadow:0 0 40px rgba(29,78,216,.18);
+  }
+  .price-badge {
+    position:absolute; top:-12px; left:50%; transform:translateX(-50%);
+    background:linear-gradient(135deg,#1D4ED8,#3B82F6); color:#fff;
+    font-size:.72rem; font-weight:700; padding:4px 16px; border-radius:50px; white-space:nowrap;
+  }
+  .plan-name { font-size:.8rem; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:6px; }
+  .plan-price { font-size:2.4rem; font-weight:800; }
+  .plan-price span { font-size:.95rem; font-weight:400; color:var(--muted); }
+  .plan-desc { color:var(--muted); font-size:.82rem; margin:10px 0 22px; }
+  .plan-features { list-style:none; padding:0; margin:0 0 26px; text-align:left; }
+  .plan-features li { padding:6px 0; font-size:.86rem; color:#CBD5E1; display:flex; align-items:center; gap:9px; }
+  .plan-features li i { color:var(--green); flex-shrink:0; }
+  .btn-plan {
+    display:block; width:100%; padding:11px; border-radius:10px;
+    font-weight:700; font-size:.92rem; text-align:center; text-decoration:none; transition:.2s; border:none; cursor:pointer;
+  }
+  .btn-plan-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+  .btn-plan-outline:hover { border-color:var(--blue-light); color:var(--blue-light); }
+  .btn-plan-fill {
+    background:linear-gradient(135deg,#1D4ED8,#3B82F6); color:#fff;
+    box-shadow:0 4px 18px rgba(29,78,216,.3);
+  }
+  .btn-plan-fill:hover { transform:translateY(-1px); color:#fff; }
+
+  /* ── CTA ── */
+  .cta-section {
+    background:linear-gradient(135deg, #0F172A 0%, #1E3A8A 55%, #0F172A 100%);
+    text-align:center; padding:80px 20px;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    background:#080E1A; border-top:1px solid var(--border);
+    padding:36px 20px; text-align:center; color:var(--muted); font-size:.83rem;
+  }
+  footer a { color:var(--blue-light); text-decoration:none; }
+
+  /* ── DIVIDER ── */
+  .divider { height:1px; background:linear-gradient(90deg,transparent,var(--border),transparent); max-width:700px; margin:0 auto; }
+</style>
 </head>
 <body>
 
-    <!-- NAVBAR -->
-    <nav class="lp-navbar">
-        <a href="/" class="lp-logo">Syndic<span>Pro</span></a>
-        <ul class="lp-nav-links">
-            <li><a href="#fonctionnalites">Fonctionnalités</a></li>
-            <li><a href="#tarifs">Tarifs</a></li>
-            <li><a href="mailto:contact@syndicpro.tn">Contact</a></li>
-        </ul>
-        <div class="lp-nav-actions">
-            <a href="{{ url_for('login') }}" class="btn-outline-lp">Se connecter</a>
-            <a href="{{ url_for('register') }}" class="btn-green">Essai gratuit 30j</a>
-        </div>
-    </nav>
-
-    <!-- FLASH MESSAGES -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        <div class="flash-container">
-            {% for category, message in messages %}
-            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert" style="background:#111827; border:1px solid #1F2937; color:#F9FAFB;">
-                {{ message }}
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-    {% endwith %}
-
-    <!-- HERO -->
-    <div class="hero">
-        <div class="hero-badge">🇹🇳 Fait en Tunisie — 100% adapté au marché local</div>
-        <h1>Fini les impayés qui traînent.<br><span>SyndicPro</span> fait tout pour vous.</h1>
-        <p>Relances automatiques, paiement en ligne, contrôle d'accès badges. La seule solution syndic pensée pour la Tunisie.</p>
-        <div class="hero-btns">
-            <a href="{{ url_for('register') }}" class="btn-hero-primary">Démarrer gratuitement</a>
-            <a href="{{ url_for('demo') }}" class="btn-hero-outline">Voir une démo →</a>
-        </div>
-        <div class="hero-stats">
-            <div class="hero-stat">
-                <strong>94%</strong>
-                <span>taux de recouvrement</span>
-            </div>
-            <div class="hero-stat">
-                <strong>30 jours</strong>
-                <span>d'essai gratuit</span>
-            </div>
-            <div class="hero-stat">
-                <strong>0</strong>
-                <span>intervention humaine</span>
-            </div>
-        </div>
+<!-- ── FLASH MESSAGES ── -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:9999;margin-top:10px;">
+  {% for category, message in messages %}
+  {% set bg = '#0f5132' if category == 'success' else ('#664d03' if category == 'warning' else ('#842029' if category == 'danger' else '#055160')) %}
+  {% set icon = 'check-circle-fill' if category == 'success' else ('exclamation-triangle-fill' if category == 'warning' else ('x-circle-fill' if category == 'danger' else 'info-circle-fill')) %}
+  <div class="toast align-items-center show border-0 mb-2" role="alert"
+       style="background:{{ bg }};color:#fff;min-width:280px;max-width:400px;border-radius:10px;">
+    <div class="d-flex">
+      <div class="toast-body d-flex align-items-start gap-2" style="font-size:.9rem;">
+        <i class="bi bi-{{ icon }} flex-shrink-0 mt-1"></i><span>{{ message }}</span>
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
     </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
 
-    <!-- FONCTIONNALITÉS -->
-    <div class="section" id="fonctionnalites">
-        <h2 class="section-title">Tout ce dont votre syndic a besoin</h2>
-        <div class="features-grid">
+<!-- ── NAVBAR ── -->
+<nav class="lp-nav">
+  <a href="/" class="lp-logo">Syndic<span>Pro</span></a>
+  <ul class="nav-links">
+    <li><a href="#fonctionnalites">Fonctionnalités</a></li>
+    <li><a href="#tarifs">Tarifs</a></li>
+    <li><a href="{{ url_for('demo') }}">Démo</a></li>
+    <li><a href="mailto:contact@syndicpro.tn">Contact</a></li>
+  </ul>
+  <div class="nav-actions">
+    <a href="{{ url_for('login') }}" class="btn-nav-outline">Se connecter</a>
+    <a href="{{ url_for('register') }}" class="btn-nav-fill">Essai gratuit 30j</a>
+  </div>
+</nav>
 
-            <div class="feature-card">
-                <div class="icon">🏢</div>
-                <h5>Gestion appartements</h5>
-                <p>Organisez vos blocs, suivez chaque appartement et son historique.</p>
-            </div>
+<!-- ── HERO ── -->
+<div class="hero">
+  <div class="hero-badge"><i class="bi bi-shield-check me-1"></i> Solution SaaS 100% Tunisienne</div>
+  <img src="{{ url_for('static', filename='img/logo.png') }}" alt="SyndicPro" class="hero-logo" onerror="this.style.display='none'">
+  <h1>Gérez votre résidence<br><span>intelligemment</span></h1>
+  <p class="lead">La plateforme de gestion de syndic de copropriété pensée pour le marché tunisien. Finances, résidents, communication, juridique — tout en un seul endroit.</p>
+  <div class="hero-btns">
+    <a href="{{ url_for('register') }}" class="btn-hero-primary"><i class="bi bi-rocket-takeoff me-2"></i>Démarrer gratuitement</a>
+    <a href="{{ url_for('demo') }}" class="btn-hero-outline"><i class="bi bi-play-circle me-2"></i>Voir la démo</a>
+  </div>
+  <div class="hero-note">Aucune carte bancaire requise · Accès immédiat · 30 jours gratuits</div>
+</div>
 
-            <div class="feature-card">
-                <div class="icon">💰</div>
-                <h5>Encaissements & crédit</h5>
-                <p>Enregistrez les paiements en 10 secondes. Crédit résiduel automatique.</p>
-            </div>
-
-            <div class="feature-card">
-                <div class="icon">📊</div>
-                <h5>Tableau comptable</h5>
-                <p>Vue 12 mois exportable Excel. Chaque centime tracé.</p>
-            </div>
-
-            <div class="feature-card featured">
-                <div class="badge-exclu">EXCLUSIF EN TUNISIE</div>
-                <div class="icon">🔑</div>
-                <h5>Contrôle badges accès</h5>
-                <p>Badge suspendu automatiquement après 3 mois impayés. Réactivé en 10 secondes dès paiement en ligne.</p>
-            </div>
-
-            <div class="feature-card">
-                <div class="icon">🔔</div>
-                <h5>Relances automatiques</h5>
-                <p>WhatsApp progressif chaque semaine. Poli, ferme, puis urgent.</p>
-            </div>
-
-            <div class="feature-card">
-                <div class="icon">🎫</div>
-                <h5>Tickets maintenance</h5>
-                <p>Résidents et gestionnaire communiquent directement dans l'app.</p>
-            </div>
-
-        </div>
+<!-- ── STATS BAR ── -->
+<div class="stats-bar">
+  <div class="container">
+    <div class="row justify-content-center g-4">
+      <div class="col-6 col-md-3"><div class="stat-item"><span class="num">100%</span><span class="lbl">Web · aucune installation</span></div></div>
+      <div class="col-6 col-md-3"><div class="stat-item"><span class="num">30j</span><span class="lbl">Essai gratuit offert</span></div></div>
+      <div class="col-6 col-md-3"><div class="stat-item"><span class="num">20+</span><span class="lbl">Modules intégrés</span></div></div>
+      <div class="col-6 col-md-3"><div class="stat-item"><span class="num">24/7</span><span class="lbl">Accès depuis partout</span></div></div>
     </div>
+  </div>
+</div>
 
-    <!-- TARIFS -->
-    <div class="section" id="tarifs">
-        <h2 class="section-title">Tarification simple et transparente</h2>
-        <div class="pricing-grid">
-
-            <div class="pricing-card">
-                <div class="pricing-plan">Starter</div>
-                <div class="pricing-price">30 DT <span>/ mois</span></div>
-                <div class="pricing-desc">Moins de 20 appartements</div>
-                <ul class="pricing-features">
-                    <li>Gestion appartements</li>
-                    <li>Encaissements</li>
-                    <li>Tableau comptable</li>
-                    <li>Tickets</li>
-                    <li>Export Excel</li>
-                </ul>
-                <a href="{{ url_for('register') }}" class="btn-pricing-outline">Commencer gratuitement</a>
-            </div>
-
-            <div class="pricing-card popular">
-                <div class="badge-popular">⭐ Populaire</div>
-                <div class="pricing-plan" style="margin-top:1rem;">Pro</div>
-                <div class="pricing-price">50 DT <span>/ mois</span></div>
-                <div class="pricing-desc">20 à 75 appartements</div>
-                <ul class="pricing-features">
-                    <li>Tout du Starter</li>
-                    <li>Relances WhatsApp auto</li>
-                    <li>Paiement Konnect</li>
-                    <li>🔑 Contrôle badges</li>
-                    <li>Rapports PDF</li>
-                </ul>
-                <a href="{{ url_for('register') }}" class="btn-pricing-green">Commencer gratuitement</a>
-            </div>
-
-            <div class="pricing-card">
-                <div class="pricing-plan">Enterprise</div>
-                <div class="pricing-price">75 DT <span>/ mois</span></div>
-                <div class="pricing-desc">Plus de 75 appartements</div>
-                <ul class="pricing-features">
-                    <li>Tout du Pro</li>
-                    <li>Agent IA WhatsApp</li>
-                    <li>Import relevé bancaire</li>
-                    <li>Support prioritaire</li>
-                </ul>
-                <a href="{{ url_for('register') }}" class="btn-pricing-outline">Commencer gratuitement</a>
-            </div>
-
+<!-- ── POURQUOI ── -->
+<section>
+  <div class="container text-center">
+    <div class="section-label">Pourquoi SyndicPro</div>
+    <h2 class="section-title">La gestion de syndic, enfin simple</h2>
+    <p class="section-sub">Fini les tableaux Excel, les cahiers papier et les appels téléphoniques. SyndicPro centralise tout.</p>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="why-card">
+          <div class="why-icon" style="background:rgba(29,78,216,.15);"><i class="bi bi-lightning-charge" style="color:#60A5FA;"></i></div>
+          <h5>Gain de temps immédiat</h5>
+          <p>Reçus PDF, états financiers, relances — ce qui prenait des heures prend désormais des minutes.</p>
         </div>
+      </div>
+      <div class="col-md-4">
+        <div class="why-card">
+          <div class="why-icon" style="background:rgba(16,185,129,.15);"><i class="bi bi-shield-lock" style="color:#34D399;"></i></div>
+          <h5>Sécurité & conformité</h5>
+          <p>Accès par rôles, sessions protégées, conformité SCE tunisien pour les états financiers.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="why-card">
+          <div class="why-icon" style="background:rgba(245,158,11,.15);"><i class="bi bi-people" style="color:#FCD34D;"></i></div>
+          <h5>Résidents connectés</h5>
+          <p>Chaque résident accède à son espace : solde, historique, tickets, annonces. Moins d'appels.</p>
+        </div>
+      </div>
     </div>
+  </div>
+</section>
 
-    <!-- FOOTER -->
-    <footer class="lp-footer">
-        <span>© 2026 SyndicPro — Fait en Tunisie 🇹🇳</span>
-        <a href="mailto:contact@syndicpro.tn" style="color: var(--muted); text-decoration: none;">contact@syndicpro.tn</a>
-    </footer>
+<div class="divider"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- ── FONCTIONNALITÉS ── -->
+<section id="fonctionnalites">
+  <div class="container">
+    <div class="text-center mb-5">
+      <div class="section-label">Fonctionnalités</div>
+      <h2 class="section-title">Tous les modules dont vous avez besoin</h2>
+      <p class="section-sub">Une suite complète pensée pour les syndics tunisiens.</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-lg-6">
+        <div class="mod-row">
+          <div class="mod-icon" style="background:rgba(29,78,216,.15);"><i class="bi bi-cash-coin" style="color:#60A5FA;"></i></div>
+          <div><h6>Gestion Financière Complète</h6><p>Encaissements, dépenses, trésorerie en temps réel. Paiement en ligne via <strong>Konnect</strong> ou <strong>Flouci</strong>. Reçus PDF automatiques.</p></div>
+        </div>
+        <div class="mod-row">
+          <div class="mod-icon" style="background:rgba(16,185,129,.15);"><i class="bi bi-file-earmark-bar-graph" style="color:#34D399;"></i></div>
+          <div><h6>États Financiers SCE <span class="badge-new">Tunisie</span></h6><p>Bilan, Résultat, Flux de trésorerie conformes NCT 01. Export PDF professionnel.</p></div>
+        </div>
+        <div class="mod-row">
+          <div class="mod-icon" style="background:rgba(245,158,11,.15);"><i class="bi bi-building-fill-add" style="color:#FCD34D;"></i></div>
+          <div><h6>Appels de Fonds Travaux <span class="badge-new">Nouveau</span></h6><p>Fonds travaux séparé, quotes-parts automatiques, devis joint, suivi dépenses, reçus PDF.</p></div>
+        </div>
+        <div class="mod-row">
+          <div class="mod-icon" style="background:rgba(239,68,68,.15);"><i class="bi bi-gavel" style="color:#F87171;"></i></div>
+          <div><h6>Module Litiges <span class="badge-new">Nouveau</span></h6><p>Mise en demeure éditable, dossier huissier, accusé de réception, documents joints.</p></div>
+        </div>
+        <div class="mod-row">
+          <div class="mod-icon" style="background:rgba(139,92,246,.15);"><i class="bi bi-graph-up-arrow" style="color:#A78BFA;"></i></div>
+          <div><h6>Automatisation & Relances</h6><p>Relances WhatsApp groupées, rapport mensuel PDF automatique, alertes impayés.</p></div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="mod-row">
+          <div class="mod-icon" style="background:rgba(6,182,212,.15);"><i class="bi bi-person-lines-fill" style="color:#67E8F9;"></i></div>
+          <div><h6>Espace Résident</h6><p>Charges, paiements en ligne, reçus, tickets, annonces. Import Excel en masse.</p></div>
+        </div>
+        <div class="mod-row">
+          <div class="mod-icon" style="background:rgba(16,185,129,.15);"><i class="bi bi-megaphone" style="color:#34D399;"></i></div>
+          <div><h6>Annonces & Communication</h6><p>Publication avec notification WhatsApp auto. Suivi de lecture par résident.</p></div>
+        </div>
+        <div class="mod-row">
+          <div class="mod-icon" style="background:rgba(245,158,11,.15);"><i class="bi bi-whatsapp" style="color:#FCD34D;"></i></div>
+          <div><h6>Notifications WhatsApp</h6><p>Chaque paiement, ticket, annonce déclenche une notification instantanée.</p></div>
+        </div>
+        <div class="mod-row">
+          <div class="mod-icon" style="background:rgba(99,102,241,.15);"><i class="bi bi-calendar3" style="color:#818CF8;"></i></div>
+          <div><h6>Assemblées Générales</h6><p>Ordre du jour, votes, PV PDF généré automatiquement.</p></div>
+        </div>
+        <div class="mod-row">
+          <div class="mod-icon" style="background:rgba(239,68,68,.12);"><i class="bi bi-robot" style="color:#F87171;"></i></div>
+          <div><h6>Assistant IA intégré <span class="badge-new">IA</span></h6><p>Claude AI analyse vos données : impayés, trésorerie, tickets. Réponses instantanées.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── MISE EN PLACE ── -->
+<section style="background:rgba(30,41,59,.45);">
+  <div class="container">
+    <div class="text-center mb-5">
+      <div class="section-label">Mise en place</div>
+      <h2 class="section-title">Opérationnel en moins d'une heure</h2>
+      <p class="section-sub">Un processus guidé pour démarrer sans stress.</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-3"><div class="step-card"><div class="step-num">1</div><h6>Créer votre compte</h6><p>Inscription en 2 minutes. Essai gratuit 30 jours activé immédiatement.</p></div></div>
+      <div class="col-md-3"><div class="step-card"><div class="step-num">2</div><h6>Importer vos données</h6><p>Modèle Excel fourni — appartements et résidents importés en un clic.</p></div></div>
+      <div class="col-md-3"><div class="step-card"><div class="step-num">3</div><h6>Configurer les paiements</h6><p>Connectez Konnect ou Flouci. Vos résidents paient en ligne dès J+1.</p></div></div>
+      <div class="col-md-3"><div class="step-card"><div class="step-num">4</div><h6>C'est parti !</h6><p>Trésorerie, annonces, tickets, PDF — tout depuis votre téléphone.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── TARIFS ── -->
+<section id="tarifs">
+  <div class="container">
+    <div class="text-center mb-5">
+      <div class="section-label">Tarification</div>
+      <h2 class="section-title">Des tarifs adaptés à chaque résidence</h2>
+      <p class="section-sub">Prix transparents, sans engagement, sans frais cachés.</p>
+    </div>
+    <div class="row g-4 justify-content-center">
+      <div class="col-md-4">
+        <div class="price-card">
+          <div class="plan-name">Starter</div>
+          <div class="plan-price">30 <span>DT/mois</span></div>
+          <div class="plan-desc">Idéal pour les petites résidences</div>
+          <ul class="plan-features">
+            <li><i class="bi bi-check-lg"></i> Jusqu'à 20 appartements</li>
+            <li><i class="bi bi-check-lg"></i> Tous les modules inclus</li>
+            <li><i class="bi bi-check-lg"></i> Paiement Konnect / Flouci</li>
+            <li><i class="bi bi-check-lg"></i> Emails automatiques</li>
+            <li><i class="bi bi-check-lg"></i> Support par email</li>
+          </ul>
+          <a href="{{ url_for('register') }}" class="btn-plan btn-plan-outline">Commencer l'essai</a>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="price-card featured">
+          <div class="price-badge"><i class="bi bi-star-fill me-1"></i> Le plus populaire</div>
+          <div class="plan-name">Pro</div>
+          <div class="plan-price">50 <span>DT/mois</span></div>
+          <div class="plan-desc">Pour les résidences de taille moyenne</div>
+          <ul class="plan-features">
+            <li><i class="bi bi-check-lg"></i> Jusqu'à 75 appartements</li>
+            <li><i class="bi bi-check-lg"></i> Tous les modules inclus</li>
+            <li><i class="bi bi-check-lg"></i> WhatsApp + IA intégrée</li>
+            <li><i class="bi bi-check-lg"></i> États financiers SCE</li>
+            <li><i class="bi bi-check-lg"></i> Multi-résidences</li>
+            <li><i class="bi bi-check-lg"></i> Support prioritaire</li>
+          </ul>
+          <a href="{{ url_for('register') }}" class="btn-plan btn-plan-fill">Commencer l'essai</a>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="price-card">
+          <div class="plan-name">Enterprise</div>
+          <div class="plan-price">75 <span>DT/mois</span></div>
+          <div class="plan-desc">Pour les grandes copropriétés</div>
+          <ul class="plan-features">
+            <li><i class="bi bi-check-lg"></i> Appartements illimités</li>
+            <li><i class="bi bi-check-lg"></i> Tous les modules inclus</li>
+            <li><i class="bi bi-check-lg"></i> Caméras de surveillance</li>
+            <li><i class="bi bi-check-lg"></i> Registre d'accès avancé</li>
+            <li><i class="bi bi-check-lg"></i> Multi-résidences illimité</li>
+            <li><i class="bi bi-check-lg"></i> Support dédié &amp; formation</li>
+          </ul>
+          <a href="mailto:contact@syndicpro.tn" class="btn-plan btn-plan-outline">Nous contacter</a>
+        </div>
+      </div>
+    </div>
+    <p class="text-center mt-4" style="color:var(--muted);font-size:.83rem;">
+      <i class="bi bi-gift me-1" style="color:var(--green);"></i>
+      Tous les plans incluent <strong style="color:#F1F5F9;">30 jours d'essai gratuit</strong> — aucune carte bancaire requise.
+    </p>
+  </div>
+</section>
+
+<!-- ── CTA FINAL ── -->
+<div class="cta-section">
+  <div class="container text-center">
+    <div class="section-label">Démarrez aujourd'hui</div>
+    <h2 class="section-title mt-3">Prêt à moderniser votre résidence ?</h2>
+    <p style="color:#CBD5E1;max-width:500px;margin:0 auto 34px;line-height:1.7;">
+      Configuration en moins d'une heure, support inclus, 30 jours gratuits sans engagement.
+    </p>
+    <div class="d-flex flex-wrap gap-3 justify-content-center">
+      <a href="{{ url_for('register') }}" class="btn-hero-primary"><i class="bi bi-rocket-takeoff me-2"></i>Démarrer gratuitement</a>
+      <a href="{{ url_for('demo') }}" class="btn-hero-outline"><i class="bi bi-play-circle me-2"></i>Voir la démo</a>
+    </div>
+    <p class="mt-4" style="color:#475569;font-size:.8rem;">
+      <i class="bi bi-envelope me-1"></i>
+      <a href="mailto:contact@syndicpro.tn" style="color:#60A5FA;">contact@syndicpro.tn</a>
+    </p>
+  </div>
+</div>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="container">
+    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="SyndicPro" height="38" style="mix-blend-mode:screen;margin-bottom:10px;" onerror="this.style.display='none'"><br>
+    <strong style="color:#F1F5F9;">SyndicPro</strong> — Gestion de syndic intelligente, made in Tunisia 🇹🇳<br>
+    <span class="mt-1 d-inline-block">
+      <a href="https://www.syndicpro.tn">www.syndicpro.tn</a> ·
+      <a href="mailto:contact@syndicpro.tn">contact@syndicpro.tn</a>
+    </span>
+    <p style="color:#334155;font-size:.75rem;margin:12px 0 0;">© 2026 SyndicPro. Tous droits réservés.</p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.querySelectorAll('.toast').forEach(t => {
+  setTimeout(() => bootstrap.Toast.getOrCreateInstance(t).hide(), 4000);
+});
+</script>
 </body>
 </html>
