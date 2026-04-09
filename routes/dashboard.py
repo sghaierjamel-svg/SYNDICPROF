@@ -8,6 +8,66 @@ from datetime import date
 from sqlalchemy import func
 
 
+def _setup_checklist(org, apartments_count):
+    """Calcule l'état d'avancement du setup pour le wizard de démarrage."""
+    residents_count = User.query.filter_by(
+        organization_id=org.id, role='resident').count()
+    payments_count = Payment.query.filter_by(
+        organization_id=org.id).count()
+    steps = [
+        {
+            'id': 'compte',
+            'label': 'Compte créé',
+            'done': True,
+            'url': None,
+            'icon': 'bi-person-check',
+        },
+        {
+            'id': 'residence',
+            'label': 'Résidence configurée',
+            'desc': 'Ajoutez l\'adresse et le téléphone de votre résidence.',
+            'done': bool(org.address and org.phone),
+            'url': url_for('settings'),
+            'url_label': 'Configurer',
+            'icon': 'bi-building',
+        },
+        {
+            'id': 'appartements',
+            'label': f'Appartements ajoutés ({apartments_count})',
+            'desc': 'Importez vos appartements via Excel ou ajoutez-les manuellement.',
+            'done': apartments_count > 0,
+            'url': url_for('onboarding_import'),
+            'url_label': 'Importer via Excel',
+            'url2': url_for('apartments'),
+            'url2_label': 'Ajouter manuellement',
+            'icon': 'bi-buildings',
+        },
+        {
+            'id': 'residents',
+            'label': f'Résidents invités ({residents_count})',
+            'desc': 'Créez les comptes de vos résidents pour qu\'ils accèdent à leur espace.',
+            'done': residents_count > 0,
+            'url': url_for('onboarding_import'),
+            'url_label': 'Importer via Excel',
+            'url2': url_for('users'),
+            'url2_label': 'Ajouter manuellement',
+            'icon': 'bi-people',
+        },
+        {
+            'id': 'encaissement',
+            'label': 'Premier encaissement enregistré',
+            'desc': 'Enregistrez votre premier paiement de charges.',
+            'done': payments_count > 0,
+            'url': url_for('payments'),
+            'url_label': 'Aller aux encaissements',
+            'icon': 'bi-cash-coin',
+        },
+    ]
+    done_count = sum(1 for s in steps if s['done'])
+    pct = int(done_count / len(steps) * 100)
+    return steps, done_count, len(steps), pct
+
+
 @app.route('/dashboard')
 @login_required
 @subscription_required
@@ -67,6 +127,13 @@ def dashboard():
         recent_tickets = Ticket.query.filter_by(
             apartment_id=user.apartment_id
         ).order_by(Ticket.created_at.desc()).limit(5).all()
+    # Setup wizard (admin uniquement, si pas encore dismissed et setup incomplet)
+    setup_steps, setup_done, setup_total, setup_pct = [], 0, 0, 0
+    show_setup = False
+    if user.role == 'admin' and not org.setup_dismissed:
+        setup_steps, setup_done, setup_total, setup_pct = _setup_checklist(org, apartments_count)
+        show_setup = setup_pct < 100
+
     return render_template('dashboard.html',
                          user=user,
                          org=org,
@@ -84,7 +151,12 @@ def dashboard():
                          encaisse_mois=encaisse_mois,
                          depense_mois=depense_mois,
                          solde_tresorerie=solde_tresorerie,
-                         taux_recouvrement=taux_recouvrement)
+                         taux_recouvrement=taux_recouvrement,
+                         show_setup=show_setup,
+                         setup_steps=setup_steps,
+                         setup_done=setup_done,
+                         setup_total=setup_total,
+                         setup_pct=setup_pct)
 
 
 @app.route('/residents', methods=['GET', 'POST'])

@@ -1,8 +1,21 @@
 import io, secrets
-from flask import render_template, request, redirect, url_for, flash, send_file
+from flask import render_template, request, redirect, url_for, flash, send_file, jsonify
 from core import app, db
 from models import Organization, Block, Apartment, User
 from utils import current_user, current_organization, login_required, admin_required, subscription_required
+
+
+# ─── Dismiss du setup wizard ──────────────────────────────────────────────────
+
+@app.route('/onboarding/dismiss', methods=['POST'])
+@login_required
+@admin_required
+def onboarding_dismiss():
+    org = current_organization()
+    if org:
+        org.setup_dismissed = True
+        db.session.commit()
+    return jsonify({'ok': True})
 
 
 # ─── Téléchargement du modèle Excel ──────────────────────────────────────────

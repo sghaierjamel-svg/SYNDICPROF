@@ -9,6 +9,115 @@
     </div>
 </div>
 
+{% if show_setup %}
+<!-- ── Setup Wizard ──────────────────────────────────────────────────────── -->
+<div id="setup-wizard" class="mb-4" style="border-radius:14px;overflow:hidden;border:1px solid #1E40AF;box-shadow:0 0 0 1px rgba(30,64,175,.15);">
+  <!-- Header -->
+  <div class="d-flex align-items-center justify-content-between px-4 py-3"
+       style="background:linear-gradient(135deg,#1E3A8A,#1E40AF);cursor:pointer;"
+       onclick="toggleWizard()">
+    <div class="d-flex align-items-center gap-3">
+      <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;">
+        <i class="bi bi-rocket-takeoff" style="font-size:1.2rem;color:#fff;"></i>
+      </div>
+      <div>
+        <div class="fw-bold text-white" style="font-size:.95rem;">Guide de démarrage</div>
+        <div style="color:rgba(255,255,255,.7);font-size:.78rem;">{{ setup_done }}/{{ setup_total }} étapes complétées</div>
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      <!-- Barre de progression compacte -->
+      <div style="width:120px;">
+        <div style="height:6px;background:rgba(255,255,255,.2);border-radius:3px;overflow:hidden;">
+          <div style="width:{{ setup_pct }}%;height:100%;background:#34D399;border-radius:3px;transition:.4s;"></div>
+        </div>
+        <div style="font-size:.72rem;color:rgba(255,255,255,.7);text-align:right;margin-top:2px;">{{ setup_pct }}%</div>
+      </div>
+      <i id="wizard-chevron" class="bi bi-chevron-up text-white" style="transition:.2s;"></i>
+    </div>
+  </div>
+
+  <!-- Corps (dépliable) -->
+  <div id="wizard-body" style="background:#0F172A;padding:0 1.5rem;">
+    <div style="padding:1.25rem 0;">
+      {% for step in setup_steps %}
+      <div class="d-flex align-items-start gap-3 mb-3 {% if not loop.last %}pb-3{% endif %}"
+           style="{% if not loop.last %}border-bottom:1px solid #1F2937;{% endif %}">
+        <!-- Icône statut -->
+        <div style="min-width:32px;height:32px;border-radius:50%;
+                    background:{% if step.done %}#065F46{% else %}#1F2937{% endif %};
+                    border:2px solid {% if step.done %}#10B981{% else %}#374151{% endif %};
+                    display:flex;align-items:center;justify-content:center;margin-top:2px;">
+          {% if step.done %}
+          <i class="bi bi-check2" style="color:#10B981;font-size:.9rem;"></i>
+          {% else %}
+          <i class="bi {{ step.icon }}" style="color:#6B7280;font-size:.8rem;"></i>
+          {% endif %}
+        </div>
+        <!-- Texte + actions -->
+        <div class="flex-grow-1">
+          <div class="fw-semibold" style="color:{% if step.done %}#9CA3AF{% else %}#F9FAFB{% endif %};font-size:.88rem;
+               {% if step.done %}text-decoration:line-through;{% endif %}">
+            {{ step.label }}
+          </div>
+          {% if not step.done and step.desc is defined %}
+          <div style="color:#6B7280;font-size:.78rem;margin-top:2px;">{{ step.desc }}</div>
+          {% endif %}
+          {% if not step.done and step.url is defined and step.url %}
+          <div class="d-flex gap-2 mt-2 flex-wrap">
+            <a href="{{ step.url }}" class="btn btn-sm"
+               style="background:#1D4ED8;color:#fff;font-size:.75rem;padding:3px 10px;border-radius:6px;">
+              <i class="bi bi-arrow-right me-1"></i>{{ step.url_label }}
+            </a>
+            {% if step.url2 is defined and step.url2 %}
+            <a href="{{ step.url2 }}" class="btn btn-sm"
+               style="background:#1F2937;color:#9CA3AF;font-size:.75rem;padding:3px 10px;border-radius:6px;">
+              {{ step.url2_label }}
+            </a>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+        <!-- Badge -->
+        {% if step.done %}
+        <span style="font-size:.7rem;background:#065F46;color:#34D399;padding:2px 8px;border-radius:10px;white-space:nowrap;margin-top:4px;">Fait</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Footer -->
+    <div class="d-flex justify-content-between align-items-center py-3"
+         style="border-top:1px solid #1F2937;">
+      <small style="color:#4B5563;">Ce guide disparaît automatiquement quand tout est configuré.</small>
+      <button onclick="dismissWizard()" class="btn btn-sm"
+              style="background:transparent;color:#6B7280;font-size:.75rem;border:1px solid #374151;">
+        <i class="bi bi-x me-1"></i>Ne plus afficher
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+let wizardOpen = true;
+function toggleWizard() {
+  const body = document.getElementById('wizard-body');
+  const chev = document.getElementById('wizard-chevron');
+  wizardOpen = !wizardOpen;
+  body.style.display = wizardOpen ? '' : 'none';
+  chev.style.transform = wizardOpen ? '' : 'rotate(180deg)';
+}
+function dismissWizard() {
+  fetch('/onboarding/dismiss', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'}
+  }).then(() => {
+    document.getElementById('setup-wizard').style.display = 'none';
+  });
+}
+</script>
+{% endif %}
+
 {% if user.role == 'admin' %}
 <!-- KPIs du mois -->
 <div class="row g-4 mb-4">

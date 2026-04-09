@@ -24,6 +24,8 @@ class Organization(db.Model):
     whatsapp_enabled = db.Column(db.Boolean, default=False)
     whatsapp_admin_phone = db.Column(db.String(20))
     whatsapp_token = db.Column(db.String(200))    # token API fonnte.com
+    # Onboarding
+    setup_dismissed = db.Column(db.Boolean, default=False)
 
     subscription = db.relationship('Subscription', backref='organization', uselist=False, lazy=True)
     users = db.relationship('User', backref='organization', lazy=True)
@@ -504,13 +506,14 @@ def init_db():
                     'whatsapp_token': 'VARCHAR(200)',
                     'flouci_app_token': 'VARCHAR(200)',
                     'flouci_app_secret': 'VARCHAR(200)',
+                    'setup_dismissed': 'BOOLEAN DEFAULT FALSE',
                 }
                 for col, col_type in pg_cols.items():
                     conn.execute(db.text(
                         f"ALTER TABLE organization ADD COLUMN IF NOT EXISTS {col} {col_type}"
                     ))
                 conn.commit()
-                print("Migration PostgreSQL organization : colonnes Konnect/WhatsApp vérifiées.")
+                print("Migration PostgreSQL organization : colonnes Konnect/WhatsApp/setup vérifiées.")
             else:
                 # SQLite : vérification via PRAGMA
                 result = conn.execute(db.text("PRAGMA table_info(organization)"))
@@ -523,6 +526,7 @@ def init_db():
                     'whatsapp_token': 'VARCHAR(200)',
                     'flouci_app_token': 'VARCHAR(200)',
                     'flouci_app_secret': 'VARCHAR(200)',
+                    'setup_dismissed': 'BOOLEAN DEFAULT 0',
                 }
                 for col, col_type in sqlite_cols.items():
                     if col not in cols:
