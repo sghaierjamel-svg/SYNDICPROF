@@ -16,7 +16,8 @@ def lifts():
     org  = current_organization()
     lifts_list = Lift.query.filter_by(organization_id=org.id).order_by(Lift.name).all()
     blocks      = Block.query.filter_by(organization_id=org.id).order_by(Block.name).all()
-    intervenants = Intervenant.query.filter_by(organization_id=org.id).order_by(Intervenant.nom).all()
+    intervenants = Intervenant.query.filter_by(organization_id=org.id).filter(
+        Intervenant.categorie.ilike('%ascenseur%')).order_by(Intervenant.nom).all()
     # Incidents ouverts par ascenseur
     open_incidents = {
         i.lift_id for i in LiftIncident.query.filter_by(organization_id=org.id).filter(
@@ -37,7 +38,8 @@ def lift_detail(lift_id):
     user = current_user()
     org  = current_organization()
     lift = Lift.query.filter_by(id=lift_id, organization_id=org.id).first_or_404()
-    intervenants = Intervenant.query.filter_by(organization_id=org.id).order_by(Intervenant.nom).all()
+    intervenants = Intervenant.query.filter_by(organization_id=org.id).filter(
+        Intervenant.categorie.ilike('%ascenseur%')).order_by(Intervenant.nom).all()
 
     if request.method == 'POST' and user.role == 'admin':
         action = request.form.get('action')
@@ -239,31 +241,44 @@ def iot_telemetry():
 # ─── Helpers notifications ────────────────────────────────────────────────────
 
 def _notify_lift_status(org, lift, status, source='manuel', incident=None, reporter=None):
-    """Notifie admin + réparateur assigné via Push + WhatsApp."""
-    status_labels = {'ok': '✅ En service', 'warning': '⚠️ Anomalie signalée', 'down': '🔴 HORS SERVICE'}
+    """Notifie admin + TOUS les résidents via Push + WhatsApp admin."""
+    status_labels = {
+        'ok':      '✅ Remis en service',
+        'warning': '⚠️ Anomalie signalée',
+        'down':    '🔴 HORS SERVICE',
+    }
     label = status_labels.get(status, status.upper())
 
-    reporter_name = ''
-    if reporter:
-        reporter_name = f"\nSignalé par : {reporter.name or reporter.email}"
+    lift_label = lift.name + (f" ({lift.location})" if lift.location else "")
 
+    # ── Message admin ──────────────────────────────────────────────────────
     title_admin = f"🛗 Ascenseur — {label}"
-    body_admin  = f"{lift.name}"
-    if lift.location:
-        body_admin += f" ({lift.location})"
+    body_admin  = lift_label
     if incident:
         body_admin += f"\n{incident.description[:120]}"
-    if reporter_name:
-        body_admin += reporter_name
+    if reporter:
+        body_admin += f"\nSignalé par : {reporter.name or reporter.email}"
     if source == 'iot':
         body_admin += "\n📡 Détecté par capteur IoT"
 
-    url = f"/lift/{lift.id}"
+    # ── Message résidents ──────────────────────────────────────────────────
+    if status == 'down':
+        title_res = "🔴 Ascenseur hors service"
+        body_res  = f"{lift_label} est hors service.\nUne intervention est en cours."
+    elif status == 'warning':
+        title_res = "⚠️ Anomalie sur l'ascenseur"
+        body_res  = f"{lift_label} présente une anomalie.\nNous vous tiendrons informés."
+    else:
+        title_res = "✅ Ascenseur remis en service"
+        body_res  = f"{lift_label} est de nouveau opérationnel."
 
-    # Push → tous les admins
+    url = f"/lift/{lift.id}"
+    tag = f"lift-{lift.id}"
+
+    # Push → admin
     try:
         from utils_push import push_to_admins
-        push_to_admins(org.id, title=title_admin, body=body_admin, url=url, tag=f"lift-{lift.id}")
+        push_to_admins(org.id, title=title_admin, body=body_admin, url=url, tag=tag)
     except Exception:
         pass
 
@@ -275,21 +290,14 @@ def _notify_lift_status(org, lift, status, source='manuel', incident=None, repor
     except Exception:
         pass
 
-    # Push résidents si ascenseur DOWN ou remis en service
-    if status in ('down', 'ok'):
-        try:
-            from utils_push import push_to_user
-            residents = User.query.filter_by(organization_id=org.id, role='resident').all()
-            if status == 'down':
-                r_title = f"🔴 Ascenseur hors service"
-                r_body  = f"{lift.name} est temporairement hors service.\nUne intervention est en cours."
-            else:
-                r_title = f"✅ Ascenseur remis en service"
-                r_body  = f"{lift.name} est de nouveau opérationnel."
-            for r in residents:
-                push_to_user(r.id, title=r_title, body=r_body, url='/dashboard', tag=f"lift-resident-{lift.id}")
-        except Exception:
-            pass
+    # Push → TOUS les résidents (warning + down + ok)
+    try:
+        from utils_push import push_to_user
+        residents = User.query.filter_by(organization_id=org.id, role='resident').all()
+        for r in residents:
+            push_to_user(r.id, title=title_res, body=body_res, url=url, tag=f"lift-res-{lift.id}")
+    except Exception:
+        pass
 
 
 def _notify_intervenant(org, lift, incident, interv):

@@ -691,11 +691,6 @@
             <i class="bi bi-door-open"></i> Registre Accès
         </a>
 
-        <a class="sidebar-link {% if request.endpoint in ['lifts','lift_detail'] %}active{% endif %}"
-           href="{{ url_for('lifts') }}">
-            <i class="bi bi-elevator"></i> Ascenseurs
-        </a>
-
         {% endif %}
 
         {% if user.role == 'resident' %}
