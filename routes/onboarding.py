@@ -307,6 +307,20 @@ def onboarding_import():
         flash(f'Erreur lors de l\'enregistrement : {e}', 'danger')
         return redirect(url_for('onboarding_import'))
 
+    if results['new_accounts']:
+        try:
+            from utils_email import send_resident_credentials
+            for acc in results['new_accounts']:
+                send_resident_credentials(
+                    org_name=org.name,
+                    resident_name=acc['nom'],
+                    email=acc['email'],
+                    password_temp=acc['pwd'],
+                    apt_label=acc['apt'],
+                )
+        except Exception as _e:
+            print(f"[onboarding_import] Emails résidents non envoyés : {_e}")
+
     return render_template('onboarding_import.html',
                            user=user,
                            results=results,
