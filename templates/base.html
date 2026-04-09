@@ -782,17 +782,24 @@
 </aside>
 {% endif %}
 
-{% if user and user.role == 'admin' %}
-<!-- BARRE NOTIFICATIONS -->
-<div class="notif-topbar">
-    <!-- Bouton notifications push -->
+{% if user %}
+<!-- Bouton push commun à tous les rôles -->
+<div style="position:fixed;top:8px;right:{% if user.role == 'admin' %}340px{% else %}16px{% endif %};z-index:1050;">
     <button id="pushActivateBtn" title="Notifications push"
             style="display:flex;align-items:center;gap:6px;background:rgba(59,130,246,0.15);
                    border:1px solid rgba(59,130,246,0.4);color:#93C5FD;border-radius:8px;
-                   padding:4px 10px;font-size:0.78rem;cursor:pointer;margin-right:6px;">
+                   padding:4px 10px;font-size:0.78rem;cursor:pointer;">
         <i class="bi bi-bell-slash" id="pushBtnIcon"></i>
         <span id="pushBtnLabel">Notifs push</span>
     </button>
+</div>
+{% endif %}
+
+{% if user and user.role == 'admin' %}
+<!-- BARRE NOTIFICATIONS admin -->
+<div class="notif-topbar">
+    <!-- espace réservé pour que la cloche ne chevauche pas le bouton push -->
+    <div style="width:0;"></div>
     <div class="dropdown">
         <button class="notif-btn" id="notifBtn" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
             <i class="bi bi-bell{% if notif_count and notif_count > 0 %}-fill{% endif %}" id="notifBellIcon"></i>
