@@ -61,10 +61,6 @@ def send_email(to: str, subject: str, html: str) -> tuple:
         import traceback
         print(f"[Email] ERREUR : {e}\n{traceback.format_exc()}")
         return False, str(e)
-    except Exception as e:
-        msg = f"{type(e).__name__} : {e}"
-        print(f"[Email] ERREUR inattendue : {msg}\n{traceback.format_exc()}")
-        return False, msg
 
 
 # ─── Templates HTML ───────────────────────────────────────────────────────────
