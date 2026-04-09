@@ -101,6 +101,7 @@ class Apartment(db.Model):
     block_id = db.Column(db.Integer, db.ForeignKey('block.id'), nullable=False)
     monthly_fee = db.Column(db.Float, default=100.0)
     credit_balance = db.Column(db.Float, default=0.0)
+    parking_spot = db.Column(db.String(20), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     residents = db.relationship('User', backref='apartment', lazy=True)
     # BUG-F003 : cascade supprimé — supprimer un appartement ne détruit plus l'historique financier
@@ -314,6 +315,10 @@ def init_db():
                 conn.execute(db.text("ALTER TABLE apartment ADD COLUMN credit_balance REAL DEFAULT 0.0"))
                 conn.commit()
                 print("Colonne credit_balance ajoutée à la table apartment")
+            if 'parking_spot' not in columns:
+                conn.execute(db.text("ALTER TABLE apartment ADD COLUMN parking_spot VARCHAR(20)"))
+                conn.commit()
+                print("Colonne parking_spot ajoutée à la table apartment")
 
             # Ajouter credit_used à Payment si n'existe pas
             result = conn.execute(db.text("PRAGMA table_info(payment)"))
@@ -386,6 +391,18 @@ def init_db():
                 print("Migration PostgreSQL : table access_log vérifiée.")
     except Exception as e:
         print(f"Migration access_log : {e}")
+
+    # Migration : colonne parking_spot sur apartment (PostgreSQL)
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text(
+                    "ALTER TABLE apartment ADD COLUMN IF NOT EXISTS parking_spot VARCHAR(20)"
+                ))
+                conn.commit()
+                print("Migration PostgreSQL apartment.parking_spot : OK")
+    except Exception as e:
+        print(f"Migration apartment.parking_spot : {e}")
 
     # Migration : colonnes phone + last_login_at sur user
     try:

@@ -36,12 +36,14 @@ def apartments():
                     if fee <= 0 or fee > 99_999:
                         flash('Redevance invalide (doit être > 0 et < 100 000 DT).', 'danger')
                         return redirect(url_for('apartments'))
+                    parking_spot = request.form.get('parking_spot', '').strip()[:20] or None
                     a = Apartment(
                         organization_id=org.id,
                         number=number,
                         block_id=int(block_id),
                         monthly_fee=fee,
-                        credit_balance=0.0
+                        credit_balance=0.0,
+                        parking_spot=parking_spot
                     )
                     db.session.add(a)
                     db.session.commit()
@@ -68,6 +70,7 @@ def edit_apartment(apartment_id):
         apt.number = request.form['apt_number']
         apt.block_id = int(request.form['block_id'])
         apt.monthly_fee = float(request.form.get('monthly_fee', 100.0))
+        apt.parking_spot = request.form.get('parking_spot', '').strip()[:20] or None
         db.session.commit()
         flash('Appartement modifié', 'success')
         return redirect(url_for('apartments'))

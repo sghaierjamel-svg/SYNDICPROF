@@ -127,11 +127,30 @@ def export_excel():
     } for e in expenses])
     df_unpaid = pd.DataFrame([{
         'Appartement': f"{apt.block.name}-{apt.number}",
+        'Place Parking': apt.parking_spot or '',
         'Redevance Mensuelle': apt.monthly_fee,
         'Crédit Disponible': apt.credit_balance,
         'Mois Impayés': get_unpaid_months_count(apt.id),
         'Prochain Mois': get_next_unpaid_month(apt.id),
         'Total Dû': apt.monthly_fee * get_unpaid_months_count(apt.id)
+    } for apt in apartments])
+
+    # Feuille complète de tous les appartements
+    from models import User as UserModel
+    residents_by_apt = {u.apartment_id: u for u in UserModel.query.filter_by(organization_id=org.id, role='resident').all()}
+    df_apartments = pd.DataFrame([{
+        'Bloc': apt.block.name,
+        'Appartement': apt.number,
+        'Référence': f"{apt.block.name}-{apt.number}",
+        'Place Parking': apt.parking_spot or '',
+        'Redevance Mensuelle (DT)': apt.monthly_fee,
+        'Crédit (DT)': apt.credit_balance,
+        'Résident': residents_by_apt[apt.id].name if apt.id in residents_by_apt else '',
+        'Email Résident': residents_by_apt[apt.id].email if apt.id in residents_by_apt else '',
+        'Téléphone': residents_by_apt[apt.id].phone if apt.id in residents_by_apt else '',
+        'Mois Impayés': get_unpaid_months_count(apt.id),
+        'Total Dû (DT)': apt.monthly_fee * get_unpaid_months_count(apt.id),
+        'Créé le': apt.created_at.strftime('%Y-%m-%d') if apt.created_at else '',
     } for apt in apartments])
 
     today = date.today()
@@ -172,6 +191,7 @@ def export_excel():
 
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df_apartments.to_excel(writer, sheet_name='Appartements', index=False)
         df_payments.to_excel(writer, sheet_name='Encaissements', index=False)
         df_expenses.to_excel(writer, sheet_name='Dépenses', index=False)
         df_unpaid.to_excel(writer, sheet_name='Impayés', index=False)
