@@ -8,8 +8,7 @@ Variables d'environnement requises sur Render :
 import os, json
 
 VAPID_PUBLIC_KEY  = os.environ.get('VAPID_PUBLIC_KEY', '')
-_raw_priv         = os.environ.get('VAPID_PRIVATE_KEY', '')
-VAPID_PRIVATE_KEY = _raw_priv.replace('\\n', '\n') if _raw_priv else ''
+VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', '')   # base64url raw (43 chars, sans PEM)
 VAPID_CLAIMS      = {'sub': 'mailto:contact@syndicpro.tn'}
 
 
