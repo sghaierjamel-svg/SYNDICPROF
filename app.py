@@ -25,6 +25,7 @@ import routes.assembly
 import routes.intervenants
 import routes.litiges
 import routes.appel_fonds
+import routes.onboarding
 
 
 @app.errorhandler(404)

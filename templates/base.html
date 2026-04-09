@@ -604,6 +604,11 @@
             <i class="bi bi-piggy-bank" style="color:#60A5FA;"></i> Appels de Fonds
         </a>
 
+        <a class="sidebar-link {% if request.endpoint == 'onboarding_import' %}active{% endif %}"
+           href="{{ url_for('onboarding_import') }}">
+            <i class="bi bi-file-earmark-excel" style="color:#10B981;"></i> Import Excel
+        </a>
+
         <div class="sidebar-section">Rapports</div>
 
         <a class="sidebar-link {% if request.endpoint == 'tresorerie' %}active{% endif %}"
