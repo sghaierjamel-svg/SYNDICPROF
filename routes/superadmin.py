@@ -205,6 +205,27 @@ def superadmin_change_password():
     return render_template('superadmin/change_password.html')
 
 
+@app.route('/superadmin/test-email', methods=['POST'])
+@login_required
+@superadmin_required
+def superadmin_test_email():
+    from utils_email import send_email, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS
+    to = request.form.get('to', '').strip()
+    if not to:
+        return jsonify({'ok': False, 'error': 'Adresse email manquante.'})
+    ok, err = send_email(
+        to=to,
+        subject='Test email SyndicPro',
+        html=f'<p>Ceci est un email de test envoyé depuis SyndicPro.</p>'
+             f'<p>Serveur : <b>{SMTP_HOST}:{SMTP_PORT}</b><br>'
+             f'Compte : <b>{SMTP_USER}</b><br>'
+             f'Mot de passe configuré : <b>{"Oui" if SMTP_PASS else "NON — variable manquante"}</b></p>'
+    )
+    if ok:
+        return jsonify({'ok': True, 'msg': f'Email envoyé à {to} avec succès.'})
+    return jsonify({'ok': False, 'error': err})
+
+
 @app.route('/superadmin/settings', methods=['GET', 'POST'])
 @login_required
 @superadmin_required

@@ -67,11 +67,73 @@
         </div>
     </div>
 
+    <!-- ── EMAIL ZOHO ── -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-envelope" style="color:#60A5FA;"></i>
+                <span>Emails automatiques — Zoho Mail</span>
+                <span class="badge ms-auto" id="emailBadge" style="background:#374151;">
+                    contact@syndicpro.tn
+                </span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-4">
+                    Les emails sont envoyés depuis <strong>contact@syndicpro.tn</strong> via Zoho SMTP.<br>
+                    La variable <code>ZOHO_SMTP_PASSWORD</code> doit être configurée sur Render.<br>
+                    Utilisez ce bouton pour vérifier que l'envoi fonctionne correctement.
+                </p>
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <input type="email" id="testEmailTo" placeholder="Adresse email de test"
+                           class="form-control" style="max-width:280px;"
+                           value="{{ current_user().email if current_user() else '' }}">
+                    <button type="button" class="btn btn-primary" id="btnTestEmail">
+                        <i class="bi bi-send"></i> Envoyer un email de test
+                    </button>
+                </div>
+                <div id="emailTestResult" class="mt-3" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+document.getElementById('btnTestEmail').addEventListener('click', function() {
+    const btn  = this;
+    const to   = document.getElementById('testEmailTo').value.trim();
+    const result = document.getElementById('emailTestResult');
+    if (!to) { alert('Entrez une adresse email.'); return; }
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Envoi...';
+    result.style.display = 'none';
+
+    const fd = new FormData();
+    fd.append('to', to);
+    fd.append('csrf_token', '{{ csrf_token() }}');
+
+    fetch('{{ url_for("superadmin_test_email") }}', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+            result.style.display = 'block';
+            if (data.ok) {
+                result.innerHTML = '<div class="alert alert-success mb-0"><i class="bi bi-check-circle me-2"></i>' + data.msg + '</div>';
+            } else {
+                result.innerHTML = '<div class="alert alert-danger mb-0"><i class="bi bi-x-circle me-2"></i><strong>Erreur :</strong> ' + data.error + '</div>';
+            }
+        })
+        .catch(() => {
+            result.style.display = 'block';
+            result.innerHTML = '<div class="alert alert-danger mb-0">Erreur réseau.</div>';
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-send"></i> Envoyer un email de test';
+        });
+});
+
 document.getElementById('btnTestKonnect').addEventListener('click', function() {
     const btn = this;
     const result = document.getElementById('konnectTestResult');

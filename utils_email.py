@@ -21,34 +21,47 @@ SITE_URL    = 'https://www.syndicpro.tn'
 
 # ─── Envoi générique ─────────────────────────────────────────────────────────
 
-def send_email(to: str, subject: str, html: str) -> bool:
+def send_email(to: str, subject: str, html: str) -> tuple:
     """
     Envoie un email HTML via Zoho SMTP.
-    Retourne True si succès, False si échec (log dans la console).
+    Retourne (True, '') si succès, (False, message_erreur) si échec.
     Ne lève jamais d'exception pour ne pas bloquer le flux principal.
     """
+    import traceback
     if not SMTP_PASS:
-        print("[Email] ZOHO_SMTP_PASSWORD non défini — email non envoyé.")
-        return False
+        msg = "ZOHO_SMTP_PASSWORD non défini dans les variables d'environnement."
+        print(f"[Email] {msg}")
+        return False, msg
     try:
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = subject
-        msg['From']    = f'SyndicPro <{SMTP_USER}>'
-        msg['To']      = to
-        msg['Reply-To'] = SMTP_USER
-        msg.attach(MIMEText(html, 'html', 'utf-8'))
+        print(f"[Email] Connexion à {SMTP_HOST}:{SMTP_PORT} en tant que {SMTP_USER}...")
+        mail = MIMEMultipart('alternative')
+        mail['Subject']  = subject
+        mail['From']     = f'SyndicPro <{SMTP_USER}>'
+        mail['To']       = to
+        mail['Reply-To'] = SMTP_USER
+        mail.attach(MIMEText(html, 'html', 'utf-8'))
 
         ctx = ssl.create_default_context()
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as server:
             server.ehlo()
             server.starttls(context=ctx)
+            server.ehlo()
             server.login(SMTP_USER, SMTP_PASS)
-            server.sendmail(SMTP_USER, to, msg.as_string())
-        print(f"[Email] Envoyé à {to} — {subject}")
-        return True
+            server.sendmail(SMTP_USER, to, mail.as_string())
+        print(f"[Email] ✓ Envoyé à {to} — {subject}")
+        return True, ''
+    except smtplib.SMTPAuthenticationError as e:
+        msg = f"Authentification échouée : mauvais mot de passe ou App Password requis. ({e})"
+        print(f"[Email] ERREUR AUTH : {msg}")
+        return False, msg
+    except smtplib.SMTPException as e:
+        msg = f"Erreur SMTP : {e}"
+        print(f"[Email] ERREUR SMTP : {msg}")
+        return False, msg
     except Exception as e:
-        print(f"[Email] ERREUR envoi à {to} : {e}")
-        return False
+        msg = f"{type(e).__name__} : {e}"
+        print(f"[Email] ERREUR inattendue : {msg}\n{traceback.format_exc()}")
+        return False, msg
 
 
 # ─── Templates HTML ───────────────────────────────────────────────────────────
