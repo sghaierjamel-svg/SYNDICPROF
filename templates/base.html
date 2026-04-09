@@ -974,11 +974,22 @@
                 },
                 body: JSON.stringify(sub.toJSON()),
             });
+            localStorage.setItem('pushSubscribed', '1');
             setBtn('active');
         } catch (e) {
             console.warn('[Push] doSubscribe error:', e);
+            localStorage.removeItem('pushSubscribed');
             setBtn('inactive');
         }
+    }
+
+    // Affichage immédiat depuis localStorage (évite le flash bleu à chaque page)
+    const perm0 = Notification.permission;
+    if (perm0 === 'denied') {
+        setBtn('blocked');
+        localStorage.removeItem('pushSubscribed');
+    } else if (perm0 === 'granted' && localStorage.getItem('pushSubscribed') === '1') {
+        setBtn('active');
     }
 
     // Le clic est attaché immédiatement — pas conditionnel
@@ -997,18 +1008,23 @@
         else setBtn('blocked');
     });
 
-    // Initialisation au chargement : détecter l'état actuel
+    // Initialisation au chargement : vérification async en arrière-plan
     async function initPush() {
         swReg = await navigator.serviceWorker.register('/static/sw.js');
         await navigator.serviceWorker.ready;
         const perm = Notification.permission;
-        if (perm === 'denied') { setBtn('blocked'); return; }
+        if (perm === 'denied') { setBtn('blocked'); localStorage.removeItem('pushSubscribed'); return; }
         if (perm === 'granted') {
             const existing = await swReg.pushManager.getSubscription();
-            if (existing) { setBtn('active'); return; }
-            await doSubscribe();
+            if (existing) {
+                localStorage.setItem('pushSubscribed', '1');
+                setBtn('active');
+            } else {
+                localStorage.removeItem('pushSubscribed');
+                // Pas d'abonnement trouvé → ré-abonner silencieusement
+                await doSubscribe();
+            }
         }
-        // 'default' → bouton reste en état inactif, attend le clic
     }
 
     window.addEventListener('load', () => initPush().catch(e => console.warn('[Push] init error:', e)));
