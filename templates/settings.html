@@ -12,7 +12,15 @@
 <!-- ONGLETS -->
 <ul class="nav nav-tabs mb-4" id="settingsTabs">
     <li class="nav-item">
-        <a class="nav-link active" data-bs-toggle="tab" href="#tab-konnect">
+        <a class="nav-link {% if not org.address or not org.phone %}active{% endif %}" data-bs-toggle="tab" href="#tab-residence">
+            <i class="bi bi-building"></i> Résidence
+            {% if org.address and org.phone %}
+            <span class="badge bg-success ms-1" style="font-size:.65rem;">&#10003;</span>
+            {% endif %}
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if org.address and org.phone %}active{% endif %}" data-bs-toggle="tab" href="#tab-konnect">
             <i class="bi bi-credit-card-2-front"></i> Konnect
             {% if org.konnect_api_key and org.konnect_wallet_id %}
             <span class="badge bg-success ms-1" style="font-size:.65rem;">&#10003;</span>
@@ -47,8 +55,54 @@
 
 <div class="tab-content">
 
+<!-- ═══════════════════════════ RÉSIDENCE ═══════════════════════════ -->
+<div class="tab-pane fade {% if not org.address or not org.phone %}show active{% endif %}" id="tab-residence">
+    <div class="card">
+        <div class="card-header d-flex align-items-center gap-2">
+            <i class="bi bi-building" style="color:#60A5FA;"></i>
+            <span>Informations de la résidence</span>
+            {% if org.address and org.phone %}
+            <span class="badge bg-success ms-auto">Configuré</span>
+            {% else %}
+            <span class="badge bg-warning ms-auto" style="color:#000;">À compléter</span>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <p class="text-muted small mb-4">
+                Ces informations apparaissent sur les documents générés (reçus PDF, états financiers).
+            </p>
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="section" value="residence">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Nom de la résidence</label>
+                        <input type="text" name="name" class="form-control"
+                               value="{{ org.name or '' }}" placeholder="Résidence Les Jasmins" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Téléphone <span class="text-danger">*</span></label>
+                        <input type="text" name="phone" class="form-control"
+                               value="{{ org.phone or '' }}" placeholder="+216 XX XXX XXX">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Adresse complète <span class="text-danger">*</span></label>
+                        <input type="text" name="address" class="form-control"
+                               value="{{ org.address or '' }}" placeholder="Rue, Ville, Code postal">
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i> Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- ═══════════════════════════ KONNECT ═══════════════════════════ -->
-<div class="tab-pane fade show active" id="tab-konnect">
+<div class="tab-pane fade {% if org.address and org.phone %}show active{% endif %}" id="tab-konnect">
     <div class="card">
         <div class="card-header d-flex align-items-center gap-2">
             <i class="bi bi-credit-card-2-front" style="color:#00C896;"></i>
@@ -438,7 +492,7 @@
 // Activation onglet via hash
 const hash = window.location.hash;
 if (hash) {
-    const map = {'#konnect':'#tab-konnect','#flouci':'#tab-flouci','#whatsapp':'#tab-whatsapp','#cameras':'#tab-cameras'};
+    const map = {'#residence':'#tab-residence','#konnect':'#tab-konnect','#flouci':'#tab-flouci','#whatsapp':'#tab-whatsapp','#cameras':'#tab-cameras'};
     const target = map[hash] || null;
     if (target) {
         const tab = document.querySelector(`a[href="${target}"]`);

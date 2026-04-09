@@ -14,7 +14,14 @@ def settings():
     if request.method == 'POST':
         section = request.form.get('section')
 
-        if section == 'konnect':
+        if section == 'residence':
+            org.name    = request.form.get('name', '').strip() or org.name
+            org.address = request.form.get('address', '').strip()
+            org.phone   = request.form.get('phone', '').strip()
+            db.session.commit()
+            flash('Informations de la résidence enregistrées.', 'success')
+
+        elif section == 'konnect':
             org.konnect_api_key = request.form.get('konnect_api_key', '').strip()
             org.konnect_wallet_id = request.form.get('konnect_wallet_id', '').strip()
             db.session.commit()

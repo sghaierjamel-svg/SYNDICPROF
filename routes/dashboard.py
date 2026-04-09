@@ -27,7 +27,7 @@ def _setup_checklist(org, apartments_count):
             'label': 'Résidence configurée',
             'desc': 'Ajoutez l\'adresse et le téléphone de votre résidence.',
             'done': bool(org.address and org.phone),
-            'url': url_for('settings'),
+            'url': url_for('settings') + '#residence',
             'url_label': 'Configurer',
             'icon': 'bi-building',
         },
