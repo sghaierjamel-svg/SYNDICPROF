@@ -351,6 +351,23 @@ class LitigeDocument(db.Model):
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
+class Camera(db.Model):
+    """Caméra de surveillance de la résidence"""
+    __tablename__ = 'camera'
+    id              = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
+    nom             = db.Column(db.String(100), nullable=False)
+    localisation    = db.Column(db.String(200))
+    marque          = db.Column(db.String(100))
+    url_acces       = db.Column(db.String(500))      # interface web ou lien cloud
+    url_snapshot    = db.Column(db.String(500))      # URL image/snapshot directe
+    identifiant     = db.Column(db.String(100))
+    mot_de_passe    = db.Column(db.String(200))
+    notes           = db.Column(db.Text)
+    actif           = db.Column(db.Boolean, default=True)
+    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 class Intervenant(db.Model):
     """Annuaire des prestataires et intervenants de la résidence"""
     __tablename__ = 'intervenant'
@@ -763,6 +780,31 @@ def init_db():
     except Exception as e:
         print(f"Migration litiges : {e}")
 
+    # Migration : table camera
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS camera (
+                        id SERIAL PRIMARY KEY,
+                        organization_id INTEGER REFERENCES organization(id),
+                        nom VARCHAR(100) NOT NULL,
+                        localisation VARCHAR(200),
+                        marque VARCHAR(100),
+                        url_acces VARCHAR(500),
+                        url_snapshot VARCHAR(500),
+                        identifiant VARCHAR(100),
+                        mot_de_passe VARCHAR(200),
+                        notes TEXT,
+                        actif BOOLEAN DEFAULT TRUE,
+                        created_at TIMESTAMP DEFAULT NOW()
+                    )
+                """))
+                conn.commit()
+                print("Migration PostgreSQL : table camera créée.")
+    except Exception as e:
+        print(f"Migration camera : {e}")
+
     # Migration : table intervenant
     try:
         with db.engine.connect() as conn:
@@ -796,7 +838,7 @@ def init_db():
                     'payment', 'expense', 'ticket', 'super_admin_settings',
                     'konnect_payment', 'flouci_payment', 'unpaid_alert', 'announcement', 'announcement_read', 'access_log',
                     'direct_message', 'assembly_general', 'ag_item', 'ag_vote', 'intervenant',
-                    'litige', 'autre_litige', 'litige_document', 'misc_receipt'
+                    'litige', 'autre_litige', 'litige_document', 'misc_receipt', 'camera'
                 ]
                 for table in tables:
                     conn.execute(db.text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY"))

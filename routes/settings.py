@@ -1,6 +1,6 @@
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from core import app, db
-from models import Organization
+from models import Organization, Camera
 from utils import current_user, current_organization, login_required, admin_required, subscription_required
 import requests as http
 
@@ -35,7 +35,8 @@ def settings():
 
         return redirect(url_for('settings'))
 
-    return render_template('settings.html', user=current_user(), org=org)
+    cameras = Camera.query.filter_by(organization_id=org.id).order_by(Camera.created_at.asc()).all()
+    return render_template('settings.html', user=current_user(), org=org, cameras=cameras)
 
 
 @app.route('/settings/test-whatsapp')
@@ -113,3 +114,68 @@ def test_konnect():
             return jsonify({'ok': False, 'message': f'Erreur Konnect ({resp.status_code}).'})
     except Exception:
         return jsonify({'ok': False, 'message': 'Impossible de joindre Konnect. Vérifiez votre connexion.'})
+
+
+# ─── Caméras de surveillance ──────────────────────────────────────────────────
+
+@app.route('/settings/cameras/ajouter', methods=['POST'])
+@login_required
+@admin_required
+@subscription_required
+def camera_ajouter():
+    org = current_organization()
+    nom = request.form.get('nom', '').strip()[:100]
+    if not nom:
+        flash('Le nom est obligatoire.', 'danger')
+        return redirect(url_for('settings') + '#cameras')
+    cam = Camera(
+        organization_id=org.id,
+        nom=nom,
+        localisation=request.form.get('localisation', '').strip()[:200] or None,
+        marque=request.form.get('marque', '').strip()[:100] or None,
+        url_acces=request.form.get('url_acces', '').strip()[:500] or None,
+        url_snapshot=request.form.get('url_snapshot', '').strip()[:500] or None,
+        identifiant=request.form.get('identifiant', '').strip()[:100] or None,
+        mot_de_passe=request.form.get('mot_de_passe', '').strip()[:200] or None,
+        notes=request.form.get('notes', '').strip() or None,
+        actif=request.form.get('actif') == 'on',
+    )
+    db.session.add(cam)
+    db.session.commit()
+    flash(f'Caméra « {nom} » ajoutée.', 'success')
+    return redirect(url_for('settings') + '#cameras')
+
+
+@app.route('/settings/cameras/<int:cam_id>/modifier', methods=['POST'])
+@login_required
+@admin_required
+@subscription_required
+def camera_modifier(cam_id):
+    org = current_organization()
+    cam = Camera.query.filter_by(id=cam_id, organization_id=org.id).first_or_404()
+    cam.nom = request.form.get('nom', cam.nom).strip()[:100]
+    cam.localisation = request.form.get('localisation', '').strip()[:200] or None
+    cam.marque = request.form.get('marque', '').strip()[:100] or None
+    cam.url_acces = request.form.get('url_acces', '').strip()[:500] or None
+    cam.url_snapshot = request.form.get('url_snapshot', '').strip()[:500] or None
+    cam.identifiant = request.form.get('identifiant', '').strip()[:100] or None
+    cam.mot_de_passe = request.form.get('mot_de_passe', '').strip()[:200] or None
+    cam.notes = request.form.get('notes', '').strip() or None
+    cam.actif = request.form.get('actif') == 'on'
+    db.session.commit()
+    flash(f'Caméra « {cam.nom} » mise à jour.', 'success')
+    return redirect(url_for('settings') + '#cameras')
+
+
+@app.route('/settings/cameras/<int:cam_id>/supprimer', methods=['POST'])
+@login_required
+@admin_required
+@subscription_required
+def camera_supprimer(cam_id):
+    org = current_organization()
+    cam = Camera.query.filter_by(id=cam_id, organization_id=org.id).first_or_404()
+    nom = cam.nom
+    db.session.delete(cam)
+    db.session.commit()
+    flash(f'Caméra « {nom} » supprimée.', 'success')
+    return redirect(url_for('settings') + '#cameras')

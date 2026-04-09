@@ -1,218 +1,479 @@
 {% extends 'base.html' %}
+{% block title %}Paramètres{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <h2 class="text-white mb-1">
-            <i class="bi bi-gear"></i> Paramètres
-        </h2>
-        <p class="text-muted">Configurez vos intégrations de paiement et de messagerie.</p>
+<div class="mb-4">
+    <h2 class="text-white mb-1">
+        <i class="bi bi-gear"></i> Paramètres
+    </h2>
+    <p class="text-muted">Configurez vos intégrations et équipements.</p>
+</div>
+
+<!-- ONGLETS -->
+<ul class="nav nav-tabs mb-4" id="settingsTabs">
+    <li class="nav-item">
+        <a class="nav-link active" data-bs-toggle="tab" href="#tab-konnect">
+            <i class="bi bi-credit-card-2-front"></i> Konnect
+            {% if org.konnect_api_key and org.konnect_wallet_id %}
+            <span class="badge bg-success ms-1" style="font-size:.65rem;">✓</span>
+            {% endif %}
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#tab-flouci">
+            <i class="bi bi-phone"></i> Flouci
+            {% if org.flouci_app_token and org.flouci_app_secret %}
+            <span class="badge bg-success ms-1" style="font-size:.65rem;">✓</span>
+            {% endif %}
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#tab-whatsapp">
+            <i class="bi bi-whatsapp" style="color:#25d366;"></i> WhatsApp
+            {% if org.whatsapp_enabled %}
+            <span class="badge bg-success ms-1" style="font-size:.65rem;">✓</span>
+            {% endif %}
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#tab-cameras">
+            <i class="bi bi-camera-video"></i> Caméras
+            {% if cameras %}
+            <span class="badge bg-secondary ms-1" style="font-size:.65rem;">{{ cameras|length }}</span>
+            {% endif %}
+        </a>
+    </li>
+</ul>
+
+<div class="tab-content">
+
+<!-- ═══════════════════════════ KONNECT ═══════════════════════════ -->
+<div class="tab-pane fade show active" id="tab-konnect">
+    <div class="card">
+        <div class="card-header d-flex align-items-center gap-2">
+            <i class="bi bi-credit-card-2-front" style="color:#00C896;"></i>
+            <span>Paiement en ligne — Konnect</span>
+            {% if org.konnect_api_key and org.konnect_wallet_id %}
+            <span class="badge bg-success ms-auto">Configuré</span>
+            {% else %}
+            <span class="badge bg-secondary ms-auto">Non configuré</span>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <p class="text-muted small mb-4">
+                Permet à vos résidents de payer leurs charges en ligne via Konnect.
+                L'argent arrive directement sur votre compte Konnect.<br>
+                Créez votre compte sur
+                <a href="https://konnect.network" target="_blank" style="color:#00C896;">konnect.network</a>
+                puis copiez votre Clé API et votre Wallet ID ici.
+            </p>
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="section" value="konnect">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Clé API Konnect</label>
+                        <input type="password" name="konnect_api_key" class="form-control"
+                               placeholder="sk_live_..." value="{{ org.konnect_api_key or '' }}" autocomplete="off">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Wallet ID</label>
+                        <input type="text" name="konnect_wallet_id" class="form-control"
+                               placeholder="63f2a1b..." value="{{ org.konnect_wallet_id or '' }}">
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Enregistrer
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="btnTestKonnect">
+                        <i class="bi bi-plug"></i> Tester la connexion
+                    </button>
+                </div>
+            </form>
+            <div id="konnectTestResult" class="mt-3" style="display:none;"></div>
+        </div>
     </div>
 </div>
 
-<div class="row g-4">
+<!-- ═══════════════════════════ FLOUCI ═══════════════════════════ -->
+<div class="tab-pane fade" id="tab-flouci">
+    <div class="card">
+        <div class="card-header d-flex align-items-center gap-2">
+            <i class="bi bi-phone" style="color:#00C896;"></i>
+            <span>Paiement en ligne — Flouci</span>
+            {% if org.flouci_app_token and org.flouci_app_secret %}
+            <span class="badge bg-success ms-auto">Configuré</span>
+            {% else %}
+            <span class="badge bg-secondary ms-auto">Non configuré</span>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <p class="text-muted small mb-4">
+                Alternative à Konnect — vos résidents paient via portefeuille Flouci, carte bancaire ou e-DINAR.<br>
+                Créez votre compte marchand sur
+                <a href="https://flouci.com" target="_blank" style="color:#00C896;">flouci.com</a>
+                puis copiez votre App Token et App Secret ici.
+            </p>
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="section" value="flouci">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">App Token (clé publique)</label>
+                        <input type="text" name="flouci_app_token" class="form-control"
+                               placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                               value="{{ org.flouci_app_token or '' }}" autocomplete="off">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">App Secret (clé privée)</label>
+                        <input type="password" name="flouci_app_secret" class="form-control"
+                               placeholder="Votre App Secret"
+                               value="{{ org.flouci_app_secret or '' }}" autocomplete="off">
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Enregistrer
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="btnTestFlouci">
+                        <i class="bi bi-plug"></i> Tester la connexion
+                    </button>
+                </div>
+            </form>
+            <div id="flouciTestResult" class="mt-3" style="display:none;"></div>
+        </div>
+    </div>
+</div>
 
-    <!-- ── KONNECT ── -->
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex align-items-center gap-2">
-                <i class="bi bi-credit-card-2-front" style="color:#00C896;"></i>
-                <span>Paiement en ligne — Konnect</span>
-                {% if org.konnect_api_key and org.konnect_wallet_id %}
-                <span class="badge bg-success ms-auto">Configuré</span>
-                {% else %}
-                <span class="badge bg-secondary ms-auto">Non configuré</span>
-                {% endif %}
+<!-- ═══════════════════════════ WHATSAPP ═══════════════════════════ -->
+<div class="tab-pane fade" id="tab-whatsapp">
+    <div class="card">
+        <div class="card-header d-flex align-items-center gap-2">
+            <i class="bi bi-whatsapp" style="color:#25d366;"></i>
+            <span>Notifications WhatsApp</span>
+            {% if org.whatsapp_enabled %}
+            <span class="badge bg-success ms-auto">Activé</span>
+            {% else %}
+            <span class="badge bg-secondary ms-auto">Désactivé</span>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <p class="text-muted small mb-4">
+                Notifications automatiques WhatsApp : paiement reçu, nouveau ticket, réponse admin.
+                Utilise <a href="https://fonnte.com" target="_blank" style="color:#25d366;">fonnte.com</a>
+                — créez un compte gratuit, connectez votre numéro WhatsApp, copiez le token ici.
+            </p>
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="section" value="whatsapp">
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="whatsapp_enabled"
+                               id="whatsappSwitch" role="switch"
+                               {% if org.whatsapp_enabled %}checked{% endif %}
+                               style="width:2.5rem;height:1.3rem;cursor:pointer;">
+                        <label class="form-check-label ms-2" for="whatsappSwitch">
+                            Activer les notifications WhatsApp
+                        </label>
+                    </div>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Token API fonnte.com</label>
+                        <input type="password" name="whatsapp_token" class="form-control"
+                               placeholder="Votre token fonnte"
+                               value="{{ org.whatsapp_token or '' }}" autocomplete="off">
+                        <small class="form-text text-muted">Trouvez ce token dans votre dashboard fonnte.com</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Votre numéro WhatsApp (admin)</label>
+                        <input type="text" name="whatsapp_admin_phone" class="form-control"
+                               placeholder="+216 XX XXX XXX"
+                               value="{{ org.whatsapp_admin_phone or '' }}">
+                        <small class="form-text text-muted">Format : +216 20 123 456</small>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Enregistrer
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="btnTestWhatsapp">
+                        <i class="bi bi-whatsapp"></i> Envoyer un message test
+                    </button>
+                </div>
+            </form>
+            <div id="whatsappTestResult" class="mt-3" style="display:none;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════ CAMÉRAS ═══════════════════════════ -->
+<div class="tab-pane fade" id="tab-cameras">
+
+    <!-- Explications -->
+    <div class="alert mb-4" style="background:rgba(0,200,150,0.08);border:1px solid rgba(0,200,150,0.2);color:var(--text);">
+        <h6 class="mb-2" style="color:#00C896;"><i class="bi bi-info-circle"></i> Comment ça fonctionne ?</h6>
+        <div class="row g-2" style="font-size:.85rem;">
+            <div class="col-md-4">
+                <strong style="color:#00C896;">Lien d'accès (URL web)</strong><br>
+                Interface web de la caméra (<code>http://192.168.1.x</code>) ou portail cloud (Hik-Connect, Tapo…). S'ouvre dans un nouvel onglet.
             </div>
-            <div class="card-body">
-                <p class="text-muted small mb-4">
-                    Permet à vos résidents de payer leurs charges en ligne via Konnect.
-                    L'argent arrive directement sur votre compte Konnect.
-                    <br>Créez votre compte sur
-                    <a href="https://konnect.network" target="_blank" style="color:#00C896;">konnect.network</a>
-                    puis copiez votre Clé API et votre Wallet ID ici.
-                </p>
-
-                <form method="post">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="section" value="konnect">
-
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Clé API Konnect</label>
-                            <input type="password" name="konnect_api_key" class="form-control"
-                                   placeholder="sk_live_..."
-                                   value="{{ org.konnect_api_key or '' }}"
-                                   autocomplete="off">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Wallet ID</label>
-                            <input type="text" name="konnect_wallet_id" class="form-control"
-                                   placeholder="63f2a1b..."
-                                   value="{{ org.konnect_wallet_id or '' }}">
-                        </div>
-                    </div>
-
-                    <div class="d-flex flex-wrap gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-save"></i> Enregistrer
-                        </button>
-                        <button type="button" class="btn btn-secondary" id="btnTestKonnect">
-                            <i class="bi bi-plug"></i> Tester la connexion
-                        </button>
-                    </div>
-                </form>
-
-                <div id="konnectTestResult" class="mt-3" style="display:none;"></div>
+            <div class="col-md-4">
+                <strong style="color:#00C896;">URL Snapshot</strong><br>
+                Si votre caméra expose une image directe (<code>http://ip/snapshot.jpg</code>), SyndicPro affiche un aperçu live qui se rafraîchit toutes les 5 secondes.
+            </div>
+            <div class="col-md-4">
+                <strong style="color:#00C896;">Réseau local</strong><br>
+                Les URL locales (<code>192.168.x.x</code>) ne fonctionnent que si vous êtes connecté au même réseau WiFi que la résidence.
             </div>
         </div>
     </div>
 
-    <!-- ── FLOUCI ── -->
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex align-items-center gap-2">
-                <i class="bi bi-phone" style="color:#00C896;"></i>
-                <span>Paiement en ligne — Flouci</span>
-                {% if org.flouci_app_token and org.flouci_app_secret %}
-                <span class="badge bg-success ms-auto">Configuré</span>
-                {% else %}
-                <span class="badge bg-secondary ms-auto">Non configuré</span>
-                {% endif %}
-            </div>
+    <!-- Formulaire ajout -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <button class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#formCamera">
+                <i class="bi bi-plus-circle"></i> Ajouter une caméra
+            </button>
+        </div>
+        <div class="collapse" id="formCamera">
             <div class="card-body">
-                <p class="text-muted small mb-4">
-                    Alternative à Konnect — vos résidents paient via portefeuille Flouci, carte bancaire ou e-DINAR.<br>
-                    Créez votre compte marchand sur
-                    <a href="https://flouci.com" target="_blank" style="color:#00C896;">flouci.com</a>
-                    puis copiez votre App Token et App Secret ici.
-                </p>
-                <form method="post">
+                <form method="POST" action="{{ url_for('camera_ajouter') }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="section" value="flouci">
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">App Token (clé publique)</label>
-                            <input type="text" name="flouci_app_token" class="form-control"
-                                   placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                                   value="{{ org.flouci_app_token or '' }}"
-                                   autocomplete="off">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Nom de la caméra *</label>
+                            <input class="form-control" name="nom" placeholder="Ex: Entrée principale" required maxlength="100">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Localisation</label>
+                            <input class="form-control" name="localisation" placeholder="Parking, Couloir B, Toit…" maxlength="200">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Marque / Modèle</label>
+                            <input class="form-control" name="marque" placeholder="Hikvision DS-2CD…" maxlength="100">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">App Secret (clé privée)</label>
-                            <input type="password" name="flouci_app_secret" class="form-control"
-                                   placeholder="Votre App Secret"
-                                   value="{{ org.flouci_app_secret or '' }}"
-                                   autocomplete="off">
+                            <label class="form-label">
+                                <i class="bi bi-box-arrow-up-right"></i> URL d'accès (interface web ou cloud)
+                            </label>
+                            <input class="form-control" name="url_acces"
+                                   placeholder="http://192.168.1.100 ou https://home.tplinkcloud.com" maxlength="500">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="bi bi-image"></i> URL Snapshot (aperçu live, optionnel)
+                            </label>
+                            <input class="form-control" name="url_snapshot"
+                                   placeholder="http://192.168.1.100/snapshot.jpg" maxlength="500">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Identifiant</label>
+                            <input class="form-control" name="identifiant" placeholder="admin" maxlength="100">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Mot de passe</label>
+                            <input type="password" class="form-control" name="mot_de_passe" autocomplete="off" maxlength="200">
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" name="actif" id="actifNew" checked>
+                                <label class="form-check-label" for="actifNew">Active</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Notes</label>
+                            <input class="form-control" name="notes" placeholder="Câble défectueux, angle mort côté nord…">
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-save"></i> Enregistrer la caméra
+                            </button>
                         </div>
                     </div>
-                    <div class="d-flex flex-wrap gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-save"></i> Enregistrer
-                        </button>
-                        <button type="button" class="btn btn-secondary" id="btnTestFlouci">
-                            <i class="bi bi-plug"></i> Tester la connexion
-                        </button>
-                        {% if org.flouci_app_token and org.flouci_app_secret %}
-                        <a href="{{ url_for('flouci_links') }}" class="btn btn-outline-secondary">
-                            <i class="bi bi-list-ul"></i> Voir les liens Flouci
-                        </a>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des caméras -->
+    {% if not cameras %}
+    <div class="card text-center py-5">
+        <div class="card-body">
+            <i class="bi bi-camera-video-off" style="font-size:3rem;color:var(--muted);"></i>
+            <h5 class="mt-3" style="color:var(--muted);">Aucune caméra enregistrée</h5>
+            <p style="color:var(--muted);">Ajoutez vos caméras pour un accès rapide depuis le tableau de bord.</p>
+        </div>
+    </div>
+    {% else %}
+    <div class="row g-3">
+    {% for cam in cameras %}
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100" style="border-left:4px solid {% if cam.actif %}#00C896{% else %}#6b7280{% endif %};">
+            <div class="card-body">
+
+                <!-- En-tête caméra -->
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <div class="fw-bold text-white" style="font-size:.95rem;">
+                            <i class="bi bi-camera-video{% if not cam.actif %}-off{% endif %}"
+                               style="color:{% if cam.actif %}#00C896{% else %}#6b7280{% endif %};"></i>
+                            {{ cam.nom }}
+                        </div>
+                        {% if cam.localisation %}
+                        <div style="font-size:.8rem;color:var(--muted);">
+                            <i class="bi bi-geo-alt"></i> {{ cam.localisation }}
+                        </div>
+                        {% endif %}
+                        {% if cam.marque %}
+                        <div style="font-size:.78rem;color:var(--muted);">{{ cam.marque }}</div>
                         {% endif %}
                     </div>
-                </form>
-                <div id="flouciTestResult" class="mt-3" style="display:none;"></div>
-            </div>
-        </div>
-    </div>
+                    {% if not cam.actif %}
+                    <span class="badge bg-secondary">Inactive</span>
+                    {% else %}
+                    <span class="badge bg-success">Active</span>
+                    {% endif %}
+                </div>
 
-    <!-- ── WHATSAPP ── -->
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex align-items-center gap-2">
-                <i class="bi bi-whatsapp" style="color:#25d366;"></i>
-                <span>Notifications WhatsApp</span>
-                {% if org.whatsapp_enabled %}
-                <span class="badge bg-success ms-auto">Activé</span>
-                {% else %}
-                <span class="badge bg-secondary ms-auto">Désactivé</span>
+                <!-- Aperçu snapshot si disponible -->
+                {% if cam.url_snapshot and cam.actif %}
+                <div class="mb-2 rounded overflow-hidden" style="background:#000;height:120px;position:relative;">
+                    <img id="snap_{{ cam.id }}"
+                         src="{{ cam.url_snapshot }}"
+                         alt="Snapshot {{ cam.nom }}"
+                         style="width:100%;height:120px;object-fit:cover;"
+                         onerror="this.parentElement.innerHTML='<div style=\'display:flex;align-items:center;justify-content:center;height:120px;color:#6b7280;font-size:.8rem;\'><i class=\'bi bi-wifi-off me-1\'></i>Flux non disponible</div>'">
+                </div>
                 {% endif %}
-            </div>
-            <div class="card-body">
-                <p class="text-muted small mb-4">
-                    Notifications automatiques WhatsApp : paiement reçu, nouveau ticket, réponse admin.
-                    Utilise <a href="https://fonnte.com" target="_blank" style="color:#25d366;">fonnte.com</a>
-                    — créez un compte gratuit, connectez votre numéro WhatsApp, copiez le token ici.
-                </p>
 
-                <form method="post">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="section" value="whatsapp">
-
-                    <div class="mb-3">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" name="whatsapp_enabled"
-                                   id="whatsappSwitch" role="switch"
-                                   {% if org.whatsapp_enabled %}checked{% endif %}
-                                   style="width:2.5rem; height:1.3rem; cursor:pointer;">
-                            <label class="form-check-label ms-2" for="whatsappSwitch">
-                                Activer les notifications WhatsApp
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Token API fonnte.com</label>
-                            <input type="password" name="whatsapp_token" class="form-control"
-                                   placeholder="Votre token fonnte"
-                                   value="{{ org.whatsapp_token or '' }}"
-                                   autocomplete="off">
-                            <small class="form-text text-muted">Trouvez ce token dans votre dashboard fonnte.com</small>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Votre numéro WhatsApp (admin)</label>
-                            <input type="text" name="whatsapp_admin_phone" class="form-control"
-                                   placeholder="+216 XX XXX XXX"
-                                   value="{{ org.whatsapp_admin_phone or '' }}">
-                            <small class="form-text text-muted">Format : +216 20 123 456</small>
-                        </div>
-                    </div>
-
-                    <div class="d-flex flex-wrap gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-save"></i> Enregistrer
+                <!-- Identifiants -->
+                {% if cam.identifiant %}
+                <div class="mb-2" style="font-size:.8rem;">
+                    <span style="color:var(--muted);">
+                        <i class="bi bi-person"></i> {{ cam.identifiant }}
+                    </span>
+                    {% if cam.mot_de_passe %}
+                    <span class="ms-2" style="color:var(--muted);">
+                        <i class="bi bi-lock"></i>
+                        <span id="pwd_{{ cam.id }}" style="letter-spacing:2px;">••••••</span>
+                        <button class="btn btn-link btn-sm p-0 ms-1" style="color:var(--muted);font-size:.7rem;"
+                                onclick="togglePwd({{ cam.id }}, '{{ cam.mot_de_passe | e }}')">
+                            <i class="bi bi-eye"></i>
                         </button>
-                        <button type="button" class="btn btn-secondary" id="btnTestWhatsapp">
-                            <i class="bi bi-whatsapp"></i> Envoyer un message test
+                    </span>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {% if cam.notes %}
+                <div class="mb-2" style="font-size:.78rem;color:var(--muted);font-style:italic;">
+                    <i class="bi bi-chat-left-text"></i>
+                    {{ cam.notes[:80] }}{% if cam.notes|length > 80 %}…{% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Actions -->
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                    {% if cam.url_acces %}
+                    <a href="{{ cam.url_acces }}" target="_blank" class="btn btn-sm btn-success">
+                        <i class="bi bi-camera-video"></i> Accéder
+                    </a>
+                    {% endif %}
+                    <button class="btn btn-sm btn-outline-secondary"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#editCam{{ cam.id }}">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <form method="POST" action="{{ url_for('camera_supprimer', cam_id=cam.id) }}"
+                          onsubmit="return confirm('Supprimer la caméra {{ cam.nom }} ?')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i>
                         </button>
-                    </div>
-                </form>
-                <div id="whatsappTestResult" class="mt-3" style="display:none;"></div>
+                    </form>
+                </div>
+
+                <!-- Formulaire édition inline (collapse) -->
+                <div class="collapse mt-3" id="editCam{{ cam.id }}">
+                    <hr style="border-color:var(--border2);">
+                    <form method="POST" action="{{ url_for('camera_modifier', cam_id=cam.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-2">
+                            <input class="form-control form-control-sm mb-1" name="nom" value="{{ cam.nom }}" placeholder="Nom *" required>
+                            <input class="form-control form-control-sm mb-1" name="localisation" value="{{ cam.localisation or '' }}" placeholder="Localisation">
+                            <input class="form-control form-control-sm mb-1" name="marque" value="{{ cam.marque or '' }}" placeholder="Marque / Modèle">
+                            <input class="form-control form-control-sm mb-1" name="url_acces" value="{{ cam.url_acces or '' }}" placeholder="URL d'accès">
+                            <input class="form-control form-control-sm mb-1" name="url_snapshot" value="{{ cam.url_snapshot or '' }}" placeholder="URL Snapshot">
+                            <input class="form-control form-control-sm mb-1" name="identifiant" value="{{ cam.identifiant or '' }}" placeholder="Identifiant">
+                            <input type="password" class="form-control form-control-sm mb-1" name="mot_de_passe" value="{{ cam.mot_de_passe or '' }}" placeholder="Mot de passe" autocomplete="off">
+                            <input class="form-control form-control-sm mb-2" name="notes" value="{{ cam.notes or '' }}" placeholder="Notes">
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" name="actif" {% if cam.actif %}checked{% endif %}>
+                                <label class="form-check-label" style="font-size:.82rem;">Active</label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-primary w-100">
+                            <i class="bi bi-save"></i> Sauvegarder
+                        </button>
+                    </form>
+                </div>
+
             </div>
         </div>
     </div>
+    {% endfor %}
+    </div>
+    {% endif %}
 
-</div>
+</div><!-- /tab-cameras -->
+
+</div><!-- /tab-content -->
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
-document.getElementById('btnTestKonnect').addEventListener('click', function() {
-    const btn = this;
-    const result = document.getElementById('konnectTestResult');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Test en cours...';
-    result.style.display = 'none';
+// Activation onglet via hash
+const hash = window.location.hash;
+if (hash) {
+    const map = {'#konnect':'#tab-konnect','#flouci':'#tab-flouci','#whatsapp':'#tab-whatsapp','#cameras':'#tab-cameras'};
+    const target = map[hash] || null;
+    if (target) {
+        const tab = document.querySelector(`a[href="${target}"]`);
+        if (tab) new bootstrap.Tab(tab).show();
+    }
+}
 
-    fetch('{{ url_for("test_konnect") }}')
+// Afficher/masquer mot de passe caméra
+function togglePwd(id, pwd) {
+    const el = document.getElementById('pwd_' + id);
+    el.textContent = el.textContent === '••••••' ? pwd : '••••••';
+}
+
+// Rafraîchissement snapshots toutes les 5s
+document.querySelectorAll('[id^="snap_"]').forEach(img => {
+    const base = img.src.split('?')[0];
+    setInterval(() => {
+        img.src = base + '?t=' + Date.now();
+    }, 5000);
+});
+
+// Tests de connexion
+function testApi(url, btnId, resultId, btnLabel) {
+    const btn = document.getElementById(btnId);
+    const result = document.getElementById(resultId);
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Test…';
+    result.style.display = 'none';
+    fetch(url)
         .then(r => r.json())
         .then(data => {
             result.style.display = 'block';
-            if (data.ok) {
-                result.innerHTML = '<div class="alert alert-success mb-0"><i class="bi bi-check-circle"></i> ' + data.message + '</div>';
-            } else {
-                result.innerHTML = '<div class="alert alert-danger mb-0"><i class="bi bi-x-circle"></i> ' + data.message + '</div>';
-            }
+            const cls = data.ok ? 'success' : 'danger';
+            const icon = data.ok ? 'check-circle' : 'x-circle';
+            result.innerHTML = `<div class="alert alert-${cls} mb-0"><i class="bi bi-${icon}"></i> ${data.message}</div>`;
         })
         .catch(() => {
             result.style.display = 'block';
@@ -220,62 +481,20 @@ document.getElementById('btnTestKonnect').addEventListener('click', function() {
         })
         .finally(() => {
             btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-plug"></i> Tester la connexion';
+            btn.innerHTML = btnLabel;
         });
-});
+}
 
-document.getElementById('btnTestWhatsapp').addEventListener('click', function() {
-    const btn = this;
-    const result = document.getElementById('whatsappTestResult');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Envoi...';
-    result.style.display = 'none';
+document.getElementById('btnTestKonnect').addEventListener('click', () =>
+    testApi('{{ url_for("test_konnect") }}', 'btnTestKonnect', 'konnectTestResult',
+            '<i class="bi bi-plug"></i> Tester la connexion'));
 
-    fetch('{{ url_for("test_whatsapp") }}')
-        .then(r => r.json())
-        .then(data => {
-            result.style.display = 'block';
-            if (data.ok) {
-                result.innerHTML = '<div class="alert alert-success mb-0"><i class="bi bi-check-circle"></i> ' + data.message + '</div>';
-            } else {
-                result.innerHTML = '<div class="alert alert-danger mb-0"><i class="bi bi-x-circle"></i> ' + data.message + '</div>';
-            }
-        })
-        .catch(() => {
-            result.style.display = 'block';
-            result.innerHTML = '<div class="alert alert-danger mb-0">Erreur réseau.</div>';
-        })
-        .finally(() => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-whatsapp"></i> Envoyer un message test';
-        });
-});
+document.getElementById('btnTestFlouci').addEventListener('click', () =>
+    testApi('{{ url_for("test_flouci") }}', 'btnTestFlouci', 'flouciTestResult',
+            '<i class="bi bi-plug"></i> Tester la connexion'));
 
-document.getElementById('btnTestFlouci').addEventListener('click', function() {
-    const btn = this;
-    const result = document.getElementById('flouciTestResult');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Test en cours...';
-    result.style.display = 'none';
-
-    fetch('{{ url_for("test_flouci") }}')
-        .then(r => r.json())
-        .then(data => {
-            result.style.display = 'block';
-            if (data.ok) {
-                result.innerHTML = '<div class="alert alert-success mb-0"><i class="bi bi-check-circle"></i> ' + data.message + '</div>';
-            } else {
-                result.innerHTML = '<div class="alert alert-danger mb-0"><i class="bi bi-x-circle"></i> ' + data.message + '</div>';
-            }
-        })
-        .catch(() => {
-            result.style.display = 'block';
-            result.innerHTML = '<div class="alert alert-danger mb-0">Erreur réseau.</div>';
-        })
-        .finally(() => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-plug"></i> Tester la connexion';
-        });
-});
+document.getElementById('btnTestWhatsapp').addEventListener('click', () =>
+    testApi('{{ url_for("test_whatsapp") }}', 'btnTestWhatsapp', 'whatsappTestResult',
+            '<i class="bi bi-whatsapp"></i> Envoyer un message test'));
 </script>
 {% endblock %}
