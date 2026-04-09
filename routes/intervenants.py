@@ -56,14 +56,17 @@ def intervenants():
     liste = Intervenant.query.filter_by(organization_id=org.id)\
         .order_by(Intervenant.categorie, Intervenant.nom_societe).all()
 
-    # Regrouper par catégorie
+    # Regrouper par catégorie (trié)
     from collections import defaultdict
-    grouped = defaultdict(list)
+    grouped_raw = defaultdict(list)
     for iv in liste:
-        grouped[iv.categorie].append(iv)
+        grouped_raw[iv.categorie].append(iv)
+    grouped = dict(sorted(grouped_raw.items()))
+    total = len(liste)
 
     return render_template('intervenants.html',
                            grouped=grouped,
+                           total=total,
                            categories=CATEGORIES,
                            user=current_user())
 

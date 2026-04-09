@@ -127,6 +127,11 @@ class Expense(db.Model):
     expense_date = db.Column(db.Date, nullable=False)
     category = db.Column(db.String(120))
     description = db.Column(db.String(300))
+    intervenant_id = db.Column(db.Integer, db.ForeignKey('intervenant.id'), nullable=True)
+    facture_data = db.Column(db.Text, nullable=True)   # base64
+    facture_mime = db.Column(db.String(30), nullable=True)
+    facture_nom  = db.Column(db.String(200), nullable=True)
+    intervenant  = db.relationship('Intervenant', backref='expenses', lazy=True)
 
 
 class Ticket(db.Model):
@@ -606,6 +611,31 @@ def init_db():
                 print("Migration PostgreSQL : table announcement_read vérifiée.")
     except Exception as e:
         print(f"Migration announcement_read : {e}")
+
+    # Migration : colonnes facture + intervenant_id sur expense (PostgreSQL)
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text("ALTER TABLE expense ADD COLUMN IF NOT EXISTS intervenant_id INTEGER REFERENCES intervenant(id)"))
+                conn.execute(db.text("ALTER TABLE expense ADD COLUMN IF NOT EXISTS facture_data TEXT"))
+                conn.execute(db.text("ALTER TABLE expense ADD COLUMN IF NOT EXISTS facture_mime VARCHAR(30)"))
+                conn.execute(db.text("ALTER TABLE expense ADD COLUMN IF NOT EXISTS facture_nom VARCHAR(200)"))
+                conn.commit()
+                print("Migration PostgreSQL expense : colonnes facture/intervenant OK")
+            else:
+                result = conn.execute(db.text("PRAGMA table_info(expense)"))
+                cols = [row[1] for row in result]
+                for col, col_type in [
+                    ('intervenant_id', 'INTEGER'),
+                    ('facture_data', 'TEXT'),
+                    ('facture_mime', 'VARCHAR(30)'),
+                    ('facture_nom', 'VARCHAR(200)'),
+                ]:
+                    if col not in cols:
+                        conn.execute(db.text(f"ALTER TABLE expense ADD COLUMN {col} {col_type}"))
+                conn.commit()
+    except Exception as e:
+        print(f"Migration expense facture : {e}")
 
     # Migration : table intervenant
     try:

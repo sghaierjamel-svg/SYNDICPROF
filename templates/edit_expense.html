@@ -19,37 +19,93 @@
                 <i class="bi bi-credit-card"></i> Modifier Dépense #{{ expense.id }}
             </div>
             <div class="card-body">
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                     <div class="mb-3">
                         <label class="form-label">Montant (DT) *</label>
-                        <input class="form-control" name="amount" type="number" 
+                        <input class="form-control" name="amount" type="number"
                                step="0.01" value="{{ expense.amount }}" required>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Date de Dépense *</label>
-                        <input class="form-control" name="expense_date" type="date" 
+                        <input class="form-control" name="expense_date" type="date"
                                value="{{ expense.expense_date }}" required>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Catégorie</label>
+                        <label class="form-label">Intervenant / Catégorie</label>
                         <select class="form-select" name="category">
-                            <option value="Eau" {% if expense.category == 'Eau' %}selected{% endif %}>Eau</option>
-                            <option value="Électricité" {% if expense.category == 'Électricité' %}selected{% endif %}>Électricité</option>
-                            <option value="Entretien" {% if expense.category == 'Entretien' %}selected{% endif %}>Entretien</option>
-                            <option value="Réparations" {% if expense.category == 'Réparations' %}selected{% endif %}>Réparations</option>
-                            <option value="Gardiennage" {% if expense.category == 'Gardiennage' %}selected{% endif %}>Gardiennage</option>
-                            <option value="Assurances" {% if expense.category == 'Assurances' %}selected{% endif %}>Assurances</option>
-                            <option value="Taxes" {% if expense.category == 'Taxes' %}selected{% endif %}>Taxes</option>
-                            <option value="Autre" {% if expense.category == 'Autre' %}selected{% endif %}>Autre</option>
+                            {% if intervenants %}
+                            <optgroup label="── Intervenants enregistrés ──">
+                                {% for iv in intervenants %}
+                                <option value="iv:{{ iv.id }}"
+                                    {% if expense.intervenant_id == iv.id %}selected{% endif %}>
+                                    {{ iv.categorie }}
+                                    {%- if iv.nom_societe %} — {{ iv.nom_societe }}
+                                    {%- elif iv.prenom or iv.nom %} — {{ iv.prenom or '' }} {{ iv.nom or '' }}
+                                    {%- endif %}
+                                </option>
+                                {% endfor %}
+                            </optgroup>
+                            <optgroup label="── Catégories standard ──">
+                            {% endif %}
+                                {% for cat in ['Eau','Électricité','Entretien','Réparations','Gardiennage','Assurances','Taxes','Salaire','Immobilisation','Autre'] %}
+                                <option value="{{ cat }}"
+                                    {% if not expense.intervenant_id and expense.category == cat %}selected{% endif %}>
+                                    {{ cat }}
+                                </option>
+                                {% endfor %}
+                            {% if intervenants %}
+                            </optgroup>
+                            {% endif %}
                         </select>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Description</label>
-                        <textarea class="form-control" name="description" rows="3">{{ expense.description }}</textarea>
+                        <textarea class="form-control" name="description" rows="3">{{ expense.description or '' }}</textarea>
+                    </div>
+
+                    <!-- Facture existante -->
+                    {% if expense.facture_data %}
+                    <div class="mb-3 p-3 rounded" style="background:rgba(0,200,150,0.07);border:1px solid rgba(0,200,150,0.2);">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                {% if expense.facture_mime == 'application/pdf' %}
+                                <i class="bi bi-file-earmark-pdf-fill" style="color:#f87171;font-size:1.4rem;"></i>
+                                {% else %}
+                                <i class="bi bi-image-fill" style="color:#00C896;font-size:1.4rem;"></i>
+                                {% endif %}
+                                <a href="{{ url_for('expense_facture', expense_id=expense.id) }}"
+                                   target="_blank" style="color:#00C896;margin-left:.5rem;">
+                                    {{ expense.facture_nom or 'Facture jointe' }}
+                                </a>
+                                <a href="{{ url_for('expense_facture', expense_id=expense.id, dl=1) }}"
+                                   class="btn btn-sm btn-outline-secondary ms-2">
+                                    <i class="bi bi-download"></i>
+                                </a>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox"
+                                       name="supprimer_facture" value="1" id="delFacture">
+                                <label class="form-check-label text-danger" for="delFacture"
+                                       style="font-size:.82rem;">Supprimer</label>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Nouvelle facture -->
+                    <div class="mb-4">
+                        <label class="form-label">
+                            <i class="bi bi-paperclip"></i>
+                            {% if expense.facture_data %}Remplacer la facture{% else %}Joindre une facture{% endif %}
+                            <small style="color:var(--muted);"> (image ou PDF, max 5 Mo)</small>
+                        </label>
+                        <input class="form-control" type="file" name="facture"
+                               accept="image/jpeg,image/png,image/webp,application/pdf">
                     </div>
 
                     <div class="d-grid gap-2">

@@ -16,35 +16,51 @@
                 <i class="bi bi-plus-circle"></i> Enregistrer une Dépense
             </div>
             <div class="card-body">
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                     <div class="mb-3">
                         <label class="form-label">Montant (DT) *</label>
-                        <input class="form-control" name="amount" type="number" 
+                        <input class="form-control" name="amount" type="number"
                                step="0.01" placeholder="0.00" required>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Date de Dépense *</label>
-                        <input class="form-control" name="expense_date" 
-                               type="date" required>
+                        <input class="form-control" name="expense_date" type="date" required>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Catégorie</label>
+                        <label class="form-label">Intervenant / Catégorie</label>
                         <select class="form-select" name="category" id="categorySelect">
-                            <option value="Eau">Eau</option>
-                            <option value="Électricité">Électricité</option>
-                            <option value="Entretien">Entretien</option>
-                            <option value="Réparations">Réparations</option>
-                            <option value="Gardiennage">Gardiennage</option>
-                            <option value="Assurances">Assurances</option>
-                            <option value="Taxes">Taxes</option>
-                            <option value="Salaire">Salaire</option>
-                            <optgroup label="─────────────────">
-                                <option value="Immobilisation">Immobilisation (matériel, équipement...)</option>
+                            {% if intervenants %}
+                            <optgroup label="── Intervenants enregistrés ──">
+                                {% for iv in intervenants %}
+                                <option value="iv:{{ iv.id }}">
+                                    {{ iv.categorie }}
+                                    {%- if iv.nom_societe %} — {{ iv.nom_societe }}
+                                    {%- elif iv.prenom or iv.nom %} — {{ iv.prenom or '' }} {{ iv.nom or '' }}
+                                    {%- endif %}
+                                </option>
+                                {% endfor %}
                             </optgroup>
-                            <option value="Autre">Autre</option>
+                            <optgroup label="── Catégories standard ──">
+                            {% endif %}
+                                <option value="Eau">Eau</option>
+                                <option value="Électricité">Électricité</option>
+                                <option value="Entretien">Entretien</option>
+                                <option value="Réparations">Réparations</option>
+                                <option value="Gardiennage">Gardiennage</option>
+                                <option value="Assurances">Assurances</option>
+                                <option value="Taxes">Taxes</option>
+                                <option value="Salaire">Salaire</option>
+                                <optgroup label="─────────────────">
+                                    <option value="Immobilisation">Immobilisation (matériel, équipement...)</option>
+                                </optgroup>
+                                <option value="Autre">Autre</option>
+                            {% if intervenants %}
+                            </optgroup>
+                            {% endif %}
                         </select>
                         <div id="immoHint" class="mt-2 p-2 rounded" style="display:none;background:rgba(0,200,150,0.08);border:1px solid rgba(0,200,150,0.3);">
                             <i class="bi bi-info-circle" style="color:var(--accent);"></i>
@@ -54,8 +70,18 @@
 
                     <div class="mb-3">
                         <label class="form-label">Description</label>
-                        <textarea class="form-control" name="description" rows="3" 
-                                  placeholder="Ex: Facture mensuelle..."></textarea>
+                        <textarea class="form-control" name="description" rows="2"
+                                  placeholder="Ex: Intervention du 15 jan..."></textarea>
+                    </div>
+
+                    <!-- Facture -->
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-paperclip"></i> Joindre une facture
+                            <small style="color:var(--muted);"> (image ou PDF, max 5 Mo)</small>
+                        </label>
+                        <input class="form-control" type="file" name="facture"
+                               accept="image/jpeg,image/png,image/webp,application/pdf">
                     </div>
 
                     <button type="submit" class="btn btn-primary w-100" id="submitBtn">
@@ -78,11 +104,10 @@
                     {% endif %}
                     {% set _ = categories.update({e.category: categories[e.category] + e.amount}) %}
                 {% endfor %}
-                
                 <div class="list-group">
                     {% for cat, total in categories.items() %}
                     <div class="list-group-item d-flex justify-content-between align-items-center">
-                        {{ cat }}
+                        <small>{{ cat }}</small>
                         <span class="badge bg-primary rounded-pill">
                             {{ '{:.2f}'.format(total) }} DT
                         </span>
@@ -93,39 +118,66 @@
         </div>
     </div>
 
-    <div class="col-lg-7">
+    <div class="col-lg-7 mt-4 mt-lg-0">
         <div class="card">
             <div class="card-header">
                 <i class="bi bi-list"></i> Historique des Dépenses
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-hover mb-0">
                         <thead>
                             <tr>
                                 <th>Date</th>
-                                <th>Catégorie</th>
+                                <th>Intervenant / Catégorie</th>
                                 <th>Montant</th>
                                 <th>Description</th>
+                                <th>Facture</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for e in expenses %}
                             <tr>
-                                <td>{{ e.expense_date.strftime('%d/%m/%Y') }}</td>
+                                <td style="white-space:nowrap;">{{ e.expense_date.strftime('%d/%m/%Y') }}</td>
                                 <td>
-                                    <span class="badge bg-secondary">{{ e.category }}</span>
+                                    <span class="badge bg-secondary" style="font-size:.75rem;white-space:normal;text-align:left;">
+                                        {{ e.category }}
+                                    </span>
                                 </td>
-                                <td><strong class="text-danger">{{ '{:.2f}'.format(e.amount) }} DT</strong></td>
-                                <td>{{ e.description }}</td>
+                                <td style="white-space:nowrap;">
+                                    <strong class="text-danger">{{ '{:.2f}'.format(e.amount) }} DT</strong>
+                                </td>
+                                <td style="font-size:.82rem;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                    {{ e.description or '' }}
+                                </td>
+                                <td>
+                                    {% if e.facture_data %}
+                                        {% if e.facture_mime == 'application/pdf' %}
+                                        <a href="{{ url_for('expense_facture', expense_id=e.id) }}"
+                                           target="_blank" title="{{ e.facture_nom or 'Facture' }}"
+                                           style="color:#f87171;">
+                                            <i class="bi bi-file-earmark-pdf-fill" style="font-size:1.3rem;"></i>
+                                        </a>
+                                        {% else %}
+                                        <a href="{{ url_for('expense_facture', expense_id=e.id) }}"
+                                           target="_blank" title="{{ e.facture_nom or 'Facture' }}"
+                                           style="color:#00C896;">
+                                            <i class="bi bi-image-fill" style="font-size:1.3rem;"></i>
+                                        </a>
+                                        {% endif %}
+                                    {% else %}
+                                        <span style="color:var(--muted);font-size:.75rem;">—</span>
+                                    {% endif %}
+                                </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <a href="{{ url_for('edit_expense', expense_id=e.id) }}" 
+                                        <a href="{{ url_for('edit_expense', expense_id=e.id) }}"
                                            class="btn btn-warning" title="Modifier">
                                             <i class="bi bi-pencil"></i>
                                         </a>
-                                        <form method="POST" action="{{ url_for('delete_expense', expense_id=e.id) }}" style="display:inline;">
+                                        <form method="POST" action="{{ url_for('delete_expense', expense_id=e.id) }}"
+                                              style="display:inline;">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button type="submit" class="btn btn-danger"
                                                     onclick="return confirm('Confirmer la suppression ?')"
@@ -138,7 +190,7 @@
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="5" class="text-center text-muted">
+                                <td colspan="6" class="text-center text-muted py-4">
                                     Aucune dépense enregistrée
                                 </td>
                             </tr>
