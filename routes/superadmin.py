@@ -55,8 +55,8 @@ def superadmin_delete_org(org_id):
             t = db.text
             # Niveau 3 — enfants des enfants
             conn.execute(t("DELETE FROM announcement_read WHERE announcement_id IN (SELECT id FROM announcement WHERE organization_id=:o)"), {"o": oid})
-            conn.execute(t("DELETE FROM ag_vote WHERE ag_item_id IN (SELECT i.id FROM ag_item i JOIN assembly_general a ON i.ag_id=a.id WHERE a.organization_id=:o)"), {"o": oid})
-            conn.execute(t("DELETE FROM ag_item WHERE ag_id IN (SELECT id FROM assembly_general WHERE organization_id=:o)"), {"o": oid})
+            conn.execute(t("DELETE FROM ag_vote WHERE item_id IN (SELECT i.id FROM ag_item i JOIN assembly_general a ON i.assembly_id=a.id WHERE a.organization_id=:o)"), {"o": oid})
+            conn.execute(t("DELETE FROM ag_item WHERE assembly_id IN (SELECT id FROM assembly_general WHERE organization_id=:o)"), {"o": oid})
             conn.execute(t("DELETE FROM litige_document WHERE litige_id IN (SELECT id FROM autre_litige WHERE organization_id=:o)"), {"o": oid})
             conn.execute(t("DELETE FROM appel_fonds_quota WHERE appel_id IN (SELECT id FROM appel_fonds WHERE organization_id=:o)"), {"o": oid})
             conn.execute(t("DELETE FROM appel_fonds_paiement WHERE organization_id=:o"), {"o": oid})
