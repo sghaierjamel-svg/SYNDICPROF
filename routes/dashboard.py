@@ -188,3 +188,14 @@ def api_dashboard_data():
         data_pay.append(round(s_p, 2))
         data_exp.append(round(s_e, 2))
     return jsonify({'labels': labels, 'payments': data_pay, 'expenses': data_exp})
+
+
+@app.route('/api/notif/seen', methods=['POST'])
+@login_required
+def api_notif_seen():
+    """Marque les notifications comme vues (met à jour notif_seen_at)."""
+    from datetime import datetime
+    user = current_user()
+    user.notif_seen_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify({'ok': True})

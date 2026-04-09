@@ -22,7 +22,12 @@ def inject_notifications():
     if user.role == 'admin':
         from models import Ticket, AnnouncementRead, Announcement
         from sqlalchemy.orm import joinedload
-        since = datetime.utcnow() - timedelta(hours=24)
+
+        since_list = datetime.utcnow() - timedelta(hours=24)   # fenêtre affichage
+        # Seuil "non vu" : depuis la dernière ouverture de la cloche (ou 24h si jamais ouvert)
+        seen_at = user.notif_seen_at or (datetime.utcnow() - timedelta(hours=24))
+        since_new = min(seen_at, since_list)   # on prend le plus ancien des deux
+
         notifs = []
 
         # Paiements récents
@@ -30,16 +35,18 @@ def inject_notifications():
             joinedload(Payment.apartment).joinedload(Apartment.block)
         ).filter(
             Payment.organization_id == org_id,
-            Payment.payment_date >= since.date()
+            Payment.payment_date >= since_list.date()
         ).order_by(Payment.payment_date.desc()).limit(5).all()
         for p in recent_payments:
             apt_label = (f"{p.apartment.block.name}-{p.apartment.number}"
                          if p.apartment and p.apartment.block else "?")
+            ts = datetime.combine(p.payment_date, datetime.min.time())
             notifs.append({
                 'icon': 'cash-coin', 'color': '#00C896',
                 'text': f"Paiement reçu — {apt_label}",
                 'sub': f"{p.amount:.0f} DT · {p.month_paid}",
-                'ts': datetime.combine(p.payment_date, datetime.min.time()),
+                'ts': ts,
+                'new': ts > seen_at,
                 'url': url_for('payments')
             })
 
@@ -49,7 +56,7 @@ def inject_notifications():
             .options(joinedload(AnnouncementRead.apartment).joinedload(Apartment.block))
             .filter(
                 Announcement.organization_id == org_id,
-                AnnouncementRead.read_at >= since
+                AnnouncementRead.read_at >= since_list
             ).order_by(AnnouncementRead.read_at.desc()).limit(5).all())
         for r in recent_reads:
             apt_label = (f"{r.apartment.block.name}-{r.apartment.number}"
@@ -59,17 +66,17 @@ def inject_notifications():
                 'text': f"{apt_label} a lu une annonce",
                 'sub': (r.announcement.title[:40] if r.announcement else ""),
                 'ts': r.read_at,
+                'new': r.read_at > seen_at,
                 'url': url_for('announcements')
             })
 
         # Tickets ouverts récents
-        from models import Ticket
         recent_tickets = Ticket.query.options(
             joinedload(Ticket.apartment).joinedload(Apartment.block)
         ).filter(
             Ticket.organization_id == org_id,
             Ticket.status == 'ouvert',
-            Ticket.created_at >= since
+            Ticket.created_at >= since_list
         ).order_by(Ticket.created_at.desc()).limit(5).all()
         for t in recent_tickets:
             apt_label = (f"{t.apartment.block.name}-{t.apartment.number}"
@@ -79,20 +86,27 @@ def inject_notifications():
                 'text': f"Nouveau ticket — {apt_label}",
                 'sub': t.subject[:40],
                 'ts': t.created_at,
+                'new': t.created_at > seen_at,
                 'url': url_for('tickets')
             })
 
-        # Impayés critiques
-        unpaid_critical = UnpaidAlert.query.filter_by(
+        # Impayés critiques (nouveaux depuis seen_at)
+        unpaid_critical = UnpaidAlert.query.filter(
+            UnpaidAlert.organization_id == org_id,
+            UnpaidAlert.email_sent == False,
+            UnpaidAlert.alert_date > seen_at
+        ).count()
+        unpaid_critical_total = UnpaidAlert.query.filter_by(
             organization_id=org_id, email_sent=False
         ).count()
 
         notifs.sort(key=lambda x: x['ts'], reverse=True)
-        total = len(notifs) + (1 if unpaid_critical > 0 else 0)
+        # Badge = seulement les éléments non vus
+        unseen_count = sum(1 for n in notifs if n['new']) + (1 if unpaid_critical > 0 else 0)
         result.update({
             'notif_list': notifs[:8],
-            'notif_count': total,
-            'unpaid_critical': unpaid_critical,
+            'notif_count': unseen_count,
+            'unpaid_critical': unpaid_critical_total,
         })
 
     elif user.role == 'resident' and user.apartment_id:

@@ -753,15 +753,18 @@
 <!-- BARRE NOTIFICATIONS -->
 <div class="notif-topbar">
     <div class="dropdown">
-        <button class="notif-btn" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
-            <i class="bi bi-bell{% if notif_count and notif_count > 0 %}-fill{% endif %}"></i>
+        <button class="notif-btn" id="notifBtn" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
+            <i class="bi bi-bell{% if notif_count and notif_count > 0 %}-fill{% endif %}" id="notifBellIcon"></i>
             {% if notif_count and notif_count > 0 %}
-            <span class="notif-badge">{{ notif_count if notif_count <= 9 else '9+' }}</span>
+            <span class="notif-badge" id="notifBadge">{{ notif_count if notif_count <= 9 else '9+' }}</span>
             {% endif %}
         </button>
         <div class="dropdown-menu dropdown-menu-end notif-dropdown">
-            <div class="notif-header">
-                <i class="bi bi-bell"></i> &nbsp;Notifications — 24 dernières heures
+            <div class="notif-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-bell"></i> &nbsp;Notifications — 24h</span>
+                {% if notif_count and notif_count > 0 %}
+                <span style="font-size:.72rem;color:var(--green);">{{ notif_count }} non vue{{ 's' if notif_count > 1 }}</span>
+                {% endif %}
             </div>
 
             {% if unpaid_critical and unpaid_critical > 0 %}
@@ -778,12 +781,15 @@
 
             {% if notif_list %}
                 {% for n in notif_list %}
-                <a href="{{ n.url }}" class="notif-item">
-                    <div class="notif-icon" style="background:{{ n.color }}22;">
+                <a href="{{ n.url }}" class="notif-item" style="position:relative;">
+                    {% if n.new %}
+                    <span style="position:absolute;top:10px;left:6px;width:7px;height:7px;border-radius:50%;background:var(--green);"></span>
+                    {% endif %}
+                    <div class="notif-icon" style="background:{{ n.color }}22;margin-left:{% if n.new %}6px{% else %}0{% endif %};">
                         <i class="bi bi-{{ n.icon }}" style="color:{{ n.color }};"></i>
                     </div>
                     <div style="flex:1;min-width:0;">
-                        <div class="notif-text">{{ n.text }}</div>
+                        <div class="notif-text" {% if n.new %}style="color:var(--text);font-weight:600;"{% endif %}>{{ n.text }}</div>
                         <div class="notif-sub">{{ n.sub }}</div>
                     </div>
                     <div class="notif-time">{{ n.ts.strftime('%H:%M') }}</div>
@@ -835,6 +841,25 @@
         overlay.addEventListener('click', () => {
             sidebar.classList.remove('open');
             overlay.classList.remove('open');
+        });
+    }
+
+    // ── Notifications : marquer comme vues à l'ouverture de la cloche ──
+    const notifBtn = document.getElementById('notifBtn');
+    if (notifBtn) {
+        notifBtn.addEventListener('shown.bs.dropdown', function () {
+            const badge = document.getElementById('notifBadge');
+            const icon  = document.getElementById('notifBellIcon');
+            if (!badge) return; // déjà à 0, rien à faire
+            fetch('/api/notif/seen', { method: 'POST',
+                headers: { 'X-CSRFToken': document.cookie.match(/csrf_token=([^;]+)/)?.[1] || '' }
+            }).then(() => {
+                // Effacer le badge immédiatement dans la page courante
+                badge.remove();
+                if (icon) {
+                    icon.className = icon.className.replace('bi-bell-fill', 'bi-bell');
+                }
+            });
         });
     }
 </script>

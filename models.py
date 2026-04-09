@@ -79,6 +79,7 @@ class User(db.Model):
     apartment_id = db.Column(db.Integer, db.ForeignKey('apartment.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login_at = db.Column(db.DateTime, nullable=True)
+    notif_seen_at = db.Column(db.DateTime, nullable=True)   # dernière ouverture cloche
 
     def set_password(self, pwd):
         self.password_hash = generate_password_hash(pwd)
@@ -511,6 +512,9 @@ def init_db():
                 conn.execute(db.text(
                     "ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP"
                 ))
+                conn.execute(db.text(
+                    "ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS notif_seen_at TIMESTAMP"
+                ))
                 conn.commit()
             else:
                 result = conn.execute(db.text("PRAGMA table_info(user)"))
@@ -519,6 +523,8 @@ def init_db():
                     conn.execute(db.text("ALTER TABLE \"user\" ADD COLUMN phone VARCHAR(20)"))
                 if 'last_login_at' not in cols:
                     conn.execute(db.text("ALTER TABLE \"user\" ADD COLUMN last_login_at DATETIME"))
+                if 'notif_seen_at' not in cols:
+                    conn.execute(db.text("ALTER TABLE \"user\" ADD COLUMN notif_seen_at DATETIME"))
                 conn.commit()
     except Exception as e:
         print(f"Migration user.phone/last_login_at : {e}")
