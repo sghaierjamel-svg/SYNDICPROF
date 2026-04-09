@@ -119,6 +119,12 @@ def register():
         admin.set_password(password)
         db.session.add(admin)
         db.session.commit()
+        # Email de bienvenue (non bloquant)
+        try:
+            from utils_email import send_welcome_admin
+            send_welcome_admin(org_name=org_name, email=email, days_trial=30)
+        except Exception as _e:
+            print(f"[register] Email bienvenue non envoyé : {_e}")
         flash(f'Organisation créée avec succès ! Essai gratuit de 30 jours activé.', 'success')
         return redirect(url_for('login'))
     return render_template('register.html')
