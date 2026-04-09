@@ -211,18 +211,18 @@ def superadmin_change_password():
 def superadmin_test_email():
     try:
         import os
-        from utils_email import send_email, SMTP_HOST, SMTP_PORT, SMTP_USER
-        smtp_pass = os.environ.get('ZOHO_SMTP_PASSWORD', '')
+        from utils_email import send_email, RESEND_API_KEY, FROM_EMAIL
+        api_key_ok = bool(RESEND_API_KEY)
         to = request.form.get('to', '').strip()
         if not to:
             return jsonify({'ok': False, 'error': 'Adresse email manquante.'})
         ok, err = send_email(
             to=to,
             subject='Test email SyndicPro',
-            html=(f'<p>Ceci est un email de test envoyé depuis SyndicPro.</p>'
-                  f'<p>Serveur : <b>{SMTP_HOST}:{SMTP_PORT}</b><br>'
-                  f'Compte : <b>{SMTP_USER}</b><br>'
-                  f'Mot de passe configuré : <b>{"Oui" if smtp_pass else "NON"}</b></p>')
+            html=(f'<p>Ceci est un email de test envoy&#233; depuis SyndicPro.</p>'
+                  f'<p>Service : <b>Resend API</b><br>'
+                  f'Exp&#233;diteur : <b>{FROM_EMAIL}</b><br>'
+                  f'Cl&#233; API configur&#233;e : <b>{"Oui" if api_key_ok else "NON"}</b></p>')
         )
         if ok:
             return jsonify({'ok': True, 'msg': f'Email envoyé à {to} avec succès.'})

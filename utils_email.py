@@ -1,63 +1,66 @@
 """
-Service d'envoi d'emails via Zoho Mail (SMTP).
+Service d'envoi d'emails via Resend (API HTTP).
+
+Render bloque les connexions SMTP sortantes — on utilise l'API HTTP Resend
+qui fonctionne parfaitement sur tous les hébergeurs cloud.
 
 Variables d'environnement requises sur Render :
-  ZOHO_SMTP_PASSWORD  — mot de passe (ou App Password) de contact@syndicpro.tn
+  RESEND_API_KEY  — clé API obtenue sur resend.com (ex: re_xxxxxxxxxxxx)
+
+Domaine requis : syndicpro.tn doit être vérifié sur resend.com
+(ajouter les enregistrements DNS fournis par Resend).
 
 Usage :
   from utils_email import send_welcome_admin, send_resident_credentials
 """
 
-import smtplib, ssl, os
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+import os, requests as _requests
 
-SMTP_HOST   = 'smtp.zoho.com'
-SMTP_PORT   = 587
-SMTP_USER   = 'contact@syndicpro.tn'
-SMTP_PASS   = os.environ.get('ZOHO_SMTP_PASSWORD', '')
-SITE_URL    = 'https://www.syndicpro.tn'
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
+FROM_EMAIL     = 'SyndicPro <contact@syndicpro.tn>'
+REPLY_TO       = 'contact@syndicpro.tn'
+SITE_URL       = 'https://www.syndicpro.tn'
 
 
 # ─── Envoi générique ─────────────────────────────────────────────────────────
 
 def send_email(to: str, subject: str, html: str) -> tuple:
     """
-    Envoie un email HTML via Zoho SMTP.
+    Envoie un email HTML via l'API Resend.
     Retourne (True, '') si succès, (False, message_erreur) si échec.
     Ne lève jamais d'exception pour ne pas bloquer le flux principal.
     """
-    import traceback
-    if not SMTP_PASS:
-        msg = "ZOHO_SMTP_PASSWORD non défini dans les variables d'environnement."
+    if not RESEND_API_KEY:
+        msg = "RESEND_API_KEY non defini dans les variables d'environnement Render."
         print(f"[Email] {msg}")
         return False, msg
     try:
-        print(f"[Email] Connexion à {SMTP_HOST}:{SMTP_PORT} en tant que {SMTP_USER}...")
-        mail = MIMEMultipart('alternative')
-        mail['Subject']  = subject
-        mail['From']     = f'SyndicPro <{SMTP_USER}>'
-        mail['To']       = to
-        mail['Reply-To'] = SMTP_USER
-        mail.attach(MIMEText(html, 'html', 'utf-8'))
-
-        ctx = ssl.create_default_context()
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as server:
-            server.ehlo()
-            server.starttls(context=ctx)
-            server.ehlo()
-            server.login(SMTP_USER, SMTP_PASS)
-            server.sendmail(SMTP_USER, to, mail.as_string())
-        print(f"[Email] ✓ Envoyé à {to} — {subject}")
-        return True, ''
-    except smtplib.SMTPAuthenticationError as e:
-        msg = f"Authentification échouée : mauvais mot de passe ou App Password requis. ({e})"
-        print(f"[Email] ERREUR AUTH : {msg}")
-        return False, msg
-    except smtplib.SMTPException as e:
-        msg = f"Erreur SMTP : {e}"
-        print(f"[Email] ERREUR SMTP : {msg}")
-        return False, msg
+        print(f"[Email] Envoi via Resend API a {to}...")
+        resp = _requests.post(
+            'https://api.resend.com/emails',
+            headers={
+                'Authorization': f'Bearer {RESEND_API_KEY}',
+                'Content-Type': 'application/json',
+            },
+            json={
+                'from':     FROM_EMAIL,
+                'to':       [to],
+                'subject':  subject,
+                'html':     html,
+                'reply_to': REPLY_TO,
+            },
+            timeout=15,
+        )
+        if resp.status_code in (200, 201):
+            print(f"[Email] OK envoye a {to} — {subject}")
+            return True, ''
+        err = resp.json().get('message', resp.text)
+        print(f"[Email] ERREUR Resend {resp.status_code} : {err}")
+        return False, f"Resend API erreur {resp.status_code} : {err}"
+    except Exception as e:
+        import traceback
+        print(f"[Email] ERREUR : {e}\n{traceback.format_exc()}")
+        return False, str(e)
     except Exception as e:
         msg = f"{type(e).__name__} : {e}"
         print(f"[Email] ERREUR inattendue : {msg}\n{traceback.format_exc()}")
