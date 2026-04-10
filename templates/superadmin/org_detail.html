@@ -1,287 +1,350 @@
 {% extends 'superadmin/base.html' %}
-
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <h2 class="text-white mb-4">
-            <i class="bi bi-building"></i> {{ org.name }}
-        </h2>
-        <a href="{{ url_for('superadmin_dashboard') }}" class="btn btn-light">
-            <i class="bi bi-arrow-left"></i> Retour
-        </a>
+
+<div class="mb-4">
+    <a href="{{ url_for('superadmin_dashboard') }}" class="btn btn-secondary btn-sm mb-3">
+        <i class="bi bi-arrow-left"></i> Retour
+    </a>
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+            <h2 class="text-white mb-0"><i class="bi bi-building"></i> {{ org.name }}</h2>
+            <div style="color:var(--muted);font-size:.85rem;">
+                <code>{{ org.slug }}</code> · Créée le {{ org.created_at.strftime('%d/%m/%Y') }}
+            </div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <!-- Login as admin -->
+            <form method="post" action="{{ url_for('superadmin_login_as', org_id=org.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-secondary"
+                        onclick="return confirm('Se connecter en tant qu\'admin de {{ org.name }} ?')"
+                        title="Voir l'interface comme l'admin">
+                    <i class="bi bi-person-badge"></i> Voir comme admin
+                </button>
+            </form>
+            <!-- Toggle actif -->
+            <form method="post" action="{{ url_for('superadmin_toggle_org', org_id=org.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                {% if org.is_active %}
+                <button type="submit" class="btn btn-sm btn-danger"
+                        onclick="return confirm('Désactiver {{ org.name }} ?')">
+                    <i class="bi bi-pause-circle"></i> Désactiver
+                </button>
+                {% else %}
+                <button type="submit" class="btn btn-sm btn-success">
+                    <i class="bi bi-play-circle"></i> Activer
+                </button>
+                {% endif %}
+            </form>
+        </div>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-lg-8">
-        <!-- Informations de l'organisation -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="bi bi-info-circle"></i> Informations Générales
+<!-- ── KPIs usage ──────────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+    <div class="col-4 col-md-2">
+        <div class="stat-card">
+            <div class="icon" style="font-size:1.5rem;"><i class="bi bi-house-door"></i></div>
+            <h3 style="font-size:1.5rem;">{{ apartments_count }}</h3>
+            <p style="font-size:.7rem;">Appts</p>
+            {% if org.subscription %}
+            <div style="font-size:.68rem;color:var(--muted);">
+                / {{ org.subscription.max_apartments if org.subscription.max_apartments < 999999 else '∞' }}
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Nom:</strong> {{ org.name }}</p>
-                        <p><strong>Slug:</strong> <code>{{ org.slug }}</code></p>
-                        <p><strong>Email:</strong> {{ org.email }}</p>
-                        <p><strong>Téléphone:</strong> {{ org.phone or '-' }}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>Adresse:</strong><br>{{ org.address or '-' }}</p>
-                        <p><strong>Date de création:</strong><br>{{ org.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
-                        <p><strong>Statut:</strong><br>
-                            {% if org.is_active %}
-                                <span class="badge bg-success">Active</span>
-                            {% else %}
-                                <span class="badge bg-danger">Désactivée</span>
-                            {% endif %}
-                        </p>
-                    </div>
-                </div>
-            </div>
+            {% endif %}
         </div>
+    </div>
+    <div class="col-4 col-md-2">
+        <div class="stat-card">
+            <div class="icon" style="font-size:1.5rem;"><i class="bi bi-people"></i></div>
+            <h3 style="font-size:1.5rem;">{{ residents_count }}</h3>
+            <p style="font-size:.7rem;">Résidents</p>
+        </div>
+    </div>
+    <div class="col-4 col-md-2">
+        <div class="stat-card">
+            <div class="icon" style="font-size:1.5rem;color:#00C896;"><i class="bi bi-cash-coin"></i></div>
+            <h3 style="font-size:1.5rem;color:#00C896;">{{ payments_count }}</h3>
+            <p style="font-size:.7rem;">Paiements</p>
+            <div style="font-size:.68rem;color:var(--muted);">{{ payments_this_month }} ce mois</div>
+        </div>
+    </div>
+    <div class="col-4 col-md-2">
+        <div class="stat-card">
+            <div class="icon" style="font-size:1.5rem;color:#60A5FA;"><i class="bi bi-ticket"></i></div>
+            <h3 style="font-size:1.5rem;color:#60A5FA;">{{ tickets_count }}</h3>
+            <p style="font-size:.7rem;">Tickets</p>
+        </div>
+    </div>
+    <div class="col-4 col-md-2">
+        <div class="stat-card">
+            <div class="icon" style="font-size:1.5rem;color:#F59E0B;"><i class="bi bi-receipt"></i></div>
+            <h3 style="font-size:1.5rem;color:#F59E0B;">{{ expenses_count }}</h3>
+            <p style="font-size:.7rem;">Dépenses</p>
+        </div>
+    </div>
+    <div class="col-4 col-md-2">
+        <div class="stat-card">
+            <div class="icon" style="font-size:1.5rem;color:#A78BFA;"><i class="bi bi-currency-exchange"></i></div>
+            <h3 style="font-size:1.3rem;color:#A78BFA;">{{ '{:.0f}'.format(total_revenue_org) }}</h3>
+            <p style="font-size:.7rem;">DT encaissé</p>
+        </div>
+    </div>
+</div>
 
-        <!-- Statistiques -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="bi bi-graph-up"></i> Statistiques d'Utilisation
-            </div>
-            <div class="card-body">
-                <div class="row text-center">
-                    <div class="col-md-4 mb-3">
-                        <div class="p-3 bg-light rounded">
-                            <h3 class="text-primary">{{ apartments_count }}</h3>
-                            <p class="mb-0 text-muted">Appartements</p>
-                            {% if org.subscription %}
-                            <small class="text-muted">
-                                Limite: {{ org.subscription.max_apartments if org.subscription.max_apartments < 999999 else '∞' }}
-                            </small>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <div class="p-3 bg-light rounded">
-                            <h3 class="text-success">{{ users_count }}</h3>
-                            <p class="mb-0 text-muted">Utilisateurs</p>
-                        </div>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <div class="p-3 bg-light rounded">
-                            <h3 class="text-info">
-                                {% if org.subscription %}
-                                    {{ org.subscription.days_remaining() }}
-                                {% else %}
-                                    0
-                                {% endif %}
-                            </h3>
-                            <p class="mb-0 text-muted">Jours restants</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="row g-4">
+    <!-- COLONNE GAUCHE -->
+    <div class="col-lg-8">
 
         <!-- Abonnement -->
         {% if org.subscription %}
         <div class="card mb-4">
-            <div class="card-header">
-                <i class="bi bi-credit-card"></i> Gestion de l'Abonnement
-            </div>
+            <div class="card-header"><i class="bi bi-credit-card"></i> Abonnement</div>
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Plan:</strong>
-                            {% if org.subscription.plan == 'trial' %}
-                                <span class="badge bg-info">Essai Gratuit</span>
-                            {% elif org.subscription.plan == 'starter' %}
-                                <span class="badge bg-success">Starter</span>
-                            {% else %}
-                                <span class="badge bg-primary">{{ org.subscription.plan }}</span>
-                            {% endif %}
-                        </p>
-                        <p><strong>Statut:</strong>
-                            {% if org.subscription.is_expired() %}
-                                <span class="badge bg-danger">Expiré</span>
-                            {% elif org.subscription.status == 'active' %}
-                                <span class="badge bg-success">Actif</span>
-                            {% else %}
-                                <span class="badge bg-secondary">{{ org.subscription.status }}</span>
-                            {% endif %}
-                        </p>
-                        <p><strong>Prix mensuel:</strong> {{ '{:.0f}'.format(org.subscription.monthly_price) }} DT</p>
-                        <p><strong>Limite d'appartements:</strong> 
-                            {% if org.subscription.max_apartments >= 999999 %}
-                                <span class="badge bg-success">Illimité</span>
-                            {% else %}
-                                {{ org.subscription.max_apartments }}
-                            {% endif %}
-                        </p>
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-4 text-center">
+                        <div style="font-size:.75rem;color:var(--muted);">Plan</div>
+                        <div style="font-size:1.1rem;font-weight:700;">
+                            {% set plan_colors = {'trial':'#60A5FA','starter':'#34D399','standard':'#00C896','premium':'#A78BFA','pro':'#FCD34D'} %}
+                            <span style="color:{{ plan_colors.get(org.subscription.plan, '#9CA3AF') }};">
+                                {{ org.subscription.plan | capitalize }}
+                            </span>
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <p><strong>Date de début:</strong><br>
-                            {{ org.subscription.start_date.strftime('%d/%m/%Y') }}
-                        </p>
-                        <p><strong>Date d'expiration:</strong><br>
-                            {% if org.subscription.end_date %}
-                                {{ org.subscription.end_date.strftime('%d/%m/%Y') }}
-                            {% else %}
-                                -
-                            {% endif %}
-                        </p>
-                        <p><strong>Jours restants:</strong><br>
-                            <span class="fs-4 fw-bold text-primary">{{ org.subscription.days_remaining() }}</span> jours
-                        </p>
+                    <div class="col-sm-4 text-center">
+                        <div style="font-size:.75rem;color:var(--muted);">Prix mensuel</div>
+                        <div style="font-size:1.1rem;font-weight:700;color:#00C896;">
+                            {{ '{:.0f}'.format(org.subscription.monthly_price) }} DT
+                        </div>
+                    </div>
+                    <div class="col-sm-4 text-center">
+                        <div style="font-size:.75rem;color:var(--muted);">Jours restants</div>
+                        <div style="font-size:1.1rem;font-weight:700;
+                            color:{% if org.subscription.days_remaining() <= 7 %}#EF4444{% elif org.subscription.days_remaining() <= 30 %}#F59E0B{% else %}#34D399{% endif %};">
+                            {{ org.subscription.days_remaining() }} j
+                        </div>
                     </div>
                 </div>
 
                 {% if org.subscription.is_expired() %}
-                <div class="alert alert-danger">
-                    <i class="bi bi-exclamation-triangle"></i> 
-                    <strong>L'abonnement a expiré!</strong>
-                </div>
+                <div class="alert alert-danger mb-3"><i class="bi bi-exclamation-triangle-fill"></i> Abonnement expiré.</div>
                 {% elif org.subscription.days_remaining() <= 7 %}
-                <div class="alert alert-warning">
-                    <i class="bi bi-clock-history"></i> 
-                    <strong>L'abonnement expire bientôt!</strong>
-                </div>
+                <div class="alert alert-warning mb-3"><i class="bi bi-clock-history"></i> Expire dans {{ org.subscription.days_remaining() }} jours.</div>
                 {% endif %}
 
-                <!-- 🆕 NOUVEAU : Modifier le plan -->
-                <div class="card bg-light mt-3">
-                    <div class="card-body">
-                        <h6 class="fw-bold mb-3">
-                            <i class="bi bi-gear"></i> Modifier le Plan
-                        </h6>
-                        <form method="post" action="{{ url_for('superadmin_update_plan', org_id=org.id) }}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Type de plan</label>
-                                    <select name="plan" class="form-select">
-                                        <option value="trial" {% if org.subscription.plan == 'trial' %}selected{% endif %}>Essai Gratuit</option>
-                                        <option value="starter" {% if org.subscription.plan == 'starter' %}selected{% endif %}>Starter</option>
-                                        <option value="pro" {% if org.subscription.plan == 'pro' %}selected{% endif %}>Pro</option>
-                                        <option value="enterprise" {% if org.subscription.plan == 'enterprise' %}selected{% endif %}>Enterprise</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Prix mensuel (DT)</label>
-                                    <input type="number" name="monthly_price" class="form-control" 
-                                           value="{{ org.subscription.monthly_price }}" step="0.01">
-                                </div>
-                            </div>
-                            <button type="submit" class="btn btn-primary btn-sm">
-                                <i class="bi bi-save"></i> Mettre à jour le plan
-                            </button>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- 🆕 NOUVEAU : Modifier la limite d'appartements -->
-                <div class="card bg-light mt-3">
-                    <div class="card-body">
-                        <h6 class="fw-bold mb-3">
-                            <i class="bi bi-house-door"></i> Limite d'Appartements
-                        </h6>
-                        <form method="post" action="{{ url_for('superadmin_update_limits', org_id=org.id) }}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <div class="row align-items-end">
-                                <div class="col-md-8 mb-3">
-                                    <label class="form-label">Nombre maximum d'appartements</label>
-                                    <input type="number" name="max_apartments" class="form-control" 
-                                           value="{{ org.subscription.max_apartments if org.subscription.max_apartments < 999999 else '' }}"
-                                           placeholder="Laisser vide pour illimité">
-                                    <small class="form-text text-muted">
-                                        Actuellement: {{ apartments_count }} appartements utilisés
-                                    </small>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <button type="submit" class="btn btn-warning w-100">
-                                        <i class="bi bi-check-circle"></i> Modifier
+                <div class="row g-3">
+                    <!-- Modifier plan -->
+                    <div class="col-md-6">
+                        <div class="card" style="background:var(--border);">
+                            <div class="card-body p-3">
+                                <h6 style="font-size:.82rem;font-weight:700;margin-bottom:.75rem;">
+                                    <i class="bi bi-gear"></i> Modifier le plan
+                                </h6>
+                                <form method="post" action="{{ url_for('superadmin_update_plan', org_id=org.id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <div class="mb-2">
+                                        <select name="plan" class="form-select form-select-sm">
+                                            {% for p in ['trial','starter','standard','premium','pro'] %}
+                                            <option value="{{ p }}" {% if org.subscription.plan == p %}selected{% endif %}>
+                                                {{ p | capitalize }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="mb-2">
+                                        <input type="number" name="monthly_price" class="form-control form-control-sm"
+                                               value="{{ org.subscription.monthly_price }}" step="1" placeholder="Prix DT/mois">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                                        <i class="bi bi-save"></i> Appliquer
                                     </button>
-                                </div>
+                                </form>
                             </div>
-                        </form>
+                        </div>
                     </div>
-                </div>
-
-                <!-- Formulaire de prolongation -->
-                <div class="card bg-light mt-3">
-                    <div class="card-body">
-                        <h6 class="fw-bold mb-3">
-                            <i class="bi bi-calendar-plus"></i> Prolonger l'Abonnement
-                        </h6>
-                        <form method="post" action="{{ url_for('superadmin_extend_subscription', org_id=org.id) }}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <div class="row align-items-end">
-                                <div class="col-md-8">
-                                    <label class="form-label">Ajouter des jours :</label>
-                                    <select name="days" class="form-select">
-                                        <option value="7">7 jours (1 semaine)</option>
-                                        <option value="30">30 jours (1 mois)</option>
-                                        <option value="90">90 jours (3 mois)</option>
-                                        <option value="180">180 jours (6 mois)</option>
-                                        <option value="365">365 jours (1 an)</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <button type="submit" class="btn btn-success w-100">
+                    <!-- Prolonger -->
+                    <div class="col-md-6">
+                        <div class="card" style="background:var(--border);">
+                            <div class="card-body p-3">
+                                <h6 style="font-size:.82rem;font-weight:700;margin-bottom:.75rem;">
+                                    <i class="bi bi-calendar-plus"></i> Prolonger l'abonnement
+                                </h6>
+                                <form method="post" action="{{ url_for('superadmin_extend_subscription', org_id=org.id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <div class="mb-2">
+                                        <select name="days" class="form-select form-select-sm">
+                                            <option value="7">7 jours</option>
+                                            <option value="30" selected>30 jours (1 mois)</option>
+                                            <option value="90">90 jours (3 mois)</option>
+                                            <option value="180">6 mois</option>
+                                            <option value="365">1 an</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-success btn-sm w-100">
                                         <i class="bi bi-calendar-plus"></i> Prolonger
                                     </button>
-                                </div>
+                                </form>
                             </div>
-                        </form>
+                        </div>
+                    </div>
+                    <!-- Limite appartements -->
+                    <div class="col-12">
+                        <div class="card" style="background:var(--border);">
+                            <div class="card-body p-3">
+                                <h6 style="font-size:.82rem;font-weight:700;margin-bottom:.75rem;">
+                                    <i class="bi bi-house-door"></i> Limite d'appartements
+                                    <small style="color:var(--muted);">(actuellement {{ apartments_count }} utilisés)</small>
+                                </h6>
+                                <form method="post" action="{{ url_for('superadmin_update_limits', org_id=org.id) }}" class="d-flex gap-2">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="number" name="max_apartments" class="form-control form-control-sm"
+                                           value="{{ org.subscription.max_apartments if org.subscription.max_apartments < 999999 else '' }}"
+                                           placeholder="Vide = Illimité" style="max-width:180px;">
+                                    <button type="submit" class="btn btn-warning btn-sm">Modifier</button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
         {% endif %}
-    </div>
 
-    <div class="col-lg-4">
-        <!-- Actions -->
-        <div class="card mb-3">
-            <div class="card-header">
-                <i class="bi bi-lightning"></i> Actions Rapides
-            </div>
+        <!-- Activité récente -->
+        <div class="card mb-4">
+            <div class="card-header"><i class="bi bi-activity"></i> Activité récente</div>
             <div class="card-body">
-                <div class="d-grid gap-2">
-                    <form method="post" action="{{ url_for('superadmin_toggle_org', org_id=org.id) }}">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        {% if org.is_active %}
-                            <button type="submit" class="btn btn-danger w-100"
-                                    onclick="return confirm('Confirmer la désactivation ?');">
-                                <i class="bi bi-x-circle"></i> Désactiver l'Organisation
-                            </button>
-                        {% else %}
-                            <button type="submit" class="btn btn-success w-100">
-                                <i class="bi bi-check-circle"></i> Activer l'Organisation
-                            </button>
-                        {% endif %}
-                    </form>
-
-                    <hr style="border-color:#374151;margin:8px 0;">
-
-                    <form method="post" action="{{ url_for('superadmin_delete_org', org_id=org.id) }}"
-                          onsubmit="return confirmDelete('{{ org.name }}')">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-outline-danger w-100"
-                                style="border-color:#7f1d1d;color:#f87171;">
-                            <i class="bi bi-trash3"></i> Supprimer définitivement
-                        </button>
-                    </form>
+                <div class="row g-3 text-center" style="font-size:.85rem;">
+                    <div class="col-sm-6">
+                        <div style="color:var(--muted);font-size:.75rem;">Dernier paiement</div>
+                        <div style="font-weight:600;color:#00C896;">
+                            {% if last_payment %}
+                                {{ last_payment.payment_date.strftime('%d/%m/%Y') }}
+                                — {{ '{:.2f}'.format(last_payment.amount) }} DT
+                            {% else %}<span style="color:var(--muted);">Aucun</span>{% endif %}
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div style="color:var(--muted);font-size:.75rem;">Dernier ticket</div>
+                        <div style="font-weight:600;color:#60A5FA;">
+                            {% if last_ticket %}
+                                {{ last_ticket.created_at.strftime('%d/%m/%Y') }}
+                                — {{ last_ticket.subject[:30] }}…
+                            {% else %}<span style="color:var(--muted);">Aucun</span>{% endif %}
+                        </div>
+                    </div>
+                    {% if admin_user %}
+                    <div class="col-sm-6">
+                        <div style="color:var(--muted);font-size:.75rem;">Admin</div>
+                        <div style="font-weight:600;">{{ admin_user.email }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div style="color:var(--muted);font-size:.75rem;">Dernière connexion admin</div>
+                        <div style="font-weight:600;">
+                            {% if admin_user.last_login_at %}
+                                {{ admin_user.last_login_at.strftime('%d/%m/%Y %H:%M') }}
+                            {% else %}<span style="color:var(--muted);">Jamais</span>{% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
 
-        <!-- Reset mot de passe admin -->
-        <div class="card mb-3">
-            <div class="card-header">
-                <i class="bi bi-key"></i> Mot de passe Admin
-            </div>
+        <!-- Notes internes -->
+        <div class="card mb-4">
+            <div class="card-header"><i class="bi bi-sticky"></i> Notes internes superadmin</div>
             <div class="card-body">
-                <p class="text-muted small mb-3">Définir un nouveau mot de passe pour l'administrateur de cette résidence.</p>
+                <form method="post" action="{{ url_for('superadmin_save_notes', org_id=org.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <textarea name="notes" class="form-control mb-2" rows="4"
+                              placeholder="Notes internes (non visibles par le client)...">{{ org.superadmin_notes or '' }}</textarea>
+                    <button type="submit" class="btn btn-secondary btn-sm">
+                        <i class="bi bi-save"></i> Enregistrer les notes
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Envoyer un email -->
+        <div class="card mb-4">
+            <div class="card-header"><i class="bi bi-envelope"></i> Envoyer un email à {{ org.email }}</div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('superadmin_send_email_org', org_id=org.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-2">
+                        <input type="text" name="subject" class="form-control form-control-sm"
+                               placeholder="Sujet..." required>
+                    </div>
+                    <div class="mb-2">
+                        <textarea name="body" class="form-control form-control-sm" rows="4"
+                                  placeholder="Corps du message..." required></textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-send"></i> Envoyer
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm"
+                                onclick="fillTemplate('rappel')">
+                            Modèle rappel
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm"
+                                onclick="fillTemplate('bienvenue')">
+                            Modèle bienvenue
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- COLONNE DROITE -->
+    <div class="col-lg-4">
+
+        <!-- Infos organisation -->
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-info-circle"></i> Informations</div>
+            <div class="card-body" style="font-size:.85rem;">
+                <div class="mb-2"><span style="color:var(--muted);">Email :</span> {{ org.email }}</div>
+                <div class="mb-2"><span style="color:var(--muted);">Téléphone :</span> {{ org.phone or '—' }}</div>
+                <div class="mb-2"><span style="color:var(--muted);">Adresse :</span> {{ org.address or '—' }}</div>
+                <div class="mb-2">
+                    <span style="color:var(--muted);">Statut :</span>
+                    <span class="badge {% if org.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                        {{ 'Active' if org.is_active else 'Désactivée' }}
+                    </span>
+                </div>
+                <div>
+                    <span style="color:var(--muted);">WhatsApp admin :</span>
+                    {{ org.whatsapp_admin_phone or '—' }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarification de référence -->
+        <div class="card mb-3" style="border-color:rgba(0,200,150,0.3);">
+            <div class="card-header" style="color:#00C896;"><i class="bi bi-tag"></i> Grille tarifaire SyndicPro</div>
+            <div class="card-body" style="font-size:.8rem;">
+                <div class="d-flex justify-content-between mb-1">
+                    <span>Starter (≤ 25 appts)</span><strong style="color:#34D399;">49 DT/mois</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span>Standard (26-80 appts)</span><strong style="color:#00C896;">79 DT/mois</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span>Premium (> 80 appts)</span><strong style="color:#A78BFA;">129 DT/mois</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Pro (multi-résidences)</span><strong style="color:#FCD34D;">249 DT/mois</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mot de passe admin -->
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-key"></i> Réinitialiser mot de passe</div>
+            <div class="card-body">
                 <form method="post" action="{{ url_for('superadmin_reset_admin_password', org_id=org.id) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-2">
@@ -296,49 +359,69 @@
             </div>
         </div>
 
-        <!-- Contacts -->
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-telephone"></i> Contact
-            </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="mailto:{{ org.email }}" class="btn btn-outline-primary">
-                        <i class="bi bi-envelope"></i> Envoyer un Email
-                    </a>
-                    {% if org.phone %}
-                    <a href="tel:{{ org.phone }}" class="btn btn-outline-success">
-                        <i class="bi bi-telephone"></i> Appeler
-                    </a>
-                    {% endif %}
-                </div>
+        <!-- Contact rapide -->
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-telephone"></i> Contact rapide</div>
+            <div class="card-body d-grid gap-2">
+                <a href="mailto:{{ org.email }}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-envelope"></i> {{ org.email }}
+                </a>
+                {% if org.phone %}
+                <a href="tel:{{ org.phone }}" class="btn btn-outline-success btn-sm">
+                    <i class="bi bi-telephone"></i> {{ org.phone }}
+                </a>
+                {% endif %}
+                {% if org.whatsapp_admin_phone %}
+                <a href="https://wa.me/{{ org.whatsapp_admin_phone | replace('+','') }}" target="_blank"
+                   class="btn btn-sm" style="background:rgba(37,211,102,0.15);color:#25d366;border:1px solid rgba(37,211,102,0.3);">
+                    <i class="bi bi-whatsapp"></i> WhatsApp
+                </a>
+                {% endif %}
             </div>
         </div>
 
-        <!-- Informations utiles -->
-        <div class="card mt-3">
-            <div class="card-header bg-info text-white">
-                <i class="bi bi-info-circle"></i> Informations
-            </div>
+        <!-- Danger zone -->
+        <div class="card" style="border-color:rgba(239,68,68,0.3);">
+            <div class="card-header" style="color:#F87171;"><i class="bi bi-exclamation-triangle"></i> Zone dangereuse</div>
             <div class="card-body">
-                <p class="small mb-2">
-                    <strong>💡 Conseil :</strong> Pour un essai gratuit illimité, 
-                    laissez la limite d'appartements vide ou entrez un nombre très élevé.
-                </p>
-                <p class="small mb-0">
-                    <strong>🔧 Tarification recommandée :</strong><br>
-                    • < 20 appts : 30 DT/mois<br>
-                    • 20-75 appts : 50 DT/mois<br>
-                    • > 75 appts : 75 DT/mois
-                </p>
+                <form method="post" action="{{ url_for('superadmin_delete_org', org_id=org.id) }}"
+                      onsubmit="return confirmDelete('{{ org.name }}')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger w-100"
+                            style="border-color:#7f1d1d;color:#f87171;">
+                        <i class="bi bi-trash3"></i> Supprimer définitivement
+                    </button>
+                </form>
             </div>
         </div>
+
     </div>
 </div>
+
+{% endblock %}
+
+{% block extra_js %}
 <script>
 function confirmDelete(name) {
-    if (!confirm('⚠️ ATTENTION — Suppression définitive\n\nCette action va supprimer :\n• Tous les appartements et résidents\n• Tout l\'historique financier\n• Tous les tickets et documents\n\nCette action est IRRÉVERSIBLE.\n\nConfirmer la suppression de « ' + name + ' » ?')) return false;
-    return confirm('Dernière confirmation — Supprimer « ' + name + ' » et toutes ses données ?');
+    if (!confirm('⚠️ Suppression définitive de « ' + name + ' »\n\nCette action supprime TOUT (appartements, résidents, historique financier, tickets...).\n\nContinuer ?')) return false;
+    return confirm('Dernière confirmation — Supprimer définitivement « ' + name + ' » ?');
+}
+
+const templates = {
+    rappel: {
+        subject: 'Renouvellement de votre abonnement SyndicPro',
+        body: `Bonjour,\n\nVotre abonnement SyndicPro arrive bientôt à expiration.\n\nPour continuer à bénéficier de toutes les fonctionnalités (paiements en ligne, notifications, états financiers...), veuillez procéder au renouvellement.\n\nContactez-nous à contact@syndicpro.tn pour toute question.\n\nCordialement,\nL'équipe SyndicPro`
+    },
+    bienvenue: {
+        subject: 'Bienvenue sur SyndicPro 🎉',
+        body: `Bonjour,\n\nBienvenue sur SyndicPro, la plateforme de gestion de copropriété la plus complète en Tunisie !\n\nVotre espace est prêt. Vous pouvez vous connecter sur syndicpro.tn et commencer à configurer votre résidence.\n\nN'hésitez pas à nous contacter si vous avez besoin d'aide pour démarrer.\n\nCordialement,\nL'équipe SyndicPro`
+    }
+};
+
+function fillTemplate(type) {
+    const t = templates[type];
+    document.querySelector('[name="subject"]').value = t.subject;
+    document.querySelector('[name="body"]').value = t.body;
 }
 </script>
 {% endblock %}

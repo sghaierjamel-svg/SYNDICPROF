@@ -1,47 +1,303 @@
-from flask import render_template, request, redirect, url_for, flash, jsonify
+from flask import render_template, request, redirect, url_for, flash, jsonify, session, Response
 from core import app, db
-from models import Organization, Apartment, User, SuperAdminSettings
-from utils import (current_user, login_required, superadmin_required)
-from datetime import datetime, timedelta
+from models import Organization, Apartment, User, SuperAdminSettings, Payment, Ticket, Expense, Subscription
+from utils import current_user, login_required, superadmin_required
+from datetime import datetime, timedelta, date
 from sqlalchemy import func
 import requests as http
+import csv
+import io
 
+
+# ─── Dashboard principal ──────────────────────────────────────────────────────
 
 @app.route('/superadmin')
 @login_required
 @superadmin_required
 def superadmin_dashboard():
     organizations = Organization.query.order_by(Organization.created_at.desc()).all()
-    total_orgs = len(organizations)
-    active_orgs = len([o for o in organizations if o.is_active])
-    total_revenue = 0
-    for org in organizations:
-        if org.subscription and org.subscription.status == 'active':
-            total_revenue += org.subscription.monthly_price
+    today = datetime.utcnow()
+    this_month_start = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    last_month_start = (this_month_start - timedelta(days=1)).replace(day=1)
 
-    # Dernière connexion de l'admin principal de chaque organisation (une seule requête)
+    # ── KPIs globaux ──────────────────────────────────────────────────────────
+    total_orgs  = len(organizations)
+    active_orgs = sum(1 for o in organizations if o.is_active)
+
+    # MRR = somme des prix mensuels des abonnements actifs non expirés
+    mrr = sum(
+        o.subscription.monthly_price
+        for o in organizations
+        if o.subscription and o.subscription.status == 'active' and not o.subscription.is_expired()
+    )
+    arr = mrr * 12
+
+    # Nouvelles orgs ce mois / mois dernier
+    new_this_month = sum(1 for o in organizations if o.created_at >= this_month_start)
+    new_last_month = sum(1 for o in organizations if last_month_start <= o.created_at < this_month_start)
+
+    # Total appartements & résidents sur toute la plateforme
+    total_apartments = db.session.query(func.count(Apartment.id)).scalar() or 0
+    total_residents  = db.session.query(func.count(User.id)).filter(User.role == 'resident').scalar() or 0
+
+    # Abonnements qui expirent dans <= 7 jours (alerte)
+    expiring_soon = [
+        o for o in organizations
+        if o.subscription and o.subscription.end_date and o.is_active
+        and 0 < o.subscription.days_remaining() <= 7
+    ]
+
+    # Abonnements déjà expirés mais org encore active
+    expired_active = [
+        o for o in organizations
+        if o.is_active and o.subscription and o.subscription.is_expired()
+    ]
+
+    # Orgs inactives depuis > 30 jours (dernière connexion admin)
     rows = db.session.query(User.organization_id, func.max(User.last_login_at)).filter(
         User.role == 'admin', User.organization_id.isnot(None)
     ).group_by(User.organization_id).all()
     last_login_map = {org_id: last_login for org_id, last_login in rows}
 
-    return render_template('superadmin/dashboard.html',
-                           organizations=organizations,
-                           total_orgs=total_orgs,
-                           active_orgs=active_orgs,
-                           total_revenue=total_revenue,
-                           last_login_map=last_login_map)
+    inactive_30d = [
+        o for o in organizations
+        if o.is_active and (
+            last_login_map.get(o.id) is None or
+            last_login_map.get(o.id) < today - timedelta(days=30)
+        )
+    ]
 
+    # Churn ce mois (abonnements expirés ce mois)
+    churn_this_month = sum(
+        1 for o in organizations
+        if o.subscription and o.subscription.end_date and
+        o.subscription.end_date >= this_month_start and
+        o.subscription.is_expired()
+    )
+
+    # Taux de conversion trial → payant
+    trial_orgs = sum(1 for o in organizations if o.subscription and o.subscription.plan == 'trial')
+    paying_orgs = total_orgs - trial_orgs
+
+    # Historique MRR par mois (6 derniers mois) — approximation basée sur created_at des subscriptions
+    mrr_history = []
+    for i in range(5, -1, -1):
+        month_dt = (today.replace(day=1) - timedelta(days=i * 30)).replace(day=1)
+        label = month_dt.strftime('%b %Y')
+        month_mrr = sum(
+            o.subscription.monthly_price
+            for o in organizations
+            if o.subscription and o.subscription.monthly_price > 0
+            and o.subscription.start_date <= month_dt + timedelta(days=31)
+            and (not o.subscription.end_date or o.subscription.end_date >= month_dt)
+        )
+        mrr_history.append({'label': label, 'mrr': round(month_mrr, 2)})
+
+    return render_template(
+        'superadmin/dashboard.html',
+        organizations=organizations,
+        total_orgs=total_orgs,
+        active_orgs=active_orgs,
+        mrr=mrr, arr=arr,
+        new_this_month=new_this_month,
+        new_last_month=new_last_month,
+        total_apartments=total_apartments,
+        total_residents=total_residents,
+        expiring_soon=expiring_soon,
+        expired_active=expired_active,
+        inactive_30d=inactive_30d,
+        churn_this_month=churn_this_month,
+        trial_orgs=trial_orgs,
+        paying_orgs=paying_orgs,
+        last_login_map=last_login_map,
+        mrr_history=mrr_history,
+    )
+
+
+# ─── Détail organisation ──────────────────────────────────────────────────────
 
 @app.route('/superadmin/organization/<int:org_id>')
 @login_required
 @superadmin_required
 def superadmin_org_detail(org_id):
     org = Organization.query.get_or_404(org_id)
-    apartments_count = Apartment.query.filter_by(organization_id=org.id).count()
-    users_count = User.query.filter_by(organization_id=org.id).count()
-    return render_template('superadmin/org_detail.html', org=org, apartments_count=apartments_count, users_count=users_count)
 
+    apartments_count = Apartment.query.filter_by(organization_id=org.id).count()
+    users_count      = User.query.filter_by(organization_id=org.id).count()
+    residents_count  = User.query.filter_by(organization_id=org.id, role='resident').count()
+
+    # Métriques d'usage réelles
+    payments_count  = Payment.query.filter_by(organization_id=org.id).count()
+    tickets_count   = Ticket.query.filter_by(organization_id=org.id).count()
+    expenses_count  = Expense.query.filter_by(organization_id=org.id).count()
+
+    last_payment = Payment.query.filter_by(organization_id=org.id)\
+        .order_by(Payment.payment_date.desc()).first()
+    last_ticket  = Ticket.query.filter_by(organization_id=org.id)\
+        .order_by(Ticket.created_at.desc()).first()
+
+    # Paiements ce mois
+    this_month = date.today().replace(day=1)
+    payments_this_month = Payment.query.filter(
+        Payment.organization_id == org.id,
+        Payment.payment_date >= this_month
+    ).count()
+
+    # Montant total encaissé
+    total_revenue_org = db.session.query(func.sum(Payment.amount))\
+        .filter(Payment.organization_id == org.id).scalar() or 0.0
+
+    # Admin de l'org
+    admin_user = User.query.filter_by(organization_id=org.id, role='admin').first()
+
+    return render_template(
+        'superadmin/org_detail.html',
+        org=org,
+        apartments_count=apartments_count,
+        users_count=users_count,
+        residents_count=residents_count,
+        payments_count=payments_count,
+        tickets_count=tickets_count,
+        expenses_count=expenses_count,
+        last_payment=last_payment,
+        last_ticket=last_ticket,
+        payments_this_month=payments_this_month,
+        total_revenue_org=total_revenue_org,
+        admin_user=admin_user,
+    )
+
+
+# ─── Notes internes ───────────────────────────────────────────────────────────
+
+@app.route('/superadmin/organization/<int:org_id>/notes', methods=['POST'])
+@login_required
+@superadmin_required
+def superadmin_save_notes(org_id):
+    org = Organization.query.get_or_404(org_id)
+    org.superadmin_notes = request.form.get('notes', '').strip() or None
+    db.session.commit()
+    flash('Notes enregistrées.', 'success')
+    return redirect(url_for('superadmin_org_detail', org_id=org_id))
+
+
+# ─── Envoi d'email à l'admin de l'org ────────────────────────────────────────
+
+@app.route('/superadmin/organization/<int:org_id>/send-email', methods=['POST'])
+@login_required
+@superadmin_required
+def superadmin_send_email_org(org_id):
+    org = Organization.query.get_or_404(org_id)
+    subject = request.form.get('subject', '').strip()
+    body    = request.form.get('body', '').strip()
+    if not subject or not body:
+        flash('Sujet et corps de l\'email sont obligatoires.', 'danger')
+        return redirect(url_for('superadmin_org_detail', org_id=org_id))
+    try:
+        from utils_email import send_email
+        html = f"""
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:20px;">
+            <div style="background:#00C896;padding:15px 20px;border-radius:8px 8px 0 0;">
+                <h2 style="color:#0A0E1A;margin:0;">SyndicPro</h2>
+            </div>
+            <div style="background:#111827;padding:25px;border-radius:0 0 8px 8px;color:#F9FAFB;">
+                <p style="white-space:pre-wrap;">{body}</p>
+                <hr style="border-color:#374151;margin:20px 0;">
+                <p style="color:#9CA3AF;font-size:0.85rem;">
+                    Message envoyé depuis SyndicPro — syndicpro.tn
+                </p>
+            </div>
+        </div>
+        """
+        ok, err = send_email(to=org.email, subject=subject, html=html)
+        if ok:
+            flash(f'Email envoyé à {org.email}.', 'success')
+        else:
+            flash(f'Erreur envoi email : {err}', 'danger')
+    except Exception as e:
+        flash(f'Erreur : {e}', 'danger')
+    return redirect(url_for('superadmin_org_detail', org_id=org_id))
+
+
+# ─── Impersonation (connexion en tant qu'admin) ───────────────────────────────
+
+@app.route('/superadmin/organization/<int:org_id>/login-as', methods=['POST'])
+@login_required
+@superadmin_required
+def superadmin_login_as(org_id):
+    """Connecte le superadmin en tant qu'admin de cette organisation (support)."""
+    org = Organization.query.get_or_404(org_id)
+    admin = User.query.filter_by(organization_id=org.id, role='admin').first()
+    if not admin:
+        flash('Aucun admin trouvé pour cette organisation.', 'danger')
+        return redirect(url_for('superadmin_org_detail', org_id=org_id))
+    # Sauvegarder l'identité superadmin pour pouvoir revenir
+    session['superadmin_return_id'] = session.get('user_id')
+    session['user_id']     = admin.id
+    session['org_slug']    = org.slug
+    session['impersonating'] = True
+    flash(f'Connecté en tant que {admin.email} ({org.name}). Retournez à /superadmin pour reprendre votre session.', 'info')
+    return redirect(url_for('dashboard'))
+
+
+@app.route('/superadmin/return-from-impersonation')
+@login_required
+def superadmin_return():
+    """Revenir à la session superadmin après impersonation."""
+    original_id = session.pop('superadmin_return_id', None)
+    session.pop('impersonating', None)
+    if not original_id:
+        return redirect(url_for('login'))
+    session['user_id']  = original_id
+    session['org_slug'] = None
+    flash('Retour à la session superadmin.', 'success')
+    return redirect(url_for('superadmin_dashboard'))
+
+
+# ─── Export CSV ───────────────────────────────────────────────────────────────
+
+@app.route('/superadmin/export-csv')
+@login_required
+@superadmin_required
+def superadmin_export_csv():
+    organizations = Organization.query.order_by(Organization.created_at.desc()).all()
+    today = datetime.utcnow()
+
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=';')
+    writer.writerow([
+        'ID', 'Nom', 'Email', 'Téléphone', 'Adresse',
+        'Plan', 'Statut', 'Prix DT/mois',
+        'Date création', 'Date expiration', 'Jours restants',
+        'Appartements', 'Résidents',
+        'Paiements total', 'Notes superadmin'
+    ])
+    for org in organizations:
+        apts = Apartment.query.filter_by(organization_id=org.id).count()
+        res  = User.query.filter_by(organization_id=org.id, role='resident').count()
+        pmts = Payment.query.filter_by(organization_id=org.id).count()
+        sub  = org.subscription
+        writer.writerow([
+            org.id, org.name, org.email, org.phone or '',
+            (org.address or '').replace('\n', ' '),
+            sub.plan if sub else '', 'actif' if org.is_active else 'inactif',
+            sub.monthly_price if sub else 0,
+            org.created_at.strftime('%d/%m/%Y'),
+            sub.end_date.strftime('%d/%m/%Y') if sub and sub.end_date else '',
+            sub.days_remaining() if sub else '',
+            apts, res, pmts,
+            (org.superadmin_notes or '').replace('\n', ' '),
+        ])
+
+    output.seek(0)
+    filename = f"syndicpro_clients_{today.strftime('%Y%m%d')}.csv"
+    return Response(
+        output.getvalue().encode('utf-8-sig'),  # BOM pour Excel
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename={filename}'}
+    )
+
+
+# ─── Suppression ─────────────────────────────────────────────────────────────
 
 @app.route('/superadmin/organization/<int:org_id>/delete', methods=['POST'])
 @login_required
@@ -53,7 +309,6 @@ def superadmin_delete_org(org_id):
         oid = org_id
         with db.engine.begin() as conn:
             t = db.text
-            # Niveau 3 — enfants des enfants
             conn.execute(t("DELETE FROM announcement_read WHERE announcement_id IN (SELECT id FROM announcement WHERE organization_id=:o)"), {"o": oid})
             conn.execute(t("DELETE FROM ag_vote WHERE item_id IN (SELECT i.id FROM ag_item i JOIN assembly_general a ON i.assembly_id=a.id WHERE a.organization_id=:o)"), {"o": oid})
             conn.execute(t("DELETE FROM ag_item WHERE assembly_id IN (SELECT id FROM assembly_general WHERE organization_id=:o)"), {"o": oid})
@@ -61,26 +316,28 @@ def superadmin_delete_org(org_id):
             conn.execute(t("DELETE FROM appel_fonds_quota WHERE appel_id IN (SELECT id FROM appel_fonds WHERE organization_id=:o)"), {"o": oid})
             conn.execute(t("DELETE FROM appel_fonds_paiement WHERE organization_id=:o"), {"o": oid})
             conn.execute(t("DELETE FROM appel_fonds_depense WHERE organization_id=:o"), {"o": oid})
-            # Niveau 2 — tables directement liées à l'org
+            conn.execute(t("DELETE FROM payment_request WHERE organization_id=:o"), {"o": oid})
+            conn.execute(t("DELETE FROM push_subscription WHERE organization_id=:o"), {"o": oid})
             for table in [
                 'announcement', 'assembly_general', 'litige', 'autre_litige',
                 'appel_fonds', 'camera', 'access_log', 'misc_receipt',
                 'konnect_payment', 'flouci_payment', 'direct_message',
                 'unpaid_alert', 'ticket', 'payment', 'expense', 'intervenant',
+                'lift_incident', 'lift',
             ]:
                 conn.execute(t(f"DELETE FROM {table} WHERE organization_id=:o"), {"o": oid})
-            # Niveau 1 — appartements, blocs, users (après avoir vidé leurs dépendances)
             conn.execute(t('DELETE FROM apartment WHERE organization_id=:o'), {"o": oid})
             conn.execute(t('DELETE FROM block WHERE organization_id=:o'), {"o": oid})
             conn.execute(t('DELETE FROM "user" WHERE organization_id=:o'), {"o": oid})
             conn.execute(t('DELETE FROM subscription WHERE organization_id=:o'), {"o": oid})
-            # Organisation elle-même
             conn.execute(t('DELETE FROM organization WHERE id=:o'), {"o": oid})
         flash(f'Organisation « {org_name} » supprimée définitivement.', 'success')
     except Exception as e:
         flash(f'Erreur lors de la suppression : {e}', 'danger')
     return redirect(url_for('superadmin_dashboard'))
 
+
+# ─── Toggle actif/inactif ─────────────────────────────────────────────────────
 
 @app.route('/superadmin/organization/<int:org_id>/toggle', methods=['POST'])
 @login_required
@@ -89,10 +346,11 @@ def superadmin_toggle_org(org_id):
     org = Organization.query.get_or_404(org_id)
     org.is_active = not org.is_active
     db.session.commit()
-    status = "activée" if org.is_active else "désactivée"
-    flash(f'Organisation {org.name} {status}', 'success')
+    flash(f'Organisation {org.name} {"activée" if org.is_active else "désactivée"}.', 'success')
     return redirect(url_for('superadmin_org_detail', org_id=org_id))
 
+
+# ─── Prolonger abonnement ─────────────────────────────────────────────────────
 
 @app.route('/superadmin/subscription/<int:org_id>/extend', methods=['POST'])
 @login_required
@@ -107,78 +365,49 @@ def superadmin_extend_subscription(org_id):
             org.subscription.end_date = datetime.utcnow() + timedelta(days=days)
         org.subscription.status = 'active'
         db.session.commit()
-        flash(f'Abonnement prolongé de {days} jours pour {org.name}', 'success')
+        flash(f'Abonnement prolongé de {days} jours pour {org.name}.', 'success')
     return redirect(url_for('superadmin_org_detail', org_id=org_id))
 
 
-@app.route('/superadmin/organization/<int:org_id>/update-limits', methods=['POST'])
-@login_required
-@superadmin_required
-def superadmin_update_limits(org_id):
-    """
-    Permet au superadmin de modifier la limite d'appartements d'une organisation.
-    Si le champ est vide, la limite devient illimitée (999999).
-    """
-    org = Organization.query.get_or_404(org_id)
-
-    if org.subscription:
-        max_apartments_str = request.form.get('max_apartments', '').strip()
-
-        if not max_apartments_str:
-            max_apartments = 999999
-            flash('Limite d\'appartements : Illimité', 'success')
-        else:
-            try:
-                max_apartments = int(max_apartments_str)
-                flash(f'Limite d\'appartements mise à jour : {max_apartments}', 'success')
-            except ValueError:
-                flash('Erreur : Veuillez entrer un nombre valide', 'danger')
-                return redirect(url_for('superadmin_org_detail', org_id=org_id))
-
-        org.subscription.max_apartments = max_apartments
-        db.session.commit()
-    else:
-        flash('Cette organisation n\'a pas d\'abonnement', 'danger')
-
-    return redirect(url_for('superadmin_org_detail', org_id=org_id))
-
+# ─── Modifier plan ────────────────────────────────────────────────────────────
 
 @app.route('/superadmin/organization/<int:org_id>/update-plan', methods=['POST'])
 @login_required
 @superadmin_required
 def superadmin_update_plan(org_id):
-    """
-    Permet au superadmin de modifier le plan et le prix mensuel d'une organisation.
-    """
     org = Organization.query.get_or_404(org_id)
-
     if org.subscription:
         plan = request.form.get('plan', 'trial')
-
         try:
             price = float(request.form.get('monthly_price', 0.0))
         except ValueError:
-            flash('Erreur : Prix mensuel invalide', 'danger')
+            flash('Prix mensuel invalide.', 'danger')
             return redirect(url_for('superadmin_org_detail', org_id=org_id))
-
         org.subscription.plan = plan
         org.subscription.monthly_price = price
         db.session.commit()
-
-        plan_names = {
-            'trial': 'Essai Gratuit',
-            'starter': 'Starter',
-            'pro': 'Pro',
-            'enterprise': 'Enterprise'
-        }
-        plan_display = plan_names.get(plan, plan)
-
-        flash(f'Plan mis à jour : {plan_display} ({price:.2f} DT/mois)', 'success')
-    else:
-        flash('Cette organisation n\'a pas d\'abonnement', 'danger')
-
+        plan_labels = {'trial': 'Essai', 'starter': 'Starter', 'standard': 'Standard',
+                       'premium': 'Premium', 'pro': 'Pro'}
+        flash(f'Plan mis à jour : {plan_labels.get(plan, plan)} — {price:.0f} DT/mois.', 'success')
     return redirect(url_for('superadmin_org_detail', org_id=org_id))
 
+
+# ─── Modifier limite appartements ─────────────────────────────────────────────
+
+@app.route('/superadmin/organization/<int:org_id>/update-limits', methods=['POST'])
+@login_required
+@superadmin_required
+def superadmin_update_limits(org_id):
+    org = Organization.query.get_or_404(org_id)
+    if org.subscription:
+        val = request.form.get('max_apartments', '').strip()
+        org.subscription.max_apartments = int(val) if val else 999999
+        db.session.commit()
+        flash(f'Limite mise à jour : {"Illimité" if not val else val + " appts"}.', 'success')
+    return redirect(url_for('superadmin_org_detail', org_id=org_id))
+
+
+# ─── Reset mot de passe admin ─────────────────────────────────────────────────
 
 @app.route('/superadmin/organization/<int:org_id>/reset-admin-password', methods=['POST'])
 @login_required
@@ -187,75 +416,46 @@ def superadmin_reset_admin_password(org_id):
     org = Organization.query.get_or_404(org_id)
     new_password = request.form.get('new_password', '').strip()
     if len(new_password) < 8:
-        flash('Le mot de passe doit contenir au moins 8 caractères.', 'danger')
+        flash('Mot de passe trop court (min 8 caractères).', 'danger')
         return redirect(url_for('superadmin_org_detail', org_id=org_id))
-    # Réinitialise le mot de passe de TOUS les admins de cette org (et sync les autres comptes du même email)
     admin = User.query.filter_by(organization_id=org.id, role='admin').first()
     if not admin:
-        flash('Aucun admin trouvé pour cette organisation.', 'danger')
+        flash('Aucun admin trouvé.', 'danger')
         return redirect(url_for('superadmin_org_detail', org_id=org_id))
     admin.set_password(new_password)
-    # Synchronise le même hash pour tous les comptes partageant cet email
-    same_email_users = User.query.filter_by(email=admin.email).all()
-    for u in same_email_users:
+    for u in User.query.filter_by(email=admin.email).all():
         u.password_hash = admin.password_hash
     db.session.commit()
-    flash(f'Mot de passe réinitialisé pour {admin.email} ({len(same_email_users)} compte(s) synchronisé(s)).', 'success')
+    flash(f'Mot de passe réinitialisé pour {admin.email}.', 'success')
     return redirect(url_for('superadmin_org_detail', org_id=org_id))
 
+
+# ─── Changement MDP superadmin ────────────────────────────────────────────────
 
 @app.route('/superadmin/change-password', methods=['GET', 'POST'])
 @login_required
 @superadmin_required
 def superadmin_change_password():
     if request.method == 'POST':
-        current_pwd = request.form['current_password']
-        new_pwd = request.form['new_password']
-        confirm_pwd = request.form['confirm_password']
         user = current_user()
-        if not user.check_password(current_pwd):
-            flash('Mot de passe actuel incorrect', 'danger')
+        if not user.check_password(request.form['current_password']):
+            flash('Mot de passe actuel incorrect.', 'danger')
             return redirect(url_for('superadmin_change_password'))
-        if new_pwd != confirm_pwd:
-            flash('Les nouveaux mots de passe ne correspondent pas', 'danger')
+        new_pwd = request.form['new_password']
+        if new_pwd != request.form['confirm_password']:
+            flash('Les mots de passe ne correspondent pas.', 'danger')
             return redirect(url_for('superadmin_change_password'))
         if len(new_pwd) < 8:
-            flash('Le mot de passe doit contenir au moins 8 caractères', 'danger')
+            flash('Minimum 8 caractères.', 'danger')
             return redirect(url_for('superadmin_change_password'))
         user.set_password(new_pwd)
         db.session.commit()
-        flash('Mot de passe changé avec succès !', 'success')
+        flash('Mot de passe changé.', 'success')
         return redirect(url_for('superadmin_dashboard'))
     return render_template('superadmin/change_password.html')
 
 
-@app.route('/superadmin/test-email', methods=['POST'])
-@login_required
-@superadmin_required
-def superadmin_test_email():
-    try:
-        import os
-        from utils_email import send_email, RESEND_API_KEY, FROM_EMAIL
-        api_key_ok = bool(RESEND_API_KEY)
-        to = request.form.get('to', '').strip()
-        if not to:
-            return jsonify({'ok': False, 'error': 'Adresse email manquante.'})
-        ok, err = send_email(
-            to=to,
-            subject='Test email SyndicPro',
-            html=(f'<p>Ceci est un email de test envoy&#233; depuis SyndicPro.</p>'
-                  f'<p>Service : <b>Resend API</b><br>'
-                  f'Exp&#233;diteur : <b>{FROM_EMAIL}</b><br>'
-                  f'Cl&#233; API configur&#233;e : <b>{"Oui" if api_key_ok else "NON"}</b></p>')
-        )
-        if ok:
-            return jsonify({'ok': True, 'msg': f'Email envoyé à {to} avec succès.'})
-        return jsonify({'ok': False, 'error': err})
-    except Exception as e:
-        import traceback
-        print(f"[test-email] {traceback.format_exc()}")
-        return jsonify({'ok': False, 'error': str(e)})
-
+# ─── Paramètres + test email/konnect ─────────────────────────────────────────
 
 @app.route('/superadmin/settings', methods=['GET', 'POST'])
 @login_required
@@ -263,12 +463,32 @@ def superadmin_test_email():
 def superadmin_settings():
     settings = SuperAdminSettings.get()
     if request.method == 'POST':
-        settings.konnect_api_key = request.form.get('konnect_api_key', '').strip()
+        settings.konnect_api_key  = request.form.get('konnect_api_key', '').strip()
         settings.konnect_wallet_id = request.form.get('konnect_wallet_id', '').strip()
         db.session.commit()
         flash('Paramètres enregistrés.', 'success')
         return redirect(url_for('superadmin_settings'))
     return render_template('superadmin/settings.html', settings=settings, user=current_user())
+
+
+@app.route('/superadmin/test-email', methods=['POST'])
+@login_required
+@superadmin_required
+def superadmin_test_email():
+    try:
+        from utils_email import send_email, RESEND_API_KEY, FROM_EMAIL
+        to = request.form.get('to', '').strip()
+        if not to:
+            return jsonify({'ok': False, 'error': 'Adresse email manquante.'})
+        ok, err = send_email(
+            to=to,
+            subject='Test email SyndicPro',
+            html=(f'<p>Test email SyndicPro.</p><p>Expéditeur : <b>{FROM_EMAIL}</b><br>'
+                  f'Clé API : <b>{"OK" if RESEND_API_KEY else "MANQUANTE"}</b></p>')
+        )
+        return jsonify({'ok': ok, 'msg': f'Email envoyé à {to}.' if ok else None, 'error': err if not ok else None})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)})
 
 
 @app.route('/superadmin/test-konnect')
@@ -279,16 +499,10 @@ def superadmin_test_konnect():
     if not settings.konnect_api_key or not settings.konnect_wallet_id:
         return jsonify({'ok': False, 'message': 'Clé API ou Wallet ID manquant.'})
     try:
-        resp = http.get(
-            'https://api.konnect.network/api/v2/account/me',
-            headers={'x-api-key': settings.konnect_api_key},
-            timeout=8
-        )
+        resp = http.get('https://api.konnect.network/api/v2/account/me',
+                        headers={'x-api-key': settings.konnect_api_key}, timeout=8)
         if resp.status_code == 200:
             return jsonify({'ok': True, 'message': 'Connexion Konnect réussie ✅'})
-        elif resp.status_code == 401:
-            return jsonify({'ok': False, 'message': 'Clé API invalide ou expirée.'})
-        else:
-            return jsonify({'ok': False, 'message': f'Erreur Konnect ({resp.status_code}).'})
+        return jsonify({'ok': False, 'message': f'Erreur Konnect ({resp.status_code}).'})
     except Exception:
-        return jsonify({'ok': False, 'message': 'Impossible de joindre Konnect. Vérifiez votre connexion.'})
+        return jsonify({'ok': False, 'message': 'Impossible de joindre Konnect.'})

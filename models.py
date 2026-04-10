@@ -26,6 +26,8 @@ class Organization(db.Model):
     whatsapp_token = db.Column(db.String(200))    # token API fonnte.com
     # Onboarding
     setup_dismissed = db.Column(db.Boolean, default=False)
+    # Notes internes superadmin
+    superadmin_notes = db.Column(db.Text, nullable=True)
 
     subscription = db.relationship('Subscription', backref='organization', uselist=False, lazy=True)
     users = db.relationship('User', backref='organization', lazy=True)
@@ -1145,6 +1147,23 @@ def init_db():
                     conn.commit()
     except Exception as e:
         print(f"Migration super_admin_settings last_reminder_check : {e}")
+
+    # Migration : colonne superadmin_notes sur organization
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text(
+                    "ALTER TABLE organization ADD COLUMN IF NOT EXISTS superadmin_notes TEXT"
+                ))
+                conn.commit()
+            else:
+                result = conn.execute(db.text("PRAGMA table_info(organization)"))
+                cols = [row[1] for row in result]
+                if 'superadmin_notes' not in cols:
+                    conn.execute(db.text("ALTER TABLE organization ADD COLUMN superadmin_notes TEXT"))
+                    conn.commit()
+    except Exception as e:
+        print(f"Migration organization.superadmin_notes : {e}")
 
     # Migration : table payment_request
     try:

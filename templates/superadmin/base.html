@@ -328,14 +328,18 @@
     <!-- Navigation -->
     <nav class="sidebar-nav">
 
-        <div class="sidebar-section">Tableau de bord</div>
+        <div class="sidebar-section">Vue globale</div>
 
         <a class="sidebar-link {% if request.endpoint == 'superadmin_dashboard' %}active{% endif %}"
            href="{{ url_for('superadmin_dashboard') }}">
             <i class="bi bi-speedometer2"></i> Dashboard
         </a>
 
-        <div class="sidebar-section">Compte</div>
+        <a class="sidebar-link" href="{{ url_for('superadmin_export_csv') }}" title="Exporter tous les clients CSV">
+            <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
+        </a>
+
+        <div class="sidebar-section">Compte superadmin</div>
 
         <a class="sidebar-link {% if request.endpoint == 'superadmin_change_password' %}active{% endif %}"
            href="{{ url_for('superadmin_change_password') }}">
@@ -367,6 +371,16 @@
 
 <!-- CONTENU PRINCIPAL -->
 <main class="main-content">
+
+    {% if session.get('impersonating') %}
+    <div style="background:#F59E0B;color:#000;padding:.5rem 1rem;border-radius:8px;margin-bottom:1rem;font-weight:600;font-size:.85rem;display:flex;align-items:center;gap:.75rem;">
+        <i class="bi bi-person-badge"></i>
+        Mode support actif — vous êtes connecté en tant qu'admin d'une résidence.
+        <a href="{{ url_for('superadmin_return') }}" class="btn btn-sm ms-auto" style="background:#0A0E1A;color:#F59E0B;border:none;">
+            <i class="bi bi-arrow-return-left"></i> Retour superadmin
+        </a>
+    </div>
+    {% endif %}
 
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}

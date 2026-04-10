@@ -51,6 +51,10 @@ limiter = Limiter(
 
 csrf = CSRFProtect(app)
 
+# Filtre Jinja : maintenant (pour calculs de durée dans les templates)
+from datetime import datetime as _dt
+app.jinja_env.globals['now'] = _dt.utcnow
+
 
 # ── En-têtes de sécurité HTTP (MED-016) ─────────────────────────────────────
 @app.after_request

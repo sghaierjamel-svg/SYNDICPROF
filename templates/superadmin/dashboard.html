@@ -1,177 +1,353 @@
 {% extends 'superadmin/base.html' %}
-
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <h2 class="text-white mb-4">
-            <i class="bi bi-shield-check"></i> Super Admin - Dashboard
-        </h2>
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h2 class="text-white mb-0"><i class="bi bi-shield-check"></i> Tableau de bord</h2>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('superadmin_export_csv') }}" class="btn btn-secondary btn-sm">
+            <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
+        </a>
+        <a href="{{ url_for('register') }}" class="btn btn-primary btn-sm" target="_blank">
+            <i class="bi bi-plus-circle"></i> Nouvelle org
+        </a>
     </div>
 </div>
 
-<!-- Statistiques globales -->
-<div class="row g-4 mb-4">
+<!-- ── KPIs LIGNE 1 : finances ─────────────────────────────────────── -->
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="icon"><i class="bi bi-cash-stack"></i></div>
+            <h3 style="color:#00C896;">{{ '{:.0f}'.format(mrr) }} DT</h3>
+            <p>MRR</p>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:.3rem;">
+                ARR ≈ {{ '{:.0f}'.format(arr) }} DT
+            </div>
+        </div>
+    </div>
     <div class="col-6 col-md-3">
         <div class="stat-card">
             <div class="icon"><i class="bi bi-building"></i></div>
             <h3>{{ total_orgs }}</h3>
-            <p>Organisations Totales</p>
+            <p>Organisations</p>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:.3rem;">
+                {{ active_orgs }} actives · {{ total_orgs - active_orgs }} inactives
+            </div>
         </div>
     </div>
     <div class="col-6 col-md-3">
         <div class="stat-card">
-            <div class="icon"><i class="bi bi-check-circle"></i></div>
-            <h3>{{ active_orgs }}</h3>
-            <p>Organisations Actives</p>
+            <div class="icon" style="color:#60A5FA;"><i class="bi bi-graph-up-arrow"></i></div>
+            <h3 style="color:#60A5FA;">+{{ new_this_month }}</h3>
+            <p>Nouveaux ce mois</p>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:.3rem;">
+                vs +{{ new_last_month }} le mois dernier
+            </div>
         </div>
     </div>
     <div class="col-6 col-md-3">
         <div class="stat-card">
-            <div class="icon"><i class="bi bi-x-circle"></i></div>
-            <h3>{{ total_orgs - active_orgs }}</h3>
-            <p>Organisations Inactives</p>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="stat-card">
-            <div class="icon"><i class="bi bi-cash-coin"></i></div>
-            <h3>{{ '{:.0f}'.format(total_revenue) }} DT</h3>
-            <p>Revenu Mensuel Total</p>
+            <div class="icon" style="color:#A78BFA;"><i class="bi bi-house-door"></i></div>
+            <h3 style="color:#A78BFA;">{{ total_apartments }}</h3>
+            <p>Appartements gérés</p>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:.3rem;">
+                {{ total_residents }} résidents
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Actions rapides -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-lightning"></i> Actions Rapides
+<!-- ── KPIs LIGNE 2 : santé ────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="border-color:{% if expiring_soon %}rgba(245,158,11,0.4){% else %}var(--border){% endif %};">
+            <div class="icon" style="color:#F59E0B;"><i class="bi bi-clock-history"></i></div>
+            <h3 style="color:#F59E0B;">{{ expiring_soon|length }}</h3>
+            <p>Expirent ≤ 7 jours</p>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:.3rem;">Action requise</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="border-color:{% if expired_active %}rgba(239,68,68,0.4){% else %}var(--border){% endif %};">
+            <div class="icon" style="color:#EF4444;"><i class="bi bi-x-circle"></i></div>
+            <h3 style="color:#EF4444;">{{ expired_active|length }}</h3>
+            <p>Abonnements expirés</p>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:.3rem;">Org encore active</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="icon" style="color:#9CA3AF;"><i class="bi bi-moon-stars"></i></div>
+            <h3 style="color:#9CA3AF;">{{ inactive_30d|length }}</h3>
+            <p>Inactifs 30j+</p>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:.3rem;">Aucune connexion</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="icon" style="color:#34D399;"><i class="bi bi-credit-card-2-front"></i></div>
+            <h3 style="color:#34D399;">{{ paying_orgs }}</h3>
+            <p>Clients payants</p>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:.3rem;">
+                {{ trial_orgs }} en essai · {{ churn_this_month }} churn ce mois
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── ALERTES ─────────────────────────────────────────────────────── -->
+{% if expiring_soon or expired_active %}
+<div class="row g-3 mb-4">
+    {% if expiring_soon %}
+    <div class="col-lg-6">
+        <div class="card" style="border-color:rgba(245,158,11,0.4);">
+            <div class="card-header" style="color:#F59E0B;">
+                <i class="bi bi-exclamation-triangle"></i> Expirent dans 7 jours
+            </div>
+            <div class="card-body p-0">
+                {% for o in expiring_soon %}
+                <div style="padding:.75rem 1.25rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <div style="font-weight:600;font-size:.88rem;">{{ o.name }}</div>
+                        <div style="font-size:.75rem;color:var(--muted);">{{ o.subscription.days_remaining() }} jours restants</div>
+                    </div>
+                    <a href="{{ url_for('superadmin_org_detail', org_id=o.id) }}" class="btn btn-sm btn-warning">
+                        Prolonger
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% if expired_active %}
+    <div class="col-lg-6">
+        <div class="card" style="border-color:rgba(239,68,68,0.4);">
+            <div class="card-header" style="color:#F87171;">
+                <i class="bi bi-x-octagon"></i> Abonnements expirés (org active)
+            </div>
+            <div class="card-body p-0">
+                {% for o in expired_active %}
+                <div style="padding:.75rem 1.25rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <div style="font-weight:600;font-size:.88rem;">{{ o.name }}</div>
+                        <div style="font-size:.75rem;color:#F87171;">Expiré le {{ o.subscription.end_date.strftime('%d/%m/%Y') }}</div>
+                    </div>
+                    <a href="{{ url_for('superadmin_org_detail', org_id=o.id) }}" class="btn btn-sm btn-danger">
+                        Gérer
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- ── GRAPHIQUE MRR ────────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-bar-chart-line"></i> Évolution MRR — 6 derniers mois</div>
             <div class="card-body">
-                <div class="d-flex flex-wrap gap-2">
-                    <a href="{{ url_for('register') }}" class="btn btn-primary" target="_blank">
-                        <i class="bi bi-plus-circle"></i> Créer une Organisation
-                    </a>
-                    <a href="{{ url_for('superadmin_change_password') }}" class="btn btn-warning">
-                        <i class="bi bi-key"></i> Changer mon Mot de Passe
-                    </a>
+                <canvas id="mrrChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header"><i class="bi bi-pie-chart"></i> Répartition des plans</div>
+            <div class="card-body">
+                <canvas id="plansChart" height="140"></canvas>
+                <div class="mt-3" style="font-size:.8rem;">
+                    {% set plan_counts = {} %}
+                    {% for o in organizations if o.subscription %}
+                        {% if o.subscription.plan not in plan_counts %}{% set _ = plan_counts.update({o.subscription.plan: 0}) %}{% endif %}
+                        {% set _ = plan_counts.update({o.subscription.plan: plan_counts[o.subscription.plan] + 1}) %}
+                    {% endfor %}
+                    {% for plan, count in plan_counts.items() %}
+                    <div class="d-flex justify-content-between">
+                        <span style="color:var(--muted);">{{ plan | capitalize }}</span>
+                        <strong>{{ count }}</strong>
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Liste des organisations -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-list"></i> Liste des Organisations
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th class="d-none d-md-table-cell">ID</th>
-                                <th>Organisation</th>
-                                <th class="d-none d-md-table-cell">Email</th>
-                                <th class="d-none d-lg-table-cell">Téléphone</th>
-                                <th>Plan</th>
-                                <th>Statut</th>
-                                <th class="d-none d-md-table-cell">Expiration</th>
-                                <th class="d-none d-lg-table-cell">Prix</th>
-                                <th class="d-none d-lg-table-cell">Créé le</th>
-                                <th class="d-none d-lg-table-cell">Dernière connexion</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for org in organizations %}
-                            <tr class="{% if not org.is_active %}table-secondary{% endif %}">
-                                <td class="d-none d-md-table-cell"><strong>#{{ org.id }}</strong></td>
-                                <td>
-                                    <strong>{{ org.name }}</strong><br>
-                                    <small class="text-muted">{{ org.slug }}</small>
-                                </td>
-                                <td class="d-none d-md-table-cell">{{ org.email }}</td>
-                                <td class="d-none d-lg-table-cell">{{ org.phone or '-' }}</td>
-                                <td>
-                                    {% if org.subscription %}
-                                        {% if org.subscription.plan == 'trial' %}
-                                            <span class="badge bg-info">Essai</span>
-                                        {% elif org.subscription.plan == 'starter' %}
-                                            <span class="badge bg-success">Starter</span>
-                                        {% else %}
-                                            <span class="badge bg-primary">Pro</span>
-                                        {% endif %}
-                                    {% else %}
-                                        <span class="badge bg-secondary">Aucun</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if org.is_active %}
-                                        {% if org.subscription and org.subscription.is_expired() %}
-                                            <span class="badge bg-danger">Expiré</span>
-                                        {% elif org.subscription and org.subscription.status == 'active' %}
-                                            <span class="badge bg-success">Actif</span>
-                                        {% else %}
-                                            <span class="badge bg-warning">Inactif</span>
-                                        {% endif %}
-                                    {% else %}
-                                        <span class="badge bg-dark">Désactivé</span>
-                                    {% endif %}
-                                </td>
-                                <td class="d-none d-md-table-cell">
-                                    {% if org.subscription and org.subscription.end_date %}
-                                        {{ org.subscription.end_date.strftime('%d/%m/%Y') }}
-                                        {% if org.subscription.days_remaining() > 0 %}
-                                            <br><small class="text-muted">({{ org.subscription.days_remaining() }}j)</small>
-                                        {% endif %}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                                <td class="d-none d-lg-table-cell">
-                                    {% if org.subscription %}
-                                        <strong>{{ '{:.0f}'.format(org.subscription.monthly_price) }} DT</strong>
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                                <td class="d-none d-lg-table-cell">
-                                    {{ org.created_at.strftime('%d/%m/%Y') }}
-                                </td>
-                                <td class="d-none d-lg-table-cell">
-                                    {% set last_login = last_login_map.get(org.id) %}
-                                    {% if last_login %}
-                                        {{ last_login.strftime('%d/%m/%Y %H:%M') }}
-                                    {% else %}
-                                        <span class="text-muted">Jamais</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <a href="{{ url_for('superadmin_org_detail', org_id=org.id) }}" 
-                                           class="btn btn-primary" title="Détails">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
+<!-- ── LISTE DES ORGANISATIONS ─────────────────────────────────────── -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list-ul"></i> Toutes les organisations ({{ total_orgs }})</span>
+        <input type="text" id="searchOrgs" class="form-control form-control-sm" style="width:220px;"
+               placeholder="Rechercher...">
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="orgsTable">
+                <thead>
+                    <tr>
+                        <th>Organisation</th>
+                        <th class="d-none d-md-table-cell">Email</th>
+                        <th>Plan</th>
+                        <th>Statut</th>
+                        <th class="d-none d-lg-table-cell">Expiration</th>
+                        <th class="d-none d-lg-table-cell">Prix</th>
+                        <th class="d-none d-xl-table-cell">Dernière connexion</th>
+                        <th class="d-none d-xl-table-cell">Notes</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for org in organizations %}
+                    {% set last_login = last_login_map.get(org.id) %}
+                    {% set days_since_login = ((now() - last_login).days if last_login else 999) %}
+                    <tr class="{% if not org.is_active %}table-secondary{% endif %}"
+                        data-name="{{ org.name|lower }}" data-email="{{ org.email|lower }}"
+                        onclick="window.location='{{ url_for('superadmin_org_detail', org_id=org.id) }}'"
+                        style="cursor:pointer;">
+                        <td>
+                            <strong>{{ org.name }}</strong>
+                            <div style="font-size:.72rem;color:var(--muted);">{{ org.slug }}</div>
+                        </td>
+                        <td class="d-none d-md-table-cell cell-email" title="{{ org.email }}">{{ org.email }}</td>
+                        <td>
+                            {% if org.subscription %}
+                                {% if org.subscription.plan == 'trial' %}
+                                    <span class="badge" style="background:rgba(96,165,250,0.2);color:#93C5FD;">Essai</span>
+                                {% elif org.subscription.plan == 'starter' %}
+                                    <span class="badge" style="background:rgba(0,200,150,0.2);color:#34D399;">Starter</span>
+                                {% elif org.subscription.plan == 'standard' %}
+                                    <span class="badge" style="background:rgba(0,200,150,0.25);color:#00C896;">Standard</span>
+                                {% elif org.subscription.plan == 'premium' %}
+                                    <span class="badge" style="background:rgba(167,139,250,0.2);color:#C4B5FD;">Premium</span>
+                                {% elif org.subscription.plan == 'pro' %}
+                                    <span class="badge" style="background:rgba(245,158,11,0.2);color:#FCD34D;">Pro</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ org.subscription.plan }}</span>
+                                {% endif %}
                             {% else %}
-                            <tr>
-                                <td colspan="10" class="text-center text-muted">
-                                    Aucune organisation enregistrée
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                                <span class="badge bg-secondary">Aucun</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if not org.is_active %}
+                                <span class="badge bg-dark">Désactivé</span>
+                            {% elif org.subscription and org.subscription.is_expired() %}
+                                <span class="badge bg-danger">Expiré</span>
+                            {% elif org.subscription and org.subscription.days_remaining() <= 7 %}
+                                <span class="badge" style="background:#F59E0B;color:#000;">⚠ {{ org.subscription.days_remaining() }}j</span>
+                            {% elif org.subscription and org.subscription.status == 'active' %}
+                                <span class="badge bg-success">Actif</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Inactif</span>
+                            {% endif %}
+                        </td>
+                        <td class="d-none d-lg-table-cell" style="font-size:.8rem;">
+                            {% if org.subscription and org.subscription.end_date %}
+                                {{ org.subscription.end_date.strftime('%d/%m/%Y') }}
+                            {% else %}—{% endif %}
+                        </td>
+                        <td class="d-none d-lg-table-cell">
+                            {% if org.subscription and org.subscription.monthly_price > 0 %}
+                                <strong style="color:#00C896;">{{ '{:.0f}'.format(org.subscription.monthly_price) }} DT</strong>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td class="d-none d-xl-table-cell" style="font-size:.78rem;">
+                            {% if last_login %}
+                                <span style="color:{% if days_since_login > 30 %}#F59E0B{% else %}var(--muted){% endif %};">
+                                    {{ last_login.strftime('%d/%m/%Y') }}
+                                    {% if days_since_login > 30 %}({{ days_since_login }}j){% endif %}
+                                </span>
+                            {% else %}
+                                <span style="color:#6B7280;">Jamais</span>
+                            {% endif %}
+                        </td>
+                        <td class="d-none d-xl-table-cell" style="font-size:.75rem;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);">
+                            {% if org.superadmin_notes %}
+                                <i class="bi bi-sticky" style="color:#F59E0B;"></i>
+                                {{ org.superadmin_notes[:40] }}{% if org.superadmin_notes|length > 40 %}…{% endif %}
+                            {% endif %}
+                        </td>
+                        <td onclick="event.stopPropagation()">
+                            <a href="{{ url_for('superadmin_org_detail', org_id=org.id) }}"
+                               class="btn btn-sm btn-primary"><i class="bi bi-eye"></i></a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="9" class="text-center" style="color:var(--muted);padding:2rem;">Aucune organisation</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// Recherche rapide
+document.getElementById('searchOrgs').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('#orgsTable tbody tr').forEach(tr => {
+        const name  = tr.dataset.name  || '';
+        const email = tr.dataset.email || '';
+        tr.style.display = (name.includes(q) || email.includes(q)) ? '' : 'none';
+    });
+});
+
+// Graphique MRR
+const mrrCtx = document.getElementById('mrrChart').getContext('2d');
+new Chart(mrrCtx, {
+    type: 'bar',
+    data: {
+        labels: [{% for m in mrr_history %}"{{ m.label }}"{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'MRR (DT)',
+            data: [{% for m in mrr_history %}{{ m.mrr }}{% if not loop.last %},{% endif %}{% endfor %}],
+            backgroundColor: 'rgba(0,200,150,0.25)',
+            borderColor: '#00C896',
+            borderWidth: 2,
+            borderRadius: 6,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { ticks: { color: '#9CA3AF' }, grid: { color: '#1F2937' } },
+            y: { ticks: { color: '#9CA3AF', callback: v => v + ' DT' }, grid: { color: '#1F2937' } }
+        }
+    }
+});
+
+// Graphique plans
+{% set plan_counts = {} %}
+{% for o in organizations if o.subscription %}
+    {% if o.subscription.plan not in plan_counts %}{% set _ = plan_counts.update({o.subscription.plan: 0}) %}{% endif %}
+    {% set _ = plan_counts.update({o.subscription.plan: plan_counts[o.subscription.plan] + 1}) %}
+{% endfor %}
+const plansCtx = document.getElementById('plansChart').getContext('2d');
+new Chart(plansCtx, {
+    type: 'doughnut',
+    data: {
+        labels: [{% for plan in plan_counts %}"{{ plan|capitalize }}"{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            data: [{% for plan, count in plan_counts.items() %}{{ count }}{% if not loop.last %},{% endif %}{% endfor %}],
+            backgroundColor: ['rgba(96,165,250,0.7)','rgba(0,200,150,0.7)','rgba(167,139,250,0.7)','rgba(245,158,11,0.7)','rgba(239,68,68,0.7)'],
+            borderWidth: 0,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        cutout: '70%',
+    }
+});
+</script>
 {% endblock %}
