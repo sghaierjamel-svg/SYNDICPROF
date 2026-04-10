@@ -407,11 +407,35 @@
                             </tr>
                             {% else %}
                             <tr>
-                                <td class="px-3 py-2" colspan="3" style="color:var(--muted);font-style:italic;">Aucune charge pour cet exercice</td>
+                                <td class="px-3 py-2" colspan="3" style="color:var(--muted);font-style:italic;">Aucune charge d'exploitation pour cet exercice</td>
                             </tr>
                             {% endfor %}
                             <tr style="background:var(--border);font-weight:700;">
-                                <td class="px-3 py-2" colspan="2" style="color:#EF4444;">TOTAL CHARGES</td>
+                                <td class="px-3 py-2" colspan="2" style="color:#EF4444;">TOTAL CHARGES D'EXPLOITATION</td>
+                                <td class="px-3 py-2 text-end" style="color:#EF4444;">{{ "%.3f"|format(total_charges_expl) }}</td>
+                            </tr>
+
+                            {% if charges_financieres_sce %}
+                            <tr style="background:rgba(245,158,11,0.06);">
+                                <td class="px-3 py-2" colspan="3" style="color:#F59E0B;font-weight:700;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.05em;">
+                                    CHARGES FINANCIÈRES
+                                </td>
+                            </tr>
+                            {% for c in charges_financieres_sce %}
+                            <tr>
+                                <td class="px-3 py-1" style="color:var(--muted);font-size:0.72rem;">{{ c.compte }}</td>
+                                <td class="px-3 py-1">{{ c.libelle }}</td>
+                                <td class="px-3 py-1 text-end" style="color:#F59E0B;">{{ "%.3f"|format(c.montant) }}</td>
+                            </tr>
+                            {% endfor %}
+                            <tr style="background:var(--border);font-weight:700;">
+                                <td class="px-3 py-2" colspan="2" style="color:#F59E0B;">TOTAL CHARGES FINANCIÈRES</td>
+                                <td class="px-3 py-2 text-end" style="color:#F59E0B;">{{ "%.3f"|format(total_charges_financieres) }}</td>
+                            </tr>
+                            {% endif %}
+
+                            <tr style="background:rgba(239,68,68,0.12);font-weight:700;">
+                                <td class="px-3 py-2" colspan="2" style="color:#EF4444;">TOTAL GÉNÉRAL DES CHARGES</td>
                                 <td class="px-3 py-2 text-end" style="color:#EF4444;">{{ "%.3f"|format(total_charges) }}</td>
                             </tr>
                         </tbody>

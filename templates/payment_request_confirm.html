@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% block content %}
+
+{% set apt_label = apt.block.name ~ '-' ~ apt.number if apt.block else apt.number %}
+
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <a href="{{ url_for('payments') }}" class="btn btn-sm btn-secondary mb-2">
+            <i class="bi bi-arrow-left"></i> Retour
+        </a>
+        <h2 class="text-white mb-0">
+            <i class="bi bi-bank"></i> Confirmer un virement bancaire
+        </h2>
+        <div style="color:var(--muted);font-size:.9rem;">Apt {{ apt_label }} — {{ pr.month_target }}</div>
+    </div>
+</div>
+
+{% if pr.status != 'en_attente' %}
+<div class="alert {% if pr.status == 'confirme' %}alert-success{% else %}alert-warning{% endif %}">
+    {% if pr.status == 'confirme' %}
+    <i class="bi bi-check-circle-fill"></i> Ce virement a déjà été <strong>confirmé</strong>
+    le {{ pr.confirmed_at.strftime('%d/%m/%Y à %H:%M') }}.
+    Montant enregistré : <strong>{{ '{:.2f}'.format(pr.amount_confirmed) }} DT</strong>.
+    {% else %}
+    <i class="bi bi-x-circle-fill"></i> Ce virement a été <strong>rejeté</strong>.
+    {% endif %}
+</div>
+{% else %}
+
+<div class="row g-4">
+    <!-- Détails de la demande -->
+    <div class="col-lg-5">
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-info-circle"></i> Détails de la demande</div>
+            <div class="card-body">
+                <table class="table table-sm mb-0" style="font-size:.9rem;">
+                    <tr>
+                        <td style="color:var(--muted);width:140px;">Résident</td>
+                        <td><strong>{{ resident.name or resident.email }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--muted);">Appartement</td>
+                        <td><strong>{{ apt_label }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--muted);">Mois ciblé</td>
+                        <td><strong>{{ pr.month_target }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--muted);">Montant déclaré</td>
+                        <td><strong style="color:var(--accent);font-size:1.05rem;">{{ '{:.2f}'.format(pr.amount_declared) }} DT</strong></td>
+                    </tr>
+                    {% if pr.bank_reference %}
+                    <tr>
+                        <td style="color:var(--muted);">Réf. virement</td>
+                        <td><code style="color:#93C5FD;">{{ pr.bank_reference }}</code></td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <td style="color:var(--muted);">Soumise le</td>
+                        <td>{{ pr.created_at.strftime('%d/%m/%Y à %H:%M') }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Photo décharge -->
+        {% if pr.photo_data %}
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-image"></i> Décharge / Reçu bancaire</div>
+            <div class="card-body p-2 text-center">
+                {% if pr.photo_mime == 'application/pdf' %}
+                <a href="{{ url_for('virement_photo', pr_id=pr.id) }}" target="_blank"
+                   class="btn btn-outline-secondary">
+                    <i class="bi bi-file-earmark-pdf"></i> Voir le PDF
+                </a>
+                {% else %}
+                <a href="{{ url_for('virement_photo', pr_id=pr.id) }}" target="_blank">
+                    <img src="{{ url_for('virement_photo', pr_id=pr.id) }}"
+                         style="max-width:100%;max-height:400px;border-radius:8px;cursor:zoom-in;"
+                         alt="Décharge bancaire">
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="card mb-3">
+            <div class="card-body text-center" style="color:var(--muted);font-size:.85rem;">
+                <i class="bi bi-image" style="font-size:2rem;display:block;margin-bottom:.3rem;"></i>
+                Aucune photo jointe
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Formulaire de confirmation -->
+    <div class="col-lg-7">
+        <div class="card mb-3" style="border-color:rgba(16,185,129,0.3);">
+            <div class="card-header" style="color:#34D399;">
+                <i class="bi bi-check-circle"></i> Confirmer le virement
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action" value="confirmer">
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Montant réellement reçu (DT)
+                            <small style="color:var(--muted);">— Pré-rempli avec le montant déclaré</small>
+                        </label>
+                        <input type="number" name="amount_confirmed" class="form-control"
+                               step="0.001" value="{{ pr.amount_declared }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Frais bancaires déduits (DT)
+                            <small style="color:var(--muted);">— Seront enregistrés comme "Charges bancaires"</small>
+                        </label>
+                        <input type="number" name="bank_fees" class="form-control"
+                               step="0.001" value="0" min="0">
+                        <div class="mt-1" id="feesInfo" style="display:none;font-size:.8rem;color:#F59E0B;">
+                            <i class="bi bi-info-circle"></i>
+                            Une dépense "Charges bancaires" sera créée automatiquement et imputée à la comptabilité.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Note interne (optionnel)</label>
+                        <textarea name="admin_notes" class="form-control" rows="2"
+                                  placeholder="Ex: Virement du 10 avril, reçu OK..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-check-lg"></i> Confirmer et enregistrer le paiement
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Rejeter -->
+        <div class="card" style="border-color:rgba(239,68,68,0.3);">
+            <div class="card-header" style="color:#F87171;">
+                <i class="bi bi-x-circle"></i> Rejeter la demande
+            </div>
+            <div class="card-body">
+                <form method="post"
+                      onsubmit="return confirm('Rejeter ce virement ? Le résident sera notifié.')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action" value="rejeter">
+                    <div class="mb-2">
+                        <textarea name="admin_notes" class="form-control form-control-sm" rows="2"
+                                  placeholder="Motif du rejet (transmis au résident)..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                        <i class="bi bi-x-lg"></i> Rejeter
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const feesInput = document.querySelector('[name="bank_fees"]');
+const feesInfo  = document.getElementById('feesInfo');
+if (feesInput && feesInfo) {
+    feesInput.addEventListener('input', function () {
+        feesInfo.style.display = parseFloat(this.value) > 0 ? 'block' : 'none';
+    });
+}
+</script>
+{% endblock %}

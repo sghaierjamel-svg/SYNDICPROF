@@ -25,6 +25,7 @@ CATEGORY_TO_SCE = {
     'Taxes':           ('635', 'Impots et taxes'),
     'Salaire':         ('641', 'Salaires et remunerations du personnel'),
     'Immobilisation':  ('22x', 'Immobilisations corporelles (valeur achat)'),
+    'Charges bancaires': ('627', 'Services bancaires et assimilés'),
     'Autre':           ('65x', "Autres charges d'exploitation"),
 }
 
@@ -58,11 +59,14 @@ def _compute_financial_data(org, year):
     year_expenses = [e for e in all_expenses if e.expense_date.year == year]
     year_misc = [m for m in all_misc if m.payment_date.year == year]
 
-    # Séparer immobilisations (22x) des charges courantes (6xx)
-    all_immos   = [e for e in all_expenses  if e.category == 'Immobilisation']
-    year_immos  = [e for e in year_expenses if e.category == 'Immobilisation']
-    all_charges = [e for e in all_expenses  if e.category != 'Immobilisation']
-    year_charges= [e for e in year_expenses if e.category != 'Immobilisation']
+    # Séparer immobilisations (22x), charges financières (627) et charges d'exploitation (6xx)
+    all_immos    = [e for e in all_expenses  if e.category == 'Immobilisation']
+    year_immos   = [e for e in year_expenses if e.category == 'Immobilisation']
+    all_charges  = [e for e in all_expenses  if e.category != 'Immobilisation']
+    year_charges = [e for e in year_expenses if e.category != 'Immobilisation']
+    # Charges financières (compte 627) — séparées pour l'état de résultat
+    year_charges_fin  = [e for e in year_charges  if e.category == 'Charges bancaires']
+    year_charges_expl = [e for e in year_charges  if e.category != 'Charges bancaires']
 
     # ── BILAN — ACTIF ─────────────────────────────────────────────────────────
 
@@ -168,9 +172,9 @@ def _compute_financial_data(org, year):
         for m in sorted(year_misc, key=lambda x: x.payment_date)
     ]
 
-    # Charges par catégorie SCE (immobilisations exclues — elles sont au bilan, pas en charges)
+    # Charges d'exploitation par catégorie SCE (immobilisations + charges financières exclues)
     charges_par_compte = {}
-    for e in year_charges:
+    for e in year_charges_expl:
         cat = e.category or 'Autre'
         compte, libelle = CATEGORY_TO_SCE.get(cat, ('65x', "Autres charges d'exploitation"))
         key = (compte, libelle)
@@ -181,7 +185,14 @@ def _compute_financial_data(org, year):
         for k, v in charges_par_compte.items()
     ], key=lambda x: x['compte'])
 
-    total_charges = sum(c['montant'] for c in charges_sce)
+    # Charges financières (compte 627 — services bancaires)
+    total_charges_financieres = sum(e.amount for e in year_charges_fin)
+    charges_financieres_sce = []
+    if total_charges_financieres > 0:
+        charges_financieres_sce = [{'compte': '627', 'libelle': 'Services bancaires et assimilés', 'montant': total_charges_financieres}]
+
+    total_charges_expl = sum(c['montant'] for c in charges_sce)
+    total_charges = total_charges_expl + total_charges_financieres
     total_produits = cotisations_encaissees + autres_produits
     resultat_net = total_produits - total_charges
 
@@ -244,6 +255,9 @@ def _compute_financial_data(org, year):
         'autres_produits': autres_produits,
         'autres_produits_detail': autres_produits_detail,
         'charges_sce': charges_sce,
+        'total_charges_expl': total_charges_expl,
+        'charges_financieres_sce': charges_financieres_sce,
+        'total_charges_financieres': total_charges_financieres,
         'total_charges': total_charges,
         'total_produits': total_produits,
         'resultat_net': resultat_net,
@@ -464,7 +478,18 @@ def etats_financiers_pdf():
     if not data['charges_sce']:
         row("Aucune charge enregistrée pour cet exercice", "—", 0.0, indent=1)
     separator()
-    total_row("TOTAL CHARGES D'EXPLOITATION", data['total_charges'])
+    total_row("TOTAL CHARGES D'EXPLOITATION", data['total_charges_expl'])
+
+    if data['charges_financieres_sce']:
+        pdf.ln(2)
+        section_title(f"CHARGES FINANCIÈRES — Exercice {year}")
+        for c in data['charges_financieres_sce']:
+            row(c['libelle'], c['compte'], c['montant'], indent=1)
+        separator()
+        total_row("TOTAL CHARGES FINANCIÈRES", data['total_charges_financieres'])
+
+    pdf.ln(2)
+    total_row("TOTAL GÉNÉRAL DES CHARGES", data['total_charges'], bg=True)
 
     pdf.ln(3)
     pdf.set_fill_color(*((210, 245, 235) if data['resultat_net'] >= 0 else (255, 225, 225)))

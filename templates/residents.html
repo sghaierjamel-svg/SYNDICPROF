@@ -48,6 +48,11 @@
                     </button>
                 </form>
                 {% endif %}
+                <!-- Bouton virement bancaire -->
+                <button type="button" class="btn btn-outline-secondary"
+                        data-bs-toggle="modal" data-bs-target="#virementModal">
+                    <i class="bi bi-bank"></i> Déclarer un virement
+                </button>
                 </div>
             </div>
         </div>
@@ -274,6 +279,64 @@
                 </div>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- MODAL VIREMENT BANCAIRE -->
+<div class="modal fade" id="virementModal" tabindex="-1" aria-labelledby="virementModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background:var(--card);border:1px solid var(--border);color:var(--text);">
+            <div class="modal-header" style="border-color:var(--border);">
+                <h5 class="modal-title" id="virementModalLabel">
+                    <i class="bi bi-bank"></i> Déclarer un virement bancaire
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{{ url_for('virement_soumettre') }}" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <p style="font-size:.85rem;color:var(--muted);">
+                        Vous avez effectué un virement bancaire ? Soumettez votre décharge ici.
+                        L'administration confirmera votre paiement sous 24h.
+                    </p>
+
+                    <div class="mb-3">
+                        <label class="form-label">Mois ciblé *</label>
+                        <input type="month" name="month_target" class="form-control" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Montant viré (DT) *</label>
+                        <input type="number" name="amount_declared" class="form-control"
+                               step="0.001" placeholder="{{ '{:.0f}'.format(apt.monthly_fee) if apt else '0' }}"
+                               min="1" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Référence virement
+                            <small style="color:var(--muted);">(optionnel)</small>
+                        </label>
+                        <input type="text" name="bank_reference" class="form-control"
+                               placeholder="Ex: VIR202604..." maxlength="200">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-camera"></i> Photo de la décharge / reçu
+                            <small style="color:var(--muted);">(recommandé, max 5 Mo)</small>
+                        </label>
+                        <input type="file" name="photo_decharge" class="form-control"
+                               accept="image/jpeg,image/png,image/webp,image/gif,application/pdf">
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-color:var(--border);">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-send"></i> Soumettre ma demande
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 

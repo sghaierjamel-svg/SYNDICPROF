@@ -28,6 +28,7 @@ import routes.appel_fonds
 import routes.onboarding
 import routes.push
 import routes.lifts
+import routes.payment_requests
 
 
 @app.before_request

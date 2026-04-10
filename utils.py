@@ -103,10 +103,17 @@ def inject_notifications():
         notifs.sort(key=lambda x: x['ts'], reverse=True)
         # Badge = seulement les éléments non vus
         unseen_count = sum(1 for n in notifs if n['new']) + (1 if unpaid_critical > 0 else 0)
+
+        # Virements en attente
+        from models import PaymentRequest
+        pending_virements = PaymentRequest.query.filter_by(
+            organization_id=org_id, status='en_attente').count()
+
         result.update({
             'notif_list': notifs[:8],
             'notif_count': unseen_count,
             'unpaid_critical': unpaid_critical_total,
+            'pending_virements_count': pending_virements,
         })
 
     elif user.role == 'resident' and user.apartment_id:

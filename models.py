@@ -497,6 +497,33 @@ class LiftIncident(db.Model):
     intervenant = db.relationship('Intervenant', backref='lift_incidents', lazy=True)
 
 
+class PaymentRequest(db.Model):
+    """Demande de virement bancaire soumise par un résident — confirmée par l'admin en 1 clic"""
+    __tablename__ = 'payment_request'
+    id              = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
+    apartment_id    = db.Column(db.Integer, db.ForeignKey('apartment.id'), nullable=False)
+    user_id         = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    month_target    = db.Column(db.String(7), nullable=False)    # YYYY-MM
+    amount_declared = db.Column(db.Float, nullable=False)        # montant déclaré par le résident
+    bank_reference  = db.Column(db.String(200))                  # référence virement
+    # Photo de la décharge / reçu bancaire
+    photo_data      = db.Column(db.Text)                         # base64
+    photo_mime      = db.Column(db.String(30))
+    # Token sécurisé pour lien de confirmation admin
+    confirm_token   = db.Column(db.String(64), unique=True, nullable=False)
+    # Statut : en_attente / confirme / rejete
+    status          = db.Column(db.String(20), default='en_attente')
+    # Données de confirmation (remplies par admin)
+    amount_confirmed = db.Column(db.Float)                       # montant réellement reçu
+    bank_fees        = db.Column(db.Float, default=0.0)          # frais bancaires déduits
+    admin_notes      = db.Column(db.Text)
+    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
+    confirmed_at    = db.Column(db.DateTime)
+    apartment = db.relationship('Apartment', backref='payment_requests', lazy=True)
+    user      = db.relationship('User', backref='payment_requests', lazy=True)
+
+
 class AccessLog(db.Model):
     """Registre des entrées/sorties de la résidence"""
     __tablename__ = 'access_log'
@@ -1119,6 +1146,53 @@ def init_db():
     except Exception as e:
         print(f"Migration super_admin_settings last_reminder_check : {e}")
 
+    # Migration : table payment_request
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS payment_request (
+                        id SERIAL PRIMARY KEY,
+                        organization_id INTEGER REFERENCES organization(id) ON DELETE CASCADE,
+                        apartment_id INTEGER REFERENCES apartment(id) ON DELETE CASCADE,
+                        user_id INTEGER REFERENCES "user"(id) ON DELETE CASCADE,
+                        month_target VARCHAR(7) NOT NULL,
+                        amount_declared FLOAT NOT NULL,
+                        bank_reference VARCHAR(200),
+                        photo_data TEXT,
+                        photo_mime VARCHAR(30),
+                        confirm_token VARCHAR(64) UNIQUE NOT NULL,
+                        status VARCHAR(20) DEFAULT 'en_attente',
+                        amount_confirmed FLOAT,
+                        bank_fees FLOAT DEFAULT 0,
+                        admin_notes TEXT,
+                        created_at TIMESTAMP DEFAULT NOW(),
+                        confirmed_at TIMESTAMP
+                    )
+                """))
+                conn.commit()
+            else:
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS payment_request (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        organization_id INTEGER, apartment_id INTEGER, user_id INTEGER,
+                        month_target VARCHAR(7) NOT NULL,
+                        amount_declared FLOAT NOT NULL,
+                        bank_reference VARCHAR(200),
+                        photo_data TEXT, photo_mime VARCHAR(30),
+                        confirm_token VARCHAR(64) UNIQUE NOT NULL,
+                        status VARCHAR(20) DEFAULT 'en_attente',
+                        amount_confirmed FLOAT, bank_fees FLOAT DEFAULT 0,
+                        admin_notes TEXT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        confirmed_at DATETIME
+                    )
+                """))
+                conn.commit()
+            print("Migration : table payment_request OK")
+    except Exception as e:
+        print(f"Migration payment_request : {e}")
+
     # Migration sécurité : activer RLS sur toutes les tables publiques (PostgreSQL)
     # Bloque l'accès anonyme via l'URL Supabase — l'appli Flask (postgres superuser) n'est pas affectée
     try:
@@ -1130,7 +1204,8 @@ def init_db():
                     'konnect_payment', 'flouci_payment', 'unpaid_alert', 'announcement', 'announcement_read', 'access_log',
                     'direct_message', 'assembly_general', 'ag_item', 'ag_vote', 'intervenant',
                     'litige', 'autre_litige', 'litige_document', 'misc_receipt', 'camera',
-                    'appel_fonds', 'appel_fonds_quota', 'appel_fonds_paiement', 'appel_fonds_depense'
+                    'appel_fonds', 'appel_fonds_quota', 'appel_fonds_paiement', 'appel_fonds_depense',
+                    'payment_request'
                 ]
                 for table in tables:
                     conn.execute(db.text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY"))

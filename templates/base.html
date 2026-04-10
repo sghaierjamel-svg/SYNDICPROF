@@ -587,6 +587,15 @@
             <i class="bi bi-cash-coin"></i> Encaissements
         </a>
 
+        <a class="sidebar-link {% if request.endpoint == 'virements_liste' %}active{% endif %}"
+           href="{{ url_for('virements_liste') }}">
+            <i class="bi bi-bank"></i> Virements
+            {% set pending_count = pending_virements_count | default(0) %}
+            {% if pending_count > 0 %}
+            <span class="badge rounded-pill ms-auto" style="background:#F59E0B;color:#000;font-size:.65rem;">{{ pending_count }}</span>
+            {% endif %}
+        </a>
+
         <a class="sidebar-link {% if request.endpoint == 'expenses' %}active{% endif %}"
            href="{{ url_for('expenses') }}">
             <i class="bi bi-credit-card"></i> Dépenses

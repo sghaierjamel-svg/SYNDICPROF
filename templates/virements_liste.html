@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <h2 class="text-white mb-0"><i class="bi bi-bank"></i> Virements bancaires</h2>
+        <div style="color:var(--muted);font-size:.9rem;">Demandes soumises par les résidents</div>
+    </div>
+</div>
+
+{% if pending %}
+<div class="card mb-4" style="border-color:rgba(245,158,11,0.4);">
+    <div class="card-header" style="color:#F59E0B;">
+        <i class="bi bi-clock-fill"></i> En attente de confirmation ({{ pending|length }})
+    </div>
+    <div class="card-body p-0">
+        {% for pr in pending %}
+        {% set apt_label = pr.apartment.block.name ~ '-' ~ pr.apartment.number if pr.apartment.block else pr.apartment.number %}
+        <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+            <div style="flex:1;">
+                <div style="font-weight:600;color:var(--text);">{{ apt_label }}</div>
+                <div style="font-size:.82rem;color:var(--muted);">
+                    {{ pr.user.name or pr.user.email }} — {{ pr.month_target }}
+                    — {{ '{:.2f}'.format(pr.amount_declared) }} DT déclaré
+                </div>
+                <div style="font-size:.75rem;color:var(--muted);">
+                    Soumis le {{ pr.created_at.strftime('%d/%m/%Y à %H:%M') }}
+                    {% if pr.bank_reference %} | Réf : {{ pr.bank_reference }}{% endif %}
+                </div>
+            </div>
+            {% if pr.photo_data %}
+            <a href="{{ url_for('virement_photo', pr_id=pr.id) }}" target="_blank"
+               class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-image"></i>
+            </a>
+            {% endif %}
+            <a href="{{ url_for('confirm_virement', token=pr.confirm_token) }}"
+               class="btn btn-sm btn-success">
+                <i class="bi bi-check-circle"></i> Confirmer
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<div class="alert alert-success mb-4">
+    <i class="bi bi-check-circle-fill"></i> Aucun virement en attente.
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header"><i class="bi bi-clock-history"></i> Historique (50 dernières demandes)</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" style="font-size:.85rem;">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Appartement</th>
+                        <th>Résident</th>
+                        <th>Mois</th>
+                        <th>Montant déclaré</th>
+                        <th>Montant confirmé</th>
+                        <th>Frais</th>
+                        <th>Statut</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pr in all_requests %}
+                    {% set apt_label = pr.apartment.block.name ~ '-' ~ pr.apartment.number if pr.apartment.block else pr.apartment.number %}
+                    <tr>
+                        <td style="white-space:nowrap;">{{ pr.created_at.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ apt_label }}</td>
+                        <td>{{ pr.user.name or pr.user.email }}</td>
+                        <td>{{ pr.month_target }}</td>
+                        <td>{{ '{:.2f}'.format(pr.amount_declared) }} DT</td>
+                        <td>
+                            {% if pr.amount_confirmed is not none %}
+                            {{ '{:.2f}'.format(pr.amount_confirmed) }} DT
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            {% if pr.bank_fees %}{{ '{:.2f}'.format(pr.bank_fees) }} DT
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            {% if pr.status == 'en_attente' %}
+                            <span class="badge bg-warning text-dark">En attente</span>
+                            {% elif pr.status == 'confirme' %}
+                            <span class="badge bg-success">Confirmé</span>
+                            {% else %}
+                            <span class="badge bg-danger">Rejeté</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if pr.status == 'en_attente' %}
+                            <a href="{{ url_for('confirm_virement', token=pr.confirm_token) }}"
+                               class="btn btn-sm btn-outline-success">
+                                <i class="bi bi-check-circle"></i>
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="9" class="text-center text-muted py-4">Aucune demande enregistrée</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
