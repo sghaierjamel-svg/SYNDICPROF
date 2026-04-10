@@ -41,7 +41,7 @@
         </div>
         <div style="font-size:.82rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:500px;">
           {% if fil.last_msg %}
-            {% if fil.last_msg.sender_id != fil.apt.residents[0].id if fil.apt.residents else true %}
+            {% if not fil.apt.residents or fil.last_msg.sender_id != fil.apt.residents[0].id %}
               <span style="color:var(--muted);">Vous : </span>
             {% endif %}
             {{ fil.last_msg.body[:80] }}{% if fil.last_msg.body|length > 80 %}…{% endif %}
