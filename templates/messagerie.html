@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Messagerie{% endblock %}
+{% block content %}
+<div class="container-fluid px-3 py-4" style="max-width:800px;">
+
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <h5 class="mb-0" style="color:var(--text);font-weight:700;">
+      <i class="bi bi-chat-dots me-2" style="color:#6366f1;"></i>Messagerie
+    </h5>
+    {% if apts_sans_msg %}
+    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalNewConv">
+      <i class="bi bi-plus-lg me-1"></i>Nouvelle conversation
+    </button>
+    {% endif %}
+  </div>
+
+  {% if fils %}
+  <div class="card" style="border-radius:12px;border:1px solid var(--border);overflow:hidden;">
+    {% for fil in fils %}
+    <a href="{{ url_for('messagerie_fil', apt_id=fil.apt.id) }}"
+       class="d-flex align-items-center p-3 text-decoration-none"
+       style="border-bottom:1px solid var(--border);background:var(--card);transition:background .15s;{% if loop.last %}border-bottom:none;{% endif %}"
+       onmouseover="this.style.background='var(--hover,rgba(99,102,241,.06))'"
+       onmouseout="this.style.background='var(--card)'">
+
+      <!-- Avatar initiales -->
+      <div class="flex-shrink-0 d-flex align-items-center justify-content-center me-3"
+           style="width:42px;height:42px;border-radius:50%;background:{% if fil.unread > 0 %}#6366f1{% else %}var(--border){% endif %};color:{% if fil.unread > 0 %}#fff{% else %}var(--muted){% endif %};font-weight:700;font-size:.95rem;">
+        {% if fil.resident %}{{ (fil.resident.name or fil.resident.email)[0]|upper }}{% else %}?{% endif %}
+      </div>
+
+      <div class="flex-grow-1 min-width-0">
+        <div class="d-flex justify-content-between align-items-baseline">
+          <span style="font-weight:{% if fil.unread > 0 %}700{% else %}500{% endif %};color:var(--text);font-size:.92rem;">
+            Apt {{ fil.apt.block.name }}-{{ fil.apt.number }}
+            {% if fil.resident %} — {{ fil.resident.name or fil.resident.email }}{% endif %}
+          </span>
+          <span style="font-size:.75rem;color:var(--muted);white-space:nowrap;margin-left:8px;">
+            {% if fil.last_msg %}{{ fil.last_msg.created_at.strftime('%d/%m %H:%M') }}{% endif %}
+          </span>
+        </div>
+        <div style="font-size:.82rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:500px;">
+          {% if fil.last_msg %}
+            {% if fil.last_msg.sender_id != fil.apt.residents[0].id if fil.apt.residents else true %}
+              <span style="color:var(--muted);">Vous : </span>
+            {% endif %}
+            {{ fil.last_msg.body[:80] }}{% if fil.last_msg.body|length > 80 %}…{% endif %}
+          {% endif %}
+        </div>
+      </div>
+
+      {% if fil.unread > 0 %}
+      <span class="badge rounded-pill ms-3" style="background:#6366f1;color:#fff;font-size:.75rem;">{{ fil.unread }}</span>
+      {% endif %}
+    </a>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="text-center py-5" style="color:var(--muted);">
+    <i class="bi bi-chat-dots" style="font-size:3rem;opacity:.3;"></i>
+    <p class="mt-3">Aucune conversation pour l'instant.</p>
+    {% if apts_sans_msg %}
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNewConv">
+      <i class="bi bi-plus-lg me-1"></i>Démarrer une conversation
+    </button>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Appartements sans messages (liste compacte) -->
+  {% if apts_sans_msg and fils %}
+  <div class="mt-4">
+    <p class="mb-2" style="font-size:.82rem;color:var(--muted);font-weight:600;">AUTRES APPARTEMENTS</p>
+    <div class="d-flex flex-wrap gap-2">
+      {% for apt in apts_sans_msg %}
+      <a href="{{ url_for('messagerie_fil', apt_id=apt.id) }}"
+         class="btn btn-sm btn-outline-secondary">
+        {{ apt.block.name }}-{{ apt.number }}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Modal nouvelle conversation -->
+{% if apts_sans_msg %}
+<div class="modal fade" id="modalNewConv" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background:var(--card);border:1px solid var(--border);">
+      <div class="modal-header" style="border-bottom:1px solid var(--border);">
+        <h6 class="modal-title">Démarrer une conversation</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:.85rem;color:var(--muted);">Choisissez un appartement :</p>
+        <div class="list-group">
+          {% for apt in apts_sans_msg %}
+          {% set resident = apt.residents[0] if apt.residents else none %}
+          <a href="{{ url_for('messagerie_fil', apt_id=apt.id) }}"
+             class="list-group-item list-group-item-action"
+             style="background:var(--card);border-color:var(--border);color:var(--text);">
+            <strong>{{ apt.block.name }}-{{ apt.number }}</strong>
+            {% if resident %} — {{ resident.name or resident.email }}{% endif %}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

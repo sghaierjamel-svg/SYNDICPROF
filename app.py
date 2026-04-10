@@ -29,6 +29,7 @@ import routes.onboarding
 import routes.push
 import routes.lifts
 import routes.payment_requests
+import routes.messaging
 
 
 @app.before_request

@@ -774,7 +774,19 @@ def init_db():
                         read_at TIMESTAMP
                     )
                 """))
-                conn.commit()
+            else:
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS direct_message (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        organization_id INTEGER REFERENCES organization(id),
+                        apartment_id INTEGER REFERENCES apartment(id),
+                        sender_id INTEGER REFERENCES user(id),
+                        body TEXT NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        read_at TIMESTAMP
+                    )
+                """))
+            conn.commit()
     except Exception as e:
         print(f"Migration direct_message : {e}")
 

@@ -657,6 +657,14 @@
             <i class="bi bi-megaphone"></i> Tableau d'affichage
         </a>
 
+        <a class="sidebar-link {% if request.endpoint in ['messagerie','messagerie_fil'] %}active{% endif %}"
+           href="{{ url_for('messagerie') }}">
+            <i class="bi bi-chat-dots"></i> Messagerie
+            {% if unread_messages_count | default(0) > 0 %}
+            <span class="badge rounded-pill ms-auto" style="background:#6366f1;color:#fff;">{{ unread_messages_count }}</span>
+            {% endif %}
+        </a>
+
         <a class="sidebar-link {% if request.endpoint in ['assembly_list','assembly_detail','assembly_pv','assembly_new'] %}active{% endif %}"
            href="{{ url_for('assembly_list') }}">
             <i class="bi bi-people-fill"></i> Assemblées Générales
@@ -749,6 +757,14 @@
         <a class="sidebar-link {% if request.endpoint == 'appels_fonds_resident' %}active{% endif %}"
            href="{{ url_for('appels_fonds_resident') }}">
             <i class="bi bi-piggy-bank" style="color:#60A5FA;"></i> Appels de Fonds
+        </a>
+
+        <a class="sidebar-link {% if request.endpoint in ['messagerie','messagerie_fil'] %}active{% endif %}"
+           href="{{ url_for('messagerie') }}">
+            <i class="bi bi-chat-dots"></i> Messagerie
+            {% if unread_messages_count | default(0) > 0 %}
+            <span class="badge rounded-pill ms-auto" style="background:#6366f1;color:#fff;">{{ unread_messages_count }}</span>
+            {% endif %}
         </a>
 
         <a class="sidebar-link {% if request.endpoint in ['assembly_list','assembly_detail','assembly_pv'] %}active{% endif %}"

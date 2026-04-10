@@ -105,27 +105,41 @@ def inject_notifications():
         unseen_count = sum(1 for n in notifs if n['new']) + (1 if unpaid_critical > 0 else 0)
 
         # Virements en attente
-        from models import PaymentRequest
+        from models import PaymentRequest, DirectMessage
         pending_virements = PaymentRequest.query.filter_by(
             organization_id=org_id, status='en_attente').count()
+
+        # Messages non lus (envoyés par des résidents)
+        unread_msgs = DirectMessage.query.filter_by(organization_id=org_id)\
+            .filter(DirectMessage.read_at.is_(None))\
+            .filter(DirectMessage.sender_id != user.id).count()
 
         result.update({
             'notif_list': notifs[:8],
             'notif_count': unseen_count,
             'unpaid_critical': unpaid_critical_total,
             'pending_virements_count': pending_virements,
+            'unread_messages_count': unread_msgs,
         })
 
     elif user.role == 'resident' and user.apartment_id:
-        from models import Announcement, AnnouncementRead
+        from models import Announcement, AnnouncementRead, DirectMessage
         anns = Announcement.query.filter_by(organization_id=org_id)\
             .order_by(Announcement.pinned.desc(), Announcement.created_at.desc()).limit(5).all()
         read_ids = {r.announcement_id for r in
                     AnnouncementRead.query.filter_by(user_id=user.id).all()}
         sidebar_anns = [(a, a.id not in read_ids) for a in anns]
+
+        # Messages non lus pour le résident (envoyés par l'admin)
+        unread_msgs_res = DirectMessage.query.filter_by(
+            organization_id=org_id, apartment_id=user.apartment_id)\
+            .filter(DirectMessage.read_at.is_(None))\
+            .filter(DirectMessage.sender_id != user.id).count()
+
         result.update({
             'sidebar_announcements': sidebar_anns,
             'sidebar_unread_count': sum(1 for _, unread in sidebar_anns if unread),
+            'unread_messages_count': unread_msgs_res,
         })
 
     return result
