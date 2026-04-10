@@ -7,7 +7,6 @@ from models import DirectMessage, Apartment, User, Block
 from utils import (current_user, current_organization, login_required,
                    admin_required, subscription_required)
 from utils_push import push_to_user, push_to_admins
-from utils_whatsapp import send_whatsapp
 from datetime import datetime
 
 
@@ -114,14 +113,6 @@ def messagerie_fil(apt_id):
                     url=f"/messagerie/{apt.id}",
                     tag=f"msg-{apt.id}",
                 )
-                # WhatsApp si disponible
-                if resident.phone and org.whatsapp_token:
-                    wa_msg = (
-                        f"📩 *Message de votre syndic — {org.name}*\n\n"
-                        f"{body}\n\n"
-                        f"Répondre : {request.host_url}messagerie/{apt.id}"
-                    )
-                    send_whatsapp(org, resident.phone, wa_msg)
         else:
             # Notif push aux admins
             push_to_admins(
@@ -131,15 +122,6 @@ def messagerie_fil(apt_id):
                 url=f"/messagerie/{apt.id}",
                 tag=f"msg-{apt.id}",
             )
-            # WhatsApp admin si disponible
-            if org.whatsapp_admin_phone and org.whatsapp_token:
-                wa_msg = (
-                    f"💬 *Message résident — Apt {apt_label}*\n"
-                    f"De : {resident.name if resident else 'Résident'}\n\n"
-                    f"{body}\n\n"
-                    f"Répondre : {request.host_url}messagerie/{apt.id}"
-                )
-                send_whatsapp(org, org.whatsapp_admin_phone, wa_msg)
 
         return redirect(url_for('messagerie_fil', apt_id=apt_id))
 
