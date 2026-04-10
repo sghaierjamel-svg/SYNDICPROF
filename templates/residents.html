@@ -88,6 +88,30 @@
     </div>
 </div>
 
+<!-- ACTIONS RAPIDES -->
+<div class="row g-2 mb-3">
+    <div class="col-12">
+        <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+                    data-bs-toggle="modal" data-bs-target="#virementModal">
+                <i class="bi bi-bank me-1"></i>Déclarer un virement
+            </button>
+            <a href="{{ url_for('messagerie') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-chat-dots me-1"></i>Messagerie
+                {% if unread_messages_count | default(0) > 0 %}
+                <span class="badge rounded-pill ms-1" style="background:#6366f1;color:#fff;font-size:.7rem;">{{ unread_messages_count }}</span>
+                {% endif %}
+            </a>
+            <a href="{{ url_for('tickets') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-ticket me-1"></i>Mes tickets
+            </a>
+            <a href="{{ url_for('appels_fonds_resident') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-piggy-bank me-1"></i>Appels de fonds
+            </a>
+        </div>
+    </div>
+</div>
+
 <!-- 3 COLONNES : historique + tickets + annonces -->
 <div class="row g-3 mb-3">
 

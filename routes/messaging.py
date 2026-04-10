@@ -144,7 +144,7 @@ def messagerie_fil(apt_id):
     resident = apt.residents[0] if apt.residents else None
     return render_template('messagerie_fil.html',
                            apt=apt, messages=messages,
-                           resident=resident, user=user)
+                           resident=resident, user=user, org=org)
 
 
 # ─── API : nombre de messages non-lus (pour badge topbar) ───────────────────

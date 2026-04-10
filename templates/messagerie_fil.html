@@ -22,7 +22,7 @@
         {% if resident and user.role == 'admin' %}
           — {{ resident.name or resident.email }}
         {% elif user.role == 'resident' %}
-          — {{ apt.block.organization.name if apt.block.organization else 'Votre syndic' }}
+          — {{ org.name if org else 'Votre syndic' }}
         {% endif %}
       </h6>
       {% if resident and user.role == 'admin' and resident.phone %}
