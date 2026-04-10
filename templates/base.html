@@ -802,6 +802,15 @@
         <a class="sidebar-link" href="{{ url_for('logout') }}" style="color:#f87171;">
             <i class="bi bi-box-arrow-right"></i> Déconnexion
         </a>
+
+        <!-- Bouton installer PWA (caché par défaut, affiché par JS si disponible) -->
+        <button id="pwa-sidebar-btn" data-pwa-install
+                style="display:none;width:100%;margin-top:8px;background:linear-gradient(135deg,#1D4ED8,#6366f1);
+                       color:#fff;border:none;border-radius:10px;padding:10px 14px;
+                       font-size:.85rem;font-weight:600;cursor:pointer;align-items:center;gap:10px;">
+            <i class="bi bi-phone-fill" style="font-size:1rem;"></i>
+            <span>Installer l'application</span>
+        </button>
     </div>
 
 </aside>
@@ -878,6 +887,40 @@
     </div>
 </div>
 {% endif %}
+
+<!-- ── Bannière installation PWA (Android/Chrome) ── -->
+<div id="pwa-install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9998;
+     background:linear-gradient(135deg,#1D4ED8,#6366f1);color:#fff;
+     padding:12px 16px;align-items:center;gap:12px;box-shadow:0 -4px 20px rgba(0,0,0,.4);">
+    <img src="/static/icons/icon-192.png" style="width:40px;height:40px;border-radius:10px;flex-shrink:0;" alt="SyndicPro">
+    <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;font-size:.92rem;">Installer SyndicPro</div>
+        <div style="font-size:.78rem;opacity:.85;">Accès rapide depuis votre écran d'accueil</div>
+    </div>
+    <button data-pwa-install style="background:#fff;color:#1D4ED8;border:none;border-radius:8px;
+            padding:7px 14px;font-weight:700;font-size:.82rem;cursor:pointer;white-space:nowrap;">
+        Installer
+    </button>
+    <button data-pwa-dismiss style="background:none;border:none;color:#fff;opacity:.7;
+            cursor:pointer;font-size:1.2rem;padding:4px;line-height:1;">✕</button>
+</div>
+
+<!-- ── Bannière installation PWA (iOS/Safari) ── -->
+<div id="pwa-ios-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9998;
+     background:#1E293B;color:#fff;border-top:1px solid #334155;
+     padding:14px 16px;align-items:flex-start;gap:12px;box-shadow:0 -4px 20px rgba(0,0,0,.4);">
+    <img src="/static/icons/icon-192.png" style="width:40px;height:40px;border-radius:10px;flex-shrink:0;" alt="SyndicPro">
+    <div style="flex:1;">
+        <div style="font-weight:700;font-size:.92rem;margin-bottom:4px;">Installer SyndicPro sur iPhone</div>
+        <div style="font-size:.8rem;opacity:.8;line-height:1.5;">
+            Appuyez sur <span style="background:#334155;padding:2px 6px;border-radius:5px;">
+            <svg width="14" height="14" viewBox="0 0 50 50" fill="white" style="vertical-align:middle;"><path d="M30.3 13.7L25 8.4l-5.3 5.3-1.4-1.4L25 5.6l6.7 6.7z"/><path d="M24 7h2v21h-2z"/><path d="M35 40H15c-1.7 0-3-1.3-3-3V19c0-1.7 1.3-3 3-3h7v2h-7c-.6 0-1 .4-1 1v18c0 .6.4 1 1 1h20c.6 0 1-.4 1-1V19c0-.6-.4-1-1-1h-7v-2h7c1.7 0 3 1.3 3 3v18c0 1.7-1.3 3-3 3z"/></svg>
+            </span> puis <strong>"Sur l'écran d'accueil"</strong>
+        </div>
+    </div>
+    <button data-pwa-dismiss style="background:none;border:none;color:#fff;opacity:.7;
+            cursor:pointer;font-size:1.2rem;padding:4px;line-height:1;flex-shrink:0;">✕</button>
+</div>
 
 <!-- FLASH MESSAGES — toasts fixes en haut à droite -->
 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -1087,6 +1130,71 @@
     }
 
     window.addEventListener('load', () => initPush().catch(e => console.warn('[Push] init error:', e)));
+})();
+</script>
+
+<!-- ── PWA Install Prompt ──────────────────────────────────────────────── -->
+<script>
+(function() {
+    let deferredPrompt = null;
+
+    // Bannière d'installation personnalisée
+    function showInstallBanner() {
+        const banner = document.getElementById('pwa-install-banner');
+        if (banner) banner.style.display = 'flex';
+    }
+
+    function hideInstallBanner() {
+        const banner = document.getElementById('pwa-install-banner');
+        if (banner) banner.style.display = 'none';
+        localStorage.setItem('pwa-dismissed', '1');
+    }
+
+    // Capturer l'événement beforeinstallprompt (Chrome / Android)
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        // Ne pas montrer si déjà installé ou déjà refusé
+        if (!window.matchMedia('(display-mode: standalone)').matches &&
+            !localStorage.getItem('pwa-dismissed')) {
+            showInstallBanner();
+        }
+        // Mettre à jour le bouton sidebar si présent
+        const sideBtn = document.getElementById('pwa-sidebar-btn');
+        if (sideBtn) sideBtn.style.display = 'flex';
+    });
+
+    // Bouton "Installer" dans la bannière ou la sidebar
+    document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('[data-pwa-install]');
+        if (!btn) return;
+        hideInstallBanner();
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        const sideBtn = document.getElementById('pwa-sidebar-btn');
+        if (sideBtn) sideBtn.style.display = 'none';
+    });
+
+    // Bouton "Plus tard" dans la bannière
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('[data-pwa-dismiss]')) hideInstallBanner();
+    });
+
+    // Déjà installé → cacher le bouton sidebar
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+        const sideBtn = document.getElementById('pwa-sidebar-btn');
+        if (sideBtn) sideBtn.style.display = 'none';
+    }
+
+    // iOS : Safari ne supporte pas beforeinstallprompt → message manuel
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isInStandaloneMode = ('standalone' in window.navigator) && window.navigator.standalone;
+    if (isIOS && !isInStandaloneMode && !localStorage.getItem('pwa-dismissed')) {
+        const iosBanner = document.getElementById('pwa-ios-banner');
+        if (iosBanner) iosBanner.style.display = 'flex';
+    }
 })();
 </script>
 </body>

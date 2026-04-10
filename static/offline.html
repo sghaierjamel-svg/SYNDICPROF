@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SyndicPro — Hors ligne</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0F172A;
+      color: #F1F5F9;
+      font-family: 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+    .logo {
+      width: 80px;
+      height: 80px;
+      border-radius: 20px;
+      margin-bottom: 24px;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #F1F5F9;
+    }
+    p {
+      color: #94A3B8;
+      font-size: .95rem;
+      line-height: 1.6;
+      max-width: 320px;
+      margin-bottom: 32px;
+    }
+    .icon {
+      font-size: 3.5rem;
+      margin-bottom: 16px;
+      opacity: .6;
+    }
+    button {
+      background: #1D4ED8;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 28px;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: #1e40af; }
+  </style>
+</head>
+<body>
+  <img src="/static/icons/icon-192.png" class="logo" alt="SyndicPro">
+  <div class="icon">📶</div>
+  <h1>Vous êtes hors ligne</h1>
+  <p>
+    Vérifiez votre connexion internet et réessayez.<br>
+    Les pages déjà visitées restent accessibles.
+  </p>
+  <button onclick="window.location.reload()">Réessayer</button>
+</body>
+</html>
