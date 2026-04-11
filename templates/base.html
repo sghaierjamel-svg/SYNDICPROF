@@ -42,12 +42,15 @@
             --sidebar-w:    252px;
         }
 
+        /* Empêche tout débordement horizontal qui force le dézoom */
+        html { overflow-x: hidden; max-width: 100%; }
         body {
             background: var(--bg);
             color: var(--text);
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             min-height: 100vh;
             overflow-x: hidden;
+            max-width: 100%;
             margin: 0; padding: 0;
         }
 
@@ -714,20 +717,26 @@
             .card-header { padding: .75rem 1rem !important; font-size: .88rem !important; }
             .card-body { padding: .85rem !important; }
 
-            /* ── Tables : scroll horizontal forcé ── */
+            /* ── Tables : scroll horizontal forcé (CSS + JS auto-wrap) ── */
             .table-responsive,
             .table-responsive-sm,
-            .table-responsive-md {
+            .table-responsive-md,
+            .sp-table-wrap {
                 overflow-x: auto !important;
                 -webkit-overflow-scrolling: touch;
-                border-radius: 10px;
+                width: 100% !important;
+                max-width: 100% !important;
             }
-            /* Wrapper auto pour tables sans .table-responsive */
-            .content .table:not(.table-responsive .table) {
-                display: block;
-                overflow-x: auto;
+            /* Fallback CSS pur : toute table devient scrollable */
+            .content table {
+                display: block !important;
+                overflow-x: auto !important;
                 -webkit-overflow-scrolling: touch;
+                max-width: 100%;
             }
+            /* Mais si déjà dans un wrapper, on remet display:table */
+            .table-responsive table,
+            .sp-table-wrap table { display: table !important; }
             .table th, .table td { padding: .4rem .55rem !important; font-size: .8rem !important; white-space: nowrap; }
             .table thead th { font-size: .72rem !important; }
             /* Colonnes secondaires masquées sur mobile */
@@ -1432,6 +1441,39 @@ if (notifBtn) {
 </script>
 
 {% block extra_js %}{% endblock %}
+
+<!-- ── Fix tableaux mobiles : auto-wrap scroll horizontal ── -->
+<script>
+(function() {
+    if (window.innerWidth > 768) return;
+
+    // Enveloppe automatiquement chaque tableau dans un div scrollable
+    document.querySelectorAll('.content table').forEach(function(tbl) {
+        // Ne pas re-wrapper si déjà dans .table-responsive
+        if (tbl.closest('.table-responsive') || tbl.closest('.sp-table-wrap')) return;
+        var wrap = document.createElement('div');
+        wrap.className = 'sp-table-wrap';
+        wrap.style.cssText = [
+            'overflow-x:auto',
+            '-webkit-overflow-scrolling:touch',
+            'width:100%',
+            'max-width:100%',
+            'border-radius:10px',
+            'margin-bottom:1rem'
+        ].join(';');
+        tbl.parentNode.insertBefore(wrap, tbl);
+        wrap.appendChild(tbl);
+        // S'assure que la table elle-même ne force pas le layout
+        tbl.style.minWidth = '500px';
+    });
+
+    // Empêche les éléments larges isolés de déborder
+    document.querySelectorAll('.content [style*="width"]').forEach(function(el) {
+        var w = parseInt(el.style.width);
+        if (w > window.innerWidth) el.style.width = '100%';
+    });
+})();
+</script>
 
 <script>
 // ── Service Worker + Web Push ─────────────────────────────────────────────
