@@ -3,11 +3,11 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SyndicPro - Gestion de Syndic</title>
+    <title>SyndicPro — Gestion de Syndic</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <!-- PWA -->
     <link rel="manifest" href="/static/manifest.json">
-    <meta name="theme-color" content="#1D4ED8">
+    <meta name="theme-color" content="#6366F1">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -15,473 +15,335 @@
     <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
     <!-- /PWA -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
-        :root {
-            --bg: #0F172A;
-            --card-bg: #1E293B;
-            --border: #334155;
-            --border2: #475569;
-            --green: #10B981;
-            --accent: #1D4ED8;
-            --accent-light: #3B82F6;
-            --text: #F1F5F9;
-            --muted: #94A3B8;
-            --sidebar-width: 260px;
-        }
-
         * { box-sizing: border-box; }
+
+        :root {
+            --bg:           #0F0F1A;
+            --bg2:          #13132B;
+            --card:         rgba(255,255,255,0.04);
+            --card-bg:      #1A1A2E;
+            --card-border:  rgba(255,255,255,0.08);
+            --card-hover:   rgba(255,255,255,0.07);
+            --accent:       #6366F1;
+            --accent2:      #8B5CF6;
+            --accent-light: #818CF8;
+            --green:        #10B981;
+            --success:      #10B981;
+            --danger:       #EF4444;
+            --warning:      #F59E0B;
+            --info:         #38BDF8;
+            --text:         #F1F5F9;
+            --muted:        #94A3B8;
+            --border:       rgba(255,255,255,0.08);
+            --border2:      rgba(255,255,255,0.14);
+            --sidebar-w:    252px;
+        }
 
         body {
             background: var(--bg);
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             color: var(--text);
-            margin: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            margin: 0; padding: 0;
         }
 
-        /* ── TABLES — override Bootstrap fond blanc ── */
-        .table { color: var(--text) !important; --bs-table-bg: transparent; --bs-table-color: var(--text); }
-        .table > :not(caption) > * > * { background-color: transparent !important; color: var(--text); border-bottom-color: var(--border); }
-        .table-hover > tbody > tr:hover > * { background-color: rgba(29,78,216,0.07) !important; color: var(--text); }
-        .table thead th { background-color: var(--border2) !important; color: var(--muted) !important; border-bottom: 2px solid var(--border2); }
-        .table-dark thead th { background-color: var(--border2) !important; color: var(--muted) !important; }
-        .table-bordered > :not(caption) > * > * { border-color: var(--border) !important; }
-        .table-warning > * { background-color: rgba(245,158,11,0.15) !important; color: var(--text) !important; }
-        .table-primary > * { background-color: rgba(29,78,216,0.12) !important; color: var(--text) !important; }
-        .text-muted { color: var(--muted) !important; }
+        /* ─── LAYOUT ─── */
+        .layout { display: flex; min-height: 100vh; }
 
-        /* ── SIDEBAR ── */
+        /* ─── SIDEBAR ─── */
         .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: var(--sidebar-width);
-            height: 100vh;
-            background: var(--card-bg);
-            border-right: 1px solid var(--border);
+            width: var(--sidebar-w);
+            background: var(--bg2);
+            border-right: 1px solid var(--card-border);
             display: flex;
             flex-direction: column;
-            z-index: 1000;
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            z-index: 200;
+            transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
             overflow-y: auto;
-            transition: transform 0.3s ease;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.08) transparent;
         }
 
+        /* Logo */
         .sidebar-logo {
-            padding: 1.5rem 1.25rem 1rem;
-            border-bottom: 1px solid var(--border);
-            text-decoration: none;
             display: flex;
             align-items: center;
-            gap: 0.6rem;
-            background: linear-gradient(135deg, rgba(30,58,138,0.3), rgba(30,41,59,0));
+            gap: 10px;
+            padding: 15px 16px 13px;
+            border-bottom: 1px solid var(--card-border);
+            text-decoration: none;
+            flex-shrink: 0;
         }
-
         .sidebar-logo img {
-            height: 52px;
+            height: 38px;
             width: auto;
             object-fit: contain;
             mix-blend-mode: screen;
         }
-
-        .sidebar-nav {
-            flex: 1;
-            padding: 1rem 0.75rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.2rem;
+        .logo-icon {
+            width: 34px; height: 34px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            border-radius: 9px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 17px; flex-shrink: 0;
+        }
+        .logo-text {
+            font-weight: 800; font-size: 1.05rem;
+            color: var(--text); letter-spacing: -0.4px;
         }
 
-        .sidebar-section {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: var(--border2);
-            padding: 0.75rem 0.5rem 0.25rem;
+        /* Residence badge */
+        .sidebar-residence {
+            margin: 10px 10px 4px;
+            padding: 8px 12px;
+            background: rgba(99,102,241,0.08);
+            border: 1px solid rgba(99,102,241,0.18);
+            border-radius: 10px;
+            flex-shrink: 0;
+        }
+        .sidebar-residence strong {
+            display: block; color: var(--text);
+            font-size: 0.83rem; margin-bottom: 1px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .sidebar-residence span { font-size: 0.72rem; color: var(--muted); }
+
+        /* Nav groups container */
+        .nav-groups { flex: 1; padding: 8px 0 6px; }
+
+        /* Solo item (e.g. Dashboard) */
+        .nav-solo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 14px;
+            font-size: 0.86rem;
+            color: var(--muted);
+            text-decoration: none;
+            border-radius: 9px;
+            margin: 2px 8px;
+            transition: all 0.15s;
+            cursor: pointer;
+        }
+        .nav-solo i { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+        .nav-solo:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+        .nav-solo.active {
+            background: rgba(99,102,241,0.14);
+            color: var(--accent);
             font-weight: 600;
         }
 
-        .sidebar-link {
+        /* Collapsible group */
+        .nav-group { margin: 2px 0; }
+        .nav-group-header {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
-            padding: 0.6rem 0.85rem;
-            border-radius: 10px;
-            text-decoration: none;
+            justify-content: space-between;
+            padding: 9px 14px;
+            cursor: pointer;
+            border-radius: 9px;
+            margin: 0 8px;
+            transition: background 0.15s;
+            user-select: none;
+        }
+        .nav-group-header:hover { background: rgba(255,255,255,0.04); }
+        .nav-group-label {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.7px;
+            text-transform: uppercase;
             color: var(--muted);
-            font-size: 0.9rem;
+        }
+        .nav-group-label i { font-size: 0.9rem; width: 18px; text-align: center; }
+        .nav-group-arrow {
+            font-size: 0.68rem;
+            color: var(--muted);
+            transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+        }
+        .nav-group.open .nav-group-arrow { transform: rotate(90deg); }
+
+        .nav-group-items {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s cubic-bezier(0.4,0,0.2,1);
+        }
+        .nav-group.open .nav-group-items { max-height: 900px; }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 7px 14px 7px 40px;
+            font-size: 0.83rem;
+            color: var(--muted);
+            text-decoration: none;
+            border-radius: 9px;
+            margin: 1px 8px;
+            transition: all 0.15s;
+            cursor: pointer;
+        }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+        .nav-item.active {
+            background: rgba(99,102,241,0.13);
+            color: var(--accent);
             font-weight: 500;
-            transition: all 0.2s ease;
         }
 
-        .sidebar-link:hover {
-            background: var(--border);
-            color: var(--text);
+        /* Small badge in nav */
+        .nav-badge {
+            font-size: 0.63rem; font-weight: 700;
+            padding: 1px 6px; border-radius: 20px;
+            min-width: 18px; text-align: center; flex-shrink: 0;
         }
+        .badge-danger  { background: var(--danger);  color: #fff; }
+        .badge-accent  { background: var(--accent);  color: #fff; }
+        .badge-warning { background: var(--warning); color: #000; }
 
-        .sidebar-link.active {
-            background: rgba(29, 78, 216, 0.15);
-            color: var(--accent-light);
-            border-left: 3px solid var(--accent-light);
-            padding-left: calc(0.85rem - 3px);
-        }
-
-        .sidebar-link i {
-            font-size: 1.05rem;
-            width: 1.2rem;
-            text-align: center;
-        }
-
-        .sidebar-footer {
-            padding: 1rem 0.75rem;
-            border-top: 1px solid var(--border);
-        }
-
-        .sidebar-user {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            padding: 0.5rem 0.85rem;
-            border-radius: 10px;
-            margin-bottom: 0.3rem;
-        }
-
-        .sidebar-user .avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: rgba(29,78,216,0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--accent-light);
-            font-size: 1rem;
+        /* Sidebar bottom */
+        .sidebar-bottom {
+            padding: 8px;
+            border-top: 1px solid var(--card-border);
             flex-shrink: 0;
         }
 
-        .sidebar-user .user-info {
-            overflow: hidden;
-        }
-
-        .sidebar-user .user-name {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--text);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .sidebar-user .user-role {
-            font-size: 0.7rem;
+        /* Announcement sub-items for resident */
+        .sidebar-ann-item {
+            display: flex; align-items: center; gap: 0.55rem;
+            padding: 5px 14px 5px 40px;
+            border-radius: 9px;
+            margin: 1px 8px;
+            text-decoration: none;
             color: var(--muted);
+            font-size: 0.79rem;
+            transition: background 0.15s, color 0.15s;
         }
-
-        /* ── MAIN CONTENT ── */
-        .main-content {
-            margin-left: var(--sidebar-width);
-            min-height: 100vh;
-            padding: 1.5rem 2rem;
-        }
-
-        .main-content.no-sidebar {
-            margin-left: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem 1rem;
-            width: 100%;
-            min-height: 100vh;
-        }
-
-        /* ── MOBILE TOGGLE ── */
-        .sidebar-toggle {
-            display: none;
-            position: fixed;
-            top: 1rem;
-            left: 1rem;
-            z-index: 1100;
-            background: var(--card-bg);
-            border: 1px solid var(--border2);
-            color: var(--text);
-            border-radius: 8px;
-            width: 40px;
-            height: 40px;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 1.2rem;
-        }
-
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.6);
-            z-index: 999;
-        }
-
-        /* ── CARDS ── */
-        .card {
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            background: var(--card-bg);
-            color: var(--text);
-            overflow: hidden;
-        }
-
-        .card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-        }
-
-        .card-header {
-            background: var(--border);
-            color: var(--text);
-            font-weight: 600;
-            border: none;
-            border-bottom: 1px solid var(--border2);
-            padding: 1rem 1.5rem;
-        }
-
-        .card-body { color: var(--text); }
-
-        /* ── BUTTONS ── */
-        .btn-primary {
-            background: linear-gradient(135deg, #1D4ED8, #3B82F6);
-            border: none;
-            padding: 0.6rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 600;
-            color: #fff;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary:hover, .btn-primary:focus {
-            background: linear-gradient(135deg, #1E40AF, #2563EB);
-            color: #fff;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(29,78,216,0.4);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            border: none; border-radius: 8px;
-            padding: 0.6rem 1.5rem; font-weight: 600; color: white;
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            border: none; border-radius: 8px;
-            padding: 0.6rem 1.5rem; font-weight: 600; color: white;
-        }
-
-        .btn-warning {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            border: none; border-radius: 8px;
-            padding: 0.6rem 1.5rem; font-weight: 600; color: white;
-        }
-
-        .btn-info {
-            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-            border: none; border-radius: 8px;
-            padding: 0.6rem 1.5rem; font-weight: 600; color: white;
-        }
-
-        .btn-secondary {
-            background: var(--border2); border: none; border-radius: 8px;
-            padding: 0.6rem 1.5rem; font-weight: 600; color: var(--text);
-        }
-
-        .btn-outline-primary {
-            border: 2px solid var(--accent-light); color: var(--accent-light);
-            border-radius: 8px; font-weight: 600; background: transparent;
-        }
-
-        .btn-outline-primary:hover { background: var(--accent-light); color: #fff; }
-
-        .btn-outline-secondary {
-            border: 2px solid var(--border2); color: var(--muted);
-            border-radius: 8px; font-weight: 600; background: transparent;
-        }
-
-        .btn-outline-secondary:hover { background: var(--border2); color: var(--text); }
-
-        .btn-outline-success {
-            border: 2px solid var(--green); color: var(--green);
-            border-radius: 8px; font-weight: 600; background: transparent;
-        }
-
-        .btn-outline-success:hover { background: var(--green); color: #fff; }
-
-        /* ── STAT CARDS ── */
-        .stat-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 1.5rem;
-            text-align: center;
-            transition: all 0.3s ease;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-        }
-
-        .stat-card .icon { font-size: 3rem; margin-bottom: 1rem; color: var(--green); }
-        .stat-card h3 { font-size: 2.5rem; font-weight: 700; margin: 0; color: var(--text); }
-        .stat-card p { color: var(--muted); margin: 0; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 1px; }
-
-        /* ── ALERTS ── */
-        .alert { border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1.5rem; }
-
-        .alert-info {
-            background: rgba(6,182,212,0.12);
-            border: 1px solid rgba(6,182,212,0.3);
-            color: #67e8f9;
-        }
-
-        .alert-success {
-            background: rgba(16,185,129,0.12);
-            border: 1px solid rgba(16,185,129,0.3);
-            color: #6ee7b7;
-        }
-
-        .alert-warning {
-            background: rgba(245,158,11,0.12);
-            border: 1px solid rgba(245,158,11,0.3);
-            color: #fcd34d;
-        }
-
-        .alert-danger {
-            background: rgba(239,68,68,0.12);
-            border: 1px solid rgba(239,68,68,0.3);
-            color: #fca5a5;
-        }
-
-        /* ── BADGES ── */
-        .badge { padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; font-size: 0.85rem; }
-        /* Badges compacts dans les tableaux */
-        .table .badge { padding: 0.2rem 0.55rem; font-size: 0.75rem; border-radius: 6px; }
-        /* Cellule email tronquée */
-        .cell-email { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        /* Réduction padding cellules tableau */
-        .table th, .table td { padding: 0.55rem 0.75rem; font-size: 0.88rem; }
-
-        /* ── TABLES ── */
-        .table { border-radius: 12px; overflow: hidden; color: var(--text); }
-        .table thead { background: var(--border); color: var(--muted); }
-        .table thead th { border-color: var(--border2); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
-        .table tbody tr { border-color: var(--border); }
-        .table tbody td { border-color: var(--border); color: var(--text); vertical-align: middle; }
-        .table-hover tbody tr:hover { background-color: var(--border); color: var(--text); cursor: pointer; }
-        .table-striped tbody tr:nth-of-type(odd) { background-color: rgba(31,41,55,0.5); }
-
-        /* ── FORMS ── */
-        .form-control, .form-select {
-            background: var(--border);
-            border: 1px solid var(--border2);
-            color: var(--text);
-            border-radius: 8px;
-            padding: 0.7rem 1rem;
-            transition: all 0.3s ease;
-        }
-
-        .form-control:focus, .form-select:focus {
-            background: var(--border);
-            border-color: var(--accent-light);
-            color: var(--text);
-            box-shadow: 0 0 0 3px rgba(29,78,216,0.18);
-        }
-
-        .form-control::placeholder { color: #6B7280; }
-        .form-label { color: var(--muted); font-weight: 500; }
-        .form-text { color: #6B7280; }
-
-        /* ── DROPDOWN ── */
-        .dropdown-menu { background: var(--card-bg); border: 1px solid var(--border2); }
-        .dropdown-item { color: var(--text); }
-        .dropdown-item:hover { background: var(--border); color: var(--accent-light); }
-
-        /* ── STATUS BADGES ── */
-        .status-paid {
-            background: rgba(16,185,129,0.15); color: var(--green);
-            padding: 0.3rem 0.8rem; border-radius: 6px; font-weight: 600;
-        }
-
-        .status-unpaid {
-            background: rgba(239,68,68,0.15); color: #f87171;
-            padding: 0.3rem 0.8rem; border-radius: 6px; font-weight: 600;
-        }
-
-        .priority-haute { background: rgba(245,158,11,0.15); color: #fcd34d; }
-        .priority-urgente { background: rgba(239,68,68,0.15); color: #f87171; }
-
-        /* ── TEXT ── */
-        .text-muted { color: var(--muted) !important; }
-        h1, h2, h3, h4, h5, h6 { color: var(--text); }
-        hr { border-color: var(--border2); }
-
-        /* ── TOPBAR NOTIFICATIONS ── */
-        .notif-topbar {
-            position: fixed;
-            top: 0; left: var(--sidebar-width); right: 0;
-            height: 38px;
-            background: rgba(17,24,39,0.97);
-            border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: flex-end;
-            padding: 0 1.5rem;
-            z-index: 800;
-            backdrop-filter: blur(6px);
-        }
-        .notif-topbar-spacer { height: 38px; }
-
-        .notif-btn {
-            position: relative;
-            background: transparent;
-            border: none;
-            color: var(--muted);
-            padding: 0.2rem 0.5rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1.1rem;
-            transition: color 0.2s, background 0.2s;
-            line-height: 1;
-        }
-        .notif-btn:hover { color: var(--text); background: var(--border); }
-        .notif-badge {
-            position: absolute;
-            top: -2px; right: -4px;
-            background: #EF4444;
-            color: #fff;
-            font-size: 0.6rem;
-            font-weight: 700;
-            min-width: 15px; height: 15px;
+        .sidebar-ann-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+        .sidebar-ann-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .sidebar-badge {
+            margin-left: auto;
+            background: var(--danger); color: #fff;
+            font-size: 0.62rem; font-weight: 700;
+            min-width: 17px; height: 17px;
             border-radius: 999px;
             display: flex; align-items: center; justify-content: center;
-            padding: 0 3px;
-            line-height: 1;
+            padding: 0 3px; flex-shrink: 0;
         }
 
+        /* ─── MAIN ─── */
+        .main {
+            margin-left: var(--sidebar-w);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .main.no-sidebar { margin-left: 0 !important; }
+
+        /* ─── TOPBAR ─── */
+        .topbar {
+            position: sticky; top: 0; z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            height: 58px;
+            background: rgba(15,15,26,0.88);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--card-border);
+            flex-shrink: 0;
+        }
+        .topbar-left { display: flex; align-items: center; gap: 12px; }
+        .hamburger {
+            display: none;
+            background: none; border: none;
+            color: var(--text); font-size: 1.4rem;
+            cursor: pointer; padding: 4px; line-height: 1;
+        }
+        .breadcrumb-nav { font-size: 0.84rem; color: var(--muted); }
+        .breadcrumb-nav b { color: var(--text); font-weight: 600; }
+        .topbar-right { display: flex; align-items: center; gap: 8px; }
+
+        /* Push button in topbar */
+        #pushActivateBtn {
+            display: flex; align-items: center; gap: 6px;
+            background: rgba(99,102,241,0.1);
+            border: 1px solid rgba(99,102,241,0.3);
+            color: var(--accent-light);
+            border-radius: 8px; padding: 5px 10px;
+            font-size: 0.77rem; cursor: pointer;
+            transition: all 0.15s;
+        }
+        #pushActivateBtn:hover { background: rgba(99,102,241,0.2); }
+
+        /* Round topbar buttons */
+        .tb-btn {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--muted);
+            cursor: pointer;
+            transition: all 0.15s;
+            position: relative;
+            font-size: 1rem;
+        }
+        .tb-btn:hover { background: var(--card-hover); color: var(--text); }
+
+        /* Notification dot pulse */
+        .tb-dot {
+            position: absolute; top: 7px; right: 7px;
+            width: 7px; height: 7px;
+            background: var(--danger);
+            border-radius: 50%;
+            border: 2px solid var(--bg);
+            animation: dotPulse 2s infinite;
+        }
+        @keyframes dotPulse {
+            0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
+            50%      { box-shadow: 0 0 0 4px rgba(239,68,68,0); }
+        }
+
+        /* User avatar */
+        .tb-avatar {
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 0.78rem;
+            cursor: pointer;
+            border: 2px solid rgba(99,102,241,0.4);
+            text-transform: uppercase;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        /* ─── NOTIFICATION DROPDOWN ─── */
         .notif-dropdown {
             min-width: 320px;
-            max-height: 420px;
+            max-height: 440px;
             overflow-y: auto;
-            border: 1px solid var(--border);
-            background: var(--card-bg);
-            border-radius: 12px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-            padding: 0;
+            border: 1px solid var(--card-border) !important;
+            background: var(--bg2) !important;
+            border-radius: 14px !important;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6) !important;
+            padding: 0 !important;
         }
         .notif-header {
             padding: 0.75rem 1rem;
-            border-bottom: 1px solid var(--border);
-            font-size: 0.8rem;
+            border-bottom: 1px solid var(--card-border);
+            font-size: 0.79rem;
             font-weight: 700;
             color: var(--muted);
             text-transform: uppercase;
@@ -490,72 +352,346 @@
         .notif-item {
             display: flex; align-items: flex-start; gap: 0.75rem;
             padding: 0.65rem 1rem;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--card-border);
             text-decoration: none;
             transition: background 0.15s;
         }
         .notif-item:last-child { border-bottom: none; }
-        .notif-item:hover { background: var(--border); }
+        .notif-item:hover { background: rgba(255,255,255,0.04); }
         .notif-icon {
             width: 30px; height: 30px; border-radius: 8px;
             display: flex; align-items: center; justify-content: center;
             font-size: 0.85rem; flex-shrink: 0; margin-top: 1px;
         }
         .notif-text { font-size: 0.82rem; color: var(--text); font-weight: 500; line-height: 1.3; }
-        .notif-sub { font-size: 0.75rem; color: var(--muted); margin-top: 1px; }
+        .notif-sub  { font-size: 0.74rem; color: var(--muted); margin-top: 1px; }
         .notif-time { font-size: 0.7rem; color: var(--muted); margin-left: auto; flex-shrink: 0; padding-left: 0.5rem; }
         .notif-empty { padding: 1.5rem 1rem; text-align: center; color: var(--muted); font-size: 0.85rem; }
-
-        /* Badge annonces sidebar résident */
-        .sidebar-badge {
-            margin-left: auto;
-            background: #EF4444;
-            color: #fff;
-            font-size: 0.65rem;
-            font-weight: 700;
-            min-width: 18px; height: 18px;
+        .notif-badge {
+            position: absolute; top: -2px; right: -2px;
+            background: var(--danger); color: #fff;
+            font-size: 0.6rem; font-weight: 700;
+            min-width: 16px; height: 16px;
             border-radius: 999px;
             display: flex; align-items: center; justify-content: center;
-            padding: 0 4px;
-        }
-        .sidebar-ann-item {
-            display: flex; align-items: center; gap: 0.6rem;
-            padding: 0.45rem 0.85rem;
-            border-radius: 8px;
-            text-decoration: none;
-            color: var(--muted);
-            font-size: 0.82rem;
-            transition: background 0.15s, color 0.15s;
-        }
-        .sidebar-ann-item:hover { background: var(--border); color: var(--text); }
-        .sidebar-ann-dot {
-            width: 7px; height: 7px; border-radius: 50%;
-            flex-shrink: 0;
+            padding: 0 3px; line-height: 1;
         }
 
-        /* ── RESPONSIVE ── */
+        /* ─── CONTENT AREA ─── */
+        .content { padding: 24px 28px; flex: 1; }
+
+        /* ─── SIDEBAR OVERLAY (mobile) ─── */
+        .sidebar-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.65);
+            z-index: 150;
+            backdrop-filter: blur(3px);
+        }
+        .sidebar-overlay.open { display: block; }
+
+        /* ─── BOTTOM NAV (mobile) ─── */
+        .bottom-nav {
+            display: none;
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: rgba(19,19,43,0.97);
+            backdrop-filter: blur(14px);
+            border-top: 1px solid var(--card-border);
+            padding: 6px 0 calc(8px + env(safe-area-inset-bottom,0px));
+            z-index: 120;
+        }
+        .bn-items { display: flex; justify-content: space-around; }
+        .bn-item {
+            display: flex; flex-direction: column; align-items: center; gap: 3px;
+            padding: 6px 12px; color: var(--muted);
+            font-size: 0.65rem; text-decoration: none;
+            transition: color 0.15s; position: relative;
+            background: none; border: none; cursor: pointer;
+        }
+        .bn-item i { font-size: 1.25rem; }
+        .bn-item.active { color: var(--accent); }
+        .bn-item.active::after {
+            content: ''; position: absolute; top: -6px;
+            left: 50%; transform: translateX(-50%);
+            width: 26px; height: 3px;
+            border-radius: 3px; background: var(--accent);
+        }
+        .bn-badge {
+            position: absolute; top: 4px; right: 8px;
+            width: 8px; height: 8px;
+            border-radius: 50%; background: var(--danger);
+            border: 2px solid var(--bg);
+        }
+
+        /* ─── CARDS ─── */
+        .card {
+            background: var(--card) !important;
+            border: 1px solid var(--card-border) !important;
+            border-radius: 16px !important;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25) !important;
+            transition: transform 0.2s, box-shadow 0.2s;
+            overflow: hidden;
+            color: var(--text) !important;
+        }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 16px 40px rgba(0,0,0,0.35) !important; }
+        .card-header {
+            background: rgba(255,255,255,0.04) !important;
+            color: var(--text) !important;
+            font-weight: 600;
+            border: none !important;
+            border-bottom: 1px solid var(--card-border) !important;
+            padding: 1rem 1.5rem;
+        }
+        .card-body { color: var(--text) !important; }
+        .card-footer {
+            background: rgba(255,255,255,0.03) !important;
+            border-top: 1px solid var(--card-border) !important;
+            color: var(--muted) !important;
+        }
+
+        /* Stat cards */
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,0.35); }
+        .stat-card .icon { font-size: 2.5rem; margin-bottom: 0.75rem; color: var(--green); }
+        .stat-card h3 { font-size: 2.2rem; font-weight: 700; margin: 0; color: var(--text); }
+        .stat-card p  { color: var(--muted); margin: 0; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* ─── TABLES ─── */
+        .table { color: var(--text) !important; --bs-table-bg: transparent; --bs-table-color: var(--text); }
+        .table > :not(caption) > * > * { background-color: transparent !important; color: var(--text); border-bottom-color: rgba(255,255,255,0.06) !important; }
+        .table-hover > tbody > tr:hover > * { background-color: rgba(99,102,241,0.07) !important; color: var(--text); }
+        .table thead th { background-color: rgba(255,255,255,0.05) !important; color: var(--muted) !important; border-bottom: 1px solid var(--card-border) !important; }
+        .table-dark thead th { background-color: rgba(255,255,255,0.07) !important; color: var(--muted) !important; }
+        .table-bordered > :not(caption) > * > * { border-color: var(--card-border) !important; }
+        .table-warning > * { background-color: rgba(245,158,11,0.12) !important; color: var(--text) !important; }
+        .table-primary > * { background-color: rgba(99,102,241,0.12) !important; color: var(--text) !important; }
+        .table { border-radius: 12px; overflow: hidden; }
+        .table thead th { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .table tbody td { color: var(--text); vertical-align: middle; }
+        .table-striped tbody tr:nth-of-type(odd) > * { background-color: rgba(255,255,255,0.02) !important; }
+        .table th, .table td { padding: 0.55rem 0.75rem; font-size: 0.88rem; }
+        .cell-email { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* ─── BUTTONS ─── */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent2)) !important;
+            border: none !important; border-radius: 8px !important;
+            padding: 0.6rem 1.5rem !important; font-weight: 600 !important; color: #fff !important;
+            transition: all 0.2s !important;
+        }
+        .btn-primary:hover, .btn-primary:focus {
+            background: linear-gradient(135deg, #4F46E5, #7C3AED) !important;
+            color: #fff !important; transform: translateY(-1px) !important;
+            box-shadow: 0 8px 20px rgba(99,102,241,0.4) !important;
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #059669) !important;
+            border: none !important; border-radius: 8px !important;
+            font-weight: 600 !important; color: #fff !important;
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+            border: none !important; border-radius: 8px !important;
+            font-weight: 600 !important; color: #fff !important;
+        }
+        .btn-warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+            border: none !important; border-radius: 8px !important;
+            font-weight: 600 !important; color: #fff !important;
+        }
+        .btn-info {
+            background: linear-gradient(135deg, #06b6d4, #0891b2) !important;
+            border: none !important; border-radius: 8px !important;
+            font-weight: 600 !important; color: #fff !important;
+        }
+        .btn-secondary {
+            background: rgba(255,255,255,0.08) !important;
+            border: 1px solid var(--card-border) !important;
+            border-radius: 8px !important; font-weight: 600 !important; color: var(--text) !important;
+        }
+        .btn-secondary:hover { background: rgba(255,255,255,0.12) !important; color: var(--text) !important; }
+        .btn-outline-primary {
+            border: 2px solid var(--accent) !important; color: var(--accent) !important;
+            border-radius: 8px !important; font-weight: 600 !important; background: transparent !important;
+        }
+        .btn-outline-primary:hover { background: var(--accent) !important; color: #fff !important; }
+        .btn-outline-secondary {
+            border: 2px solid var(--card-border) !important; color: var(--muted) !important;
+            border-radius: 8px !important; font-weight: 600 !important; background: transparent !important;
+        }
+        .btn-outline-secondary:hover { background: rgba(255,255,255,0.08) !important; color: var(--text) !important; }
+        .btn-outline-success {
+            border: 2px solid var(--green) !important; color: var(--green) !important;
+            border-radius: 8px !important; font-weight: 600 !important; background: transparent !important;
+        }
+        .btn-outline-success:hover { background: var(--green) !important; color: #fff !important; }
+        .btn-outline-danger {
+            border: 2px solid var(--danger) !important; color: var(--danger) !important;
+            border-radius: 8px !important; font-weight: 600 !important; background: transparent !important;
+        }
+        .btn-outline-danger:hover { background: var(--danger) !important; color: #fff !important; }
+        .btn-outline-warning {
+            border: 2px solid var(--warning) !important; color: var(--warning) !important;
+            border-radius: 8px !important; font-weight: 600 !important; background: transparent !important;
+        }
+        .btn-outline-warning:hover { background: var(--warning) !important; color: #000 !important; }
+        .btn-outline-info {
+            border: 2px solid var(--info) !important; color: var(--info) !important;
+            border-radius: 8px !important; font-weight: 600 !important; background: transparent !important;
+        }
+        .btn-outline-info:hover { background: var(--info) !important; color: #fff !important; }
+
+        /* ─── FORMS ─── */
+        .form-control, .form-select {
+            background: rgba(255,255,255,0.05) !important;
+            border: 1px solid var(--card-border) !important;
+            color: var(--text) !important;
+            border-radius: 8px !important;
+            padding: 0.65rem 1rem !important;
+            transition: all 0.2s;
+        }
+        .form-control:focus, .form-select:focus {
+            background: rgba(255,255,255,0.08) !important;
+            border-color: var(--accent) !important;
+            color: var(--text) !important;
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.2) !important;
+        }
+        .form-control::placeholder { color: var(--muted) !important; opacity: 0.7; }
+        .form-label { color: var(--muted) !important; font-weight: 500; font-size: 0.875rem; }
+        .form-text { color: var(--muted) !important; font-size: 0.8rem; }
+        .form-select option { background: var(--bg2); color: var(--text); }
+        .input-group-text {
+            background: rgba(255,255,255,0.06) !important;
+            border: 1px solid var(--card-border) !important;
+            color: var(--muted) !important;
+        }
+        .form-check-input {
+            background-color: rgba(255,255,255,0.08) !important;
+            border-color: var(--card-border) !important;
+        }
+        .form-check-input:checked {
+            background-color: var(--accent) !important;
+            border-color: var(--accent) !important;
+        }
+
+        /* ─── ALERTS ─── */
+        .alert { border-radius: 12px !important; padding: 0.9rem 1.25rem !important; margin-bottom: 1.25rem !important; }
+        .alert-info    { background: rgba(56,189,248,0.1)  !important; border: 1px solid rgba(56,189,248,0.25) !important; color: #7DD3FC !important; }
+        .alert-success { background: rgba(16,185,129,0.1)  !important; border: 1px solid rgba(16,185,129,0.25) !important; color: #6EE7B7 !important; }
+        .alert-warning { background: rgba(245,158,11,0.1)  !important; border: 1px solid rgba(245,158,11,0.25) !important; color: #FCD34D !important; }
+        .alert-danger  { background: rgba(239,68,68,0.1)   !important; border: 1px solid rgba(239,68,68,0.25)  !important; color: #FCA5A5 !important; }
+
+        /* ─── BADGES ─── */
+        .badge { padding: 0.35rem 0.75rem !important; border-radius: 6px !important; font-weight: 600 !important; font-size: 0.8rem !important; }
+        .table .badge { padding: 0.2rem 0.5rem !important; font-size: 0.72rem !important; border-radius: 5px !important; }
+
+        /* Status badges */
+        .status-paid   { background: rgba(16,185,129,0.15); color: var(--green); padding: 0.25rem 0.75rem; border-radius: 6px; font-weight: 600; font-size: 0.82rem; }
+        .status-unpaid { background: rgba(239,68,68,0.15);  color: #f87171;      padding: 0.25rem 0.75rem; border-radius: 6px; font-weight: 600; font-size: 0.82rem; }
+        .priority-haute   { background: rgba(245,158,11,0.15); color: #fcd34d; }
+        .priority-urgente { background: rgba(239,68,68,0.15);  color: #f87171; }
+
+        /* ─── DROPDOWN ─── */
+        .dropdown-menu {
+            background: var(--bg2) !important;
+            border: 1px solid var(--card-border) !important;
+            border-radius: 12px !important;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.5) !important;
+        }
+        .dropdown-item { color: var(--text) !important; border-radius: 8px !important; }
+        .dropdown-item:hover { background: rgba(255,255,255,0.06) !important; color: var(--accent) !important; }
+        .dropdown-divider { border-color: var(--card-border) !important; }
+
+        /* ─── MODALS ─── */
+        .modal-content {
+            background: var(--bg2) !important;
+            border: 1px solid var(--card-border) !important;
+            border-radius: 16px !important;
+            color: var(--text) !important;
+        }
+        .modal-header { border-bottom: 1px solid var(--card-border) !important; }
+        .modal-footer { border-top: 1px solid var(--card-border) !important; }
+        .modal-backdrop { background: rgba(0,0,0,0.75) !important; }
+
+        /* ─── TABS ─── */
+        .nav-tabs { border-bottom: 1px solid var(--card-border) !important; }
+        .nav-tabs .nav-link { color: var(--muted) !important; border: none !important; border-radius: 8px 8px 0 0 !important; }
+        .nav-tabs .nav-link:hover { color: var(--text) !important; background: rgba(255,255,255,0.04) !important; border: none !important; }
+        .nav-tabs .nav-link.active { color: var(--accent) !important; background: rgba(99,102,241,0.1) !important; border-bottom: 2px solid var(--accent) !important; }
+        .nav-pills .nav-link { color: var(--muted) !important; border-radius: 8px !important; }
+        .nav-pills .nav-link.active { background: rgba(99,102,241,0.15) !important; color: var(--accent) !important; }
+
+        /* ─── PAGINATION ─── */
+        .page-link { background: var(--card) !important; border-color: var(--card-border) !important; color: var(--muted) !important; }
+        .page-link:hover { background: rgba(99,102,241,0.1) !important; color: var(--accent) !important; }
+        .page-item.active .page-link { background: var(--accent) !important; border-color: var(--accent) !important; color: #fff !important; }
+        .page-item.disabled .page-link { background: var(--card) !important; color: rgba(148,163,184,0.4) !important; }
+
+        /* ─── LIST GROUP ─── */
+        .list-group-item {
+            background: var(--card) !important;
+            border-color: var(--card-border) !important;
+            color: var(--text) !important;
+        }
+        .list-group-item-action:hover { background: rgba(255,255,255,0.06) !important; color: var(--accent) !important; }
+        .list-group-item.active { background: rgba(99,102,241,0.15) !important; border-color: var(--accent) !important; color: var(--accent) !important; }
+
+        /* ─── PROGRESS ─── */
+        .progress { background: rgba(255,255,255,0.08) !important; border-radius: 999px !important; }
+        .progress-bar { background: linear-gradient(90deg, var(--accent), var(--accent2)) !important; border-radius: 999px !important; }
+
+        /* ─── ACCORDION ─── */
+        .accordion-item { background: var(--card) !important; border-color: var(--card-border) !important; }
+        .accordion-button { background: rgba(255,255,255,0.04) !important; color: var(--text) !important; }
+        .accordion-button:not(.collapsed) { background: rgba(99,102,241,0.12) !important; color: var(--accent) !important; box-shadow: none !important; }
+        .accordion-button::after { filter: brightness(0.7); }
+
+        /* ─── TEXT & MISC ─── */
+        .text-muted { color: var(--muted) !important; }
+        h1, h2, h3, h4, h5, h6 { color: var(--text); }
+        hr { border-color: var(--card-border) !important; }
+        .bg-white { background: var(--card) !important; }
+        .border { border-color: var(--card-border) !important; }
+        .rounded { border-radius: 10px !important; }
+        .rounded-3 { border-radius: 12px !important; }
+        .shadow { box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important; }
+        .shadow-lg { box-shadow: 0 16px 40px rgba(0,0,0,0.4) !important; }
+
+        /* ─── ANIMATIONS ─── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(18px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .fade-up { animation: fadeUp 0.4s ease both; }
+
+        /* ─── RESPONSIVE ─── */
+        @media (max-width: 1100px) {
+            :root { --sidebar-w: 232px; }
+        }
         @media (max-width: 768px) {
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
-            .sidebar-overlay.open { display: block; }
-            .sidebar-toggle { display: flex; }
-            .main-content { margin-left: 0; padding: 1rem; padding-top: 4rem; }
-            .notif-topbar { left: 0; }
+            .hamburger { display: block; }
+            .main { margin-left: 0 !important; }
+            .content { padding: 16px; padding-bottom: 90px; }
+            .bottom-nav { display: block; }
+            .topbar { padding: 0 14px; }
         }
     </style>
 </head>
 <body>
 
+<div class="layout">
+
 {% if user %}
-<!-- Bouton hamburger mobile -->
-<button class="sidebar-toggle" id="sidebarToggle">
-    <i class="bi bi-list"></i>
-</button>
-
-<!-- Overlay mobile -->
-<div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-<!-- SIDEBAR -->
+<!-- ════════════════════════ SIDEBAR ════════════════════════ -->
 <aside class="sidebar" id="sidebar">
 
     <!-- Logo -->
@@ -563,252 +699,230 @@
         <img src="{{ url_for('static', filename='img/logo.png') }}" alt="SyndicPro">
     </a>
 
+    <!-- Badge résidence / org -->
+    {% if user.organization %}
+    <div class="sidebar-residence">
+        <strong>{{ user.organization.name }}</strong>
+        <span>{{ user.role | capitalize }}</span>
+    </div>
+    {% elif user.role == 'superadmin' %}
+    <div class="sidebar-residence">
+        <strong>Super Admin</strong>
+        <span>SyndicPro Platform</span>
+    </div>
+    {% endif %}
+
     <!-- Navigation -->
-    <nav class="sidebar-nav">
+    <nav class="nav-groups">
 
-        <div class="sidebar-section">Principal</div>
-
-        <a class="sidebar-link {% if request.endpoint == 'dashboard' %}active{% endif %}"
-           href="{{ url_for('dashboard') }}">
-            <i class="bi bi-speedometer2"></i> Tableau de bord
-        </a>
-
+        <!-- ══════════ ADMIN ══════════ -->
         {% if user.role == 'admin' %}
 
-        <div class="sidebar-section">Gestion</div>
-
-        <a class="sidebar-link {% if request.endpoint == 'apartments' %}active{% endif %}"
-           href="{{ url_for('apartments') }}">
-            <i class="bi bi-house-door"></i> Appartements
+        <!-- Tableau de bord -->
+        <a class="nav-solo {% if request.endpoint == 'dashboard' %}active{% endif %}"
+           href="{{ url_for('dashboard') }}">
+            <i class="bi bi-grid-1x2-fill"></i> Tableau de bord
         </a>
 
-        <a class="sidebar-link {% if request.endpoint == 'payments' %}active{% endif %}"
-           href="{{ url_for('payments') }}">
-            <i class="bi bi-cash-coin"></i> Encaissements
-        </a>
+        <!-- Immobilier -->
+        <div class="nav-group" id="g-immo">
+            <div class="nav-group-header" onclick="toggleGroup('g-immo')">
+                <span class="nav-group-label"><i class="bi bi-buildings"></i> Immobilier</span>
+                <i class="bi bi-chevron-right nav-group-arrow"></i>
+            </div>
+            <div class="nav-group-items">
+                <a class="nav-item {% if request.endpoint == 'apartments' %}active{% endif %}"
+                   href="{{ url_for('apartments') }}">Appartements</a>
+                <a class="nav-item {% if request.endpoint == 'users' %}active{% endif %}"
+                   href="{{ url_for('users') }}">Utilisateurs</a>
+                <a class="nav-item {% if request.endpoint in ['intervenants','edit_intervenant'] %}active{% endif %}"
+                   href="{{ url_for('intervenants') }}">Intervenants</a>
+                <a class="nav-item {% if request.endpoint == 'onboarding_import' %}active{% endif %}"
+                   href="{{ url_for('onboarding_import') }}">Import Excel</a>
+                <a class="nav-item {% if request.endpoint == 'alerts' %}active{% endif %}"
+                   href="{{ url_for('alerts') }}">Alertes</a>
+            </div>
+        </div>
 
-        <a class="sidebar-link {% if request.endpoint == 'virements_liste' %}active{% endif %}"
-           href="{{ url_for('virements_liste') }}">
-            <i class="bi bi-bank"></i> Virements
-            {% set pending_count = pending_virements_count | default(0) %}
-            {% if pending_count > 0 %}
-            <span class="badge rounded-pill ms-auto" style="background:#F59E0B;color:#000;font-size:.65rem;">{{ pending_count }}</span>
-            {% endif %}
-        </a>
+        <!-- Finances -->
+        <div class="nav-group" id="g-fin">
+            <div class="nav-group-header" onclick="toggleGroup('g-fin')">
+                <span class="nav-group-label"><i class="bi bi-coin"></i> Finances</span>
+                <i class="bi bi-chevron-right nav-group-arrow"></i>
+            </div>
+            <div class="nav-group-items">
+                <a class="nav-item {% if request.endpoint == 'payments' %}active{% endif %}"
+                   href="{{ url_for('payments') }}">Encaissements</a>
+                <a class="nav-item {% if request.endpoint == 'virements_liste' %}active{% endif %}"
+                   href="{{ url_for('virements_liste') }}">
+                    Virements
+                    {% set pending_count = pending_virements_count | default(0) %}
+                    {% if pending_count > 0 %}
+                    <span class="nav-badge badge-warning">{{ pending_count }}</span>
+                    {% endif %}
+                </a>
+                <a class="nav-item {% if request.endpoint == 'expenses' %}active{% endif %}"
+                   href="{{ url_for('expenses') }}">Dépenses</a>
+                <a class="nav-item {% if request.endpoint in ['appels_fonds','appel_fonds_detail'] %}active{% endif %}"
+                   href="{{ url_for('appels_fonds') }}">Appels de Fonds</a>
+                <a class="nav-item {% if request.endpoint == 'tresorerie' %}active{% endif %}"
+                   href="{{ url_for('tresorerie') }}">Trésorerie</a>
+                <a class="nav-item {% if request.endpoint == 'comptable' %}active{% endif %}"
+                   href="{{ url_for('comptable') }}">Comptable</a>
+                <a class="nav-item" href="{{ url_for('export_excel') }}">Export Excel</a>
+                <a class="nav-item {% if request.endpoint == 'etats_financiers' %}active{% endif %}"
+                   href="{{ url_for('etats_financiers') }}">États Financiers</a>
+                <a class="nav-item {% if request.endpoint == 'flouci_links' %}active{% endif %}"
+                   href="{{ url_for('flouci_links') }}">Liens Flouci</a>
+                <a class="nav-item {% if request.endpoint == 'konnect_links' %}active{% endif %}"
+                   href="{{ url_for('konnect_links') }}">Liens Konnect</a>
+            </div>
+        </div>
 
-        <a class="sidebar-link {% if request.endpoint == 'expenses' %}active{% endif %}"
-           href="{{ url_for('expenses') }}">
-            <i class="bi bi-credit-card"></i> Dépenses
-        </a>
+        <!-- Gestion -->
+        <div class="nav-group" id="g-gest">
+            <div class="nav-group-header" onclick="toggleGroup('g-gest')">
+                <span class="nav-group-label"><i class="bi bi-clipboard2-check"></i> Gestion</span>
+                <i class="bi bi-chevron-right nav-group-arrow"></i>
+            </div>
+            <div class="nav-group-items">
+                <a class="nav-item {% if request.endpoint == 'tickets' %}active{% endif %}"
+                   href="{{ url_for('tickets') }}">Tickets</a>
+                <a class="nav-item {% if request.endpoint in ['messagerie','messagerie_fil'] %}active{% endif %}"
+                   href="{{ url_for('messagerie') }}">
+                    Messagerie
+                    {% if unread_messages_count | default(0) > 0 %}
+                    <span class="nav-badge badge-accent">{{ unread_messages_count }}</span>
+                    {% endif %}
+                </a>
+                <a class="nav-item {% if request.endpoint == 'announcements' %}active{% endif %}"
+                   href="{{ url_for('announcements') }}">Annonces</a>
+                <a class="nav-item {% if request.endpoint in ['litiges','litige_detail','autre_litige_dossier'] %}active{% endif %}"
+                   href="{{ url_for('litiges') }}">Litiges</a>
+                <a class="nav-item {% if request.endpoint in ['assembly_list','assembly_detail','assembly_pv','assembly_new'] %}active{% endif %}"
+                   href="{{ url_for('assembly_list') }}">Assemblées</a>
+                <a class="nav-item {% if request.endpoint == 'access_log' %}active{% endif %}"
+                   href="{{ url_for('access_log') }}">Registre Accès</a>
+            </div>
+        </div>
 
-        <a class="sidebar-link {% if request.endpoint == 'alerts' %}active{% endif %}"
-           href="{{ url_for('alerts') }}">
-            <i class="bi bi-exclamation-triangle"></i> Alertes
-        </a>
-
-        <a class="sidebar-link {% if request.endpoint == 'users' %}active{% endif %}"
-           href="{{ url_for('users') }}">
-            <i class="bi bi-people"></i> Utilisateurs
-        </a>
-
-        <a class="sidebar-link {% if request.endpoint in ['intervenants','edit_intervenant'] %}active{% endif %}"
-           href="{{ url_for('intervenants') }}">
-            <i class="bi bi-person-gear"></i> Intervenants
-        </a>
-
-        <a class="sidebar-link {% if request.endpoint in ['litiges','litige_detail','autre_litige_dossier'] %}active{% endif %}"
-           href="{{ url_for('litiges') }}">
-            <i class="bi bi-shield-exclamation" style="color:{% if request.endpoint in ['litiges','litige_detail','autre_litige_dossier'] %}inherit{% else %}#f87171{% endif %};"></i> Litiges
-        </a>
-
-        <a class="sidebar-link {% if request.endpoint in ['appels_fonds','appel_fonds_detail'] %}active{% endif %}"
-           href="{{ url_for('appels_fonds') }}">
-            <i class="bi bi-piggy-bank" style="color:#60A5FA;"></i> Appels de Fonds
-        </a>
-
-        <a class="sidebar-link {% if request.endpoint == 'onboarding_import' %}active{% endif %}"
-           href="{{ url_for('onboarding_import') }}">
-            <i class="bi bi-file-earmark-excel" style="color:#10B981;"></i> Import Excel
-        </a>
-
-        <div class="sidebar-section">Rapports</div>
-
-        <a class="sidebar-link {% if request.endpoint == 'tresorerie' %}active{% endif %}"
-           href="{{ url_for('tresorerie') }}">
-            <i class="bi bi-table"></i> Trésorerie
-        </a>
-
-        <a class="sidebar-link {% if request.endpoint == 'comptable' %}active{% endif %}"
-           href="{{ url_for('comptable') }}">
-            <i class="bi bi-calculator"></i> Comptable
-        </a>
-
-        <a class="sidebar-link" href="{{ url_for('export_excel') }}">
-            <i class="bi bi-file-earmark-spreadsheet"></i> Export Excel
-        </a>
-
-        <a class="sidebar-link {% if request.endpoint == 'etats_financiers' %}active{% endif %}"
-           href="{{ url_for('etats_financiers') }}">
-            <i class="bi bi-bank"></i> États Financiers
-        </a>
-
-        <a class="sidebar-link {% if request.endpoint == 'announcements' %}active{% endif %}"
-           href="{{ url_for('announcements') }}">
-            <i class="bi bi-megaphone"></i> Tableau d'affichage
-        </a>
-
-        <a class="sidebar-link {% if request.endpoint in ['messagerie','messagerie_fil'] %}active{% endif %}"
-           href="{{ url_for('messagerie') }}">
-            <i class="bi bi-chat-dots"></i> Messagerie
-            {% if unread_messages_count | default(0) > 0 %}
-            <span class="badge rounded-pill ms-auto" style="background:#6366f1;color:#fff;">{{ unread_messages_count }}</span>
-            {% endif %}
-        </a>
-
-        <a class="sidebar-link {% if request.endpoint in ['assembly_list','assembly_detail','assembly_pv','assembly_new'] %}active{% endif %}"
-           href="{{ url_for('assembly_list') }}">
-            <i class="bi bi-people-fill"></i> Assemblées Générales
-        </a>
-
-        <div class="sidebar-section">Compte</div>
-
-        <a class="sidebar-link {% if request.endpoint == 'subscription_status' %}active{% endif %}"
-           href="{{ url_for('subscription_status') }}">
-            <i class="bi bi-gem"></i> Mon Abonnement
-        </a>
-
-        <a class="sidebar-link {% if request.endpoint == 'settings' %}active{% endif %}"
-           href="{{ url_for('settings') }}">
-            <i class="bi bi-gear"></i> Paramètres
-        </a>
-
-        <a class="sidebar-link {% if request.endpoint == 'flouci_links' %}active{% endif %}"
-           href="{{ url_for('flouci_links') }}">
-            <i class="bi bi-credit-card"></i> Liens Flouci
-        </a>
-        <a class="sidebar-link {% if request.endpoint == 'konnect_links' %}active{% endif %}"
-           href="{{ url_for('konnect_links') }}">
-            <i class="bi bi-credit-card-2-front"></i> Liens Konnect
-        </a>
-
-        <div class="sidebar-section">Outils</div>
-
-        <a class="sidebar-link {% if request.endpoint == 'automation' %}active{% endif %}"
-           href="{{ url_for('automation') }}">
-            <i class="bi bi-lightning-charge"></i> Automatisation
-        </a>
-
-        <a class="sidebar-link {% if request.endpoint == 'ai_chat' %}active{% endif %}"
-           href="{{ url_for('ai_chat') }}">
-            <i class="bi bi-robot"></i> Assistant AI
-        </a>
-
-        <a class="sidebar-link {% if request.endpoint == 'access_log' %}active{% endif %}"
-           href="{{ url_for('access_log') }}">
-            <i class="bi bi-door-open"></i> Registre Accès
-        </a>
+        <!-- Technique -->
+        <div class="nav-group" id="g-tech">
+            <div class="nav-group-header" onclick="toggleGroup('g-tech')">
+                <span class="nav-group-label"><i class="bi bi-cpu"></i> Technique</span>
+                <i class="bi bi-chevron-right nav-group-arrow"></i>
+            </div>
+            <div class="nav-group-items">
+                <a class="nav-item {% if request.endpoint == 'automation' %}active{% endif %}"
+                   href="{{ url_for('automation') }}">Automatisation</a>
+                <a class="nav-item {% if request.endpoint == 'ai_chat' %}active{% endif %}"
+                   href="{{ url_for('ai_chat') }}">Assistant IA ✨</a>
+                <a class="nav-item {% if request.endpoint in ['lifts','lift_detail'] %}active{% endif %}"
+                   href="{{ url_for('lifts') }}">Ascenseurs</a>
+            </div>
+        </div>
 
         {% endif %}
+        <!-- /ADMIN -->
 
+        <!-- ══════════ RÉSIDENT ══════════ -->
         {% if user.role == 'resident' %}
 
-        <div class="sidebar-section">Mon Espace</div>
-
-        <a class="sidebar-link {% if request.endpoint == 'residents_menu' %}active{% endif %}"
-           href="{{ url_for('residents_menu') }}">
-            <i class="bi bi-person-badge"></i> Mon Appartement
+        <a class="nav-solo {% if request.endpoint == 'dashboard' %}active{% endif %}"
+           href="{{ url_for('dashboard') }}">
+            <i class="bi bi-grid-1x2-fill"></i> Tableau de bord
         </a>
 
-        <!-- Annonces dans la sidebar -->
-        <a class="sidebar-link {% if request.endpoint == 'residents_menu' and request.args.get('tab') == 'annonces' %}active{% endif %}"
-           href="{{ url_for('residents_menu') }}"
-           style="font-weight:600;">
-            <i class="bi bi-megaphone" {% if sidebar_unread_count and sidebar_unread_count > 0 %}style="color:var(--green);"{% endif %}></i>
-            Annonces
-            {% if sidebar_unread_count and sidebar_unread_count > 0 %}
-            <span class="sidebar-badge">{{ sidebar_unread_count }}</span>
-            {% endif %}
-        </a>
+        <!-- Mon Espace -->
+        <div class="nav-group" id="g-resident">
+            <div class="nav-group-header" onclick="toggleGroup('g-resident')">
+                <span class="nav-group-label"><i class="bi bi-person-badge"></i> Mon Espace</span>
+                <i class="bi bi-chevron-right nav-group-arrow"></i>
+            </div>
+            <div class="nav-group-items">
+                <a class="nav-item {% if request.endpoint == 'residents_menu' %}active{% endif %}"
+                   href="{{ url_for('residents_menu') }}">Mon Appartement</a>
+                <a class="nav-item" href="{{ url_for('residents_menu') }}" style="font-weight:600;">
+                    Annonces
+                    {% if sidebar_unread_count and sidebar_unread_count > 0 %}
+                    <span class="nav-badge badge-danger">{{ sidebar_unread_count }}</span>
+                    {% endif %}
+                </a>
+                {% if sidebar_announcements %}
+                {% for ann, unread in sidebar_announcements %}
+                <a class="sidebar-ann-item" href="{{ url_for('read_announcement', ann_id=ann.id) }}">
+                    <span class="sidebar-ann-dot"
+                          style="background:{% if unread %}var(--green){% else %}rgba(255,255,255,0.2){% endif %};"></span>
+                    <span style="{% if unread %}color:var(--text);font-weight:500;{% endif %}overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                        {{ ann.title }}
+                    </span>
+                </a>
+                {% endfor %}
+                {% endif %}
+                <a class="nav-item {% if request.endpoint == 'appels_fonds_resident' %}active{% endif %}"
+                   href="{{ url_for('appels_fonds_resident') }}">Appels de Fonds</a>
+                <a class="nav-item {% if request.endpoint in ['messagerie','messagerie_fil'] %}active{% endif %}"
+                   href="{{ url_for('messagerie') }}">
+                    Messagerie
+                    {% if unread_messages_count | default(0) > 0 %}
+                    <span class="nav-badge badge-accent">{{ unread_messages_count }}</span>
+                    {% endif %}
+                </a>
+                <a class="nav-item {% if request.endpoint in ['assembly_list','assembly_detail','assembly_pv'] %}active{% endif %}"
+                   href="{{ url_for('assembly_list') }}">Assemblées</a>
+                <a class="nav-item {% if request.endpoint in ['lifts','lift_detail'] %}active{% endif %}"
+                   href="{{ url_for('lifts') }}">Ascenseurs</a>
+            </div>
+        </div>
 
-        {% if sidebar_announcements %}
-        {% for ann, unread in sidebar_announcements %}
-        <a class="sidebar-ann-item" href="{{ url_for('read_announcement', ann_id=ann.id) }}">
-            <span class="sidebar-ann-dot" style="background:{% if unread %}var(--green){% else %}var(--border2){% endif %};"></span>
-            <span style="{% if unread %}color:var(--text);font-weight:500;{% endif %}overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                {{ ann.title }}
-            </span>
-        </a>
-        {% endfor %}
-        {% endif %}
-
-        {% endif %}
-
-        <a class="sidebar-link {% if request.endpoint == 'tickets' %}active{% endif %}"
+        <a class="nav-solo {% if request.endpoint == 'tickets' %}active{% endif %}"
            href="{{ url_for('tickets') }}">
             <i class="bi bi-chat-left-dots"></i> Tickets
         </a>
 
-        <a class="sidebar-link {% if request.endpoint in ['lifts','lift_detail'] %}active{% endif %}"
-           href="{{ url_for('lifts') }}">
-            <i class="bi bi-elevator"></i> Ascenseurs
-        </a>
-
-        {% if user.role == 'resident' %}
-        <a class="sidebar-link {% if request.endpoint == 'appels_fonds_resident' %}active{% endif %}"
-           href="{{ url_for('appels_fonds_resident') }}">
-            <i class="bi bi-piggy-bank" style="color:#60A5FA;"></i> Appels de Fonds
-        </a>
-
-        <a class="sidebar-link {% if request.endpoint in ['messagerie','messagerie_fil'] %}active{% endif %}"
-           href="{{ url_for('messagerie') }}">
-            <i class="bi bi-chat-dots"></i> Messagerie
-            {% if unread_messages_count | default(0) > 0 %}
-            <span class="badge rounded-pill ms-auto" style="background:#6366f1;color:#fff;">{{ unread_messages_count }}</span>
-            {% endif %}
-        </a>
-
-        <a class="sidebar-link {% if request.endpoint in ['assembly_list','assembly_detail','assembly_pv'] %}active{% endif %}"
-           href="{{ url_for('assembly_list') }}">
-            <i class="bi bi-people-fill"></i> Assemblées Générales
-        </a>
         {% endif %}
+        <!-- /RÉSIDENT -->
 
+        <!-- ══════════ SUPERADMIN ══════════ -->
         {% if user.role == 'superadmin' %}
 
-        <div class="sidebar-section">Administration</div>
-
-        <a class="sidebar-link {% if request.endpoint == 'superadmin_dashboard' %}active{% endif %}"
+        <a class="nav-solo {% if request.endpoint == 'superadmin_dashboard' %}active{% endif %}"
            href="{{ url_for('superadmin_dashboard') }}">
             <i class="bi bi-shield-check"></i> Super Admin
         </a>
 
         {% endif %}
+        <!-- /SUPERADMIN -->
 
     </nav>
 
-    <!-- Footer utilisateur -->
-    <div class="sidebar-footer">
-        <div class="sidebar-user">
-            <div class="avatar"><i class="bi bi-person-fill"></i></div>
-            <div class="user-info">
-                <div class="user-name">{{ user.name }}</div>
-                <div class="user-role">{{ user.role | capitalize }}</div>
-            </div>
-        </div>
-        <a class="sidebar-link {% if request.endpoint == 'change_password' %}active{% endif %}"
-           href="{{ url_for('change_password') }}">
-            <i class="bi bi-shield-lock"></i> Changer mon mot de passe
+    <!-- Bas de sidebar : Compte + Déconnexion -->
+    <div class="sidebar-bottom">
+        {% if user.role == 'admin' %}
+        <a class="nav-solo {% if request.endpoint == 'subscription_status' %}active{% endif %}"
+           href="{{ url_for('subscription_status') }}">
+            <i class="bi bi-gem"></i> Abonnement
         </a>
-        <a class="sidebar-link" href="{{ url_for('logout') }}" style="color:#f87171;">
+        <a class="nav-solo {% if request.endpoint == 'settings' %}active{% endif %}"
+           href="{{ url_for('settings') }}">
+            <i class="bi bi-gear"></i> Paramètres
+        </a>
+        {% endif %}
+        <a class="nav-solo {% if request.endpoint == 'change_password' %}active{% endif %}"
+           href="{{ url_for('change_password') }}">
+            <i class="bi bi-shield-lock"></i> Mot de passe
+        </a>
+        <a class="nav-solo" href="{{ url_for('logout') }}" style="color:#f87171;">
             <i class="bi bi-box-arrow-right"></i> Déconnexion
         </a>
-
-        <!-- Bouton installer PWA (caché par défaut, affiché par JS si disponible) -->
+        <!-- Bouton installer PWA (caché par défaut) -->
         <button id="pwa-sidebar-btn" data-pwa-install
-                style="display:none;width:100%;margin-top:8px;background:linear-gradient(135deg,#1D4ED8,#6366f1);
-                       color:#fff;border:none;border-radius:10px;padding:10px 14px;
-                       font-size:.85rem;font-weight:600;cursor:pointer;align-items:center;gap:10px;">
-            <i class="bi bi-phone-fill" style="font-size:1rem;"></i>
+                style="display:none;width:100%;margin-top:6px;
+                       background:linear-gradient(135deg,var(--accent),var(--accent2));
+                       color:#fff;border:none;border-radius:10px;padding:9px 14px;
+                       font-size:.82rem;font-weight:600;cursor:pointer;
+                       align-items:center;gap:8px;justify-content:center;">
+            <i class="bi bi-phone-fill"></i>
             <span>Installer l'application</span>
         </button>
     </div>
@@ -816,121 +930,266 @@
 </aside>
 {% endif %}
 
-{% if user %}
-<!-- Bouton push commun à tous les rôles -->
-<div style="position:fixed;top:8px;right:{% if user.role == 'admin' %}340px{% else %}16px{% endif %};z-index:1050;">
-    <button id="pushActivateBtn" title="Notifications push"
-            style="display:flex;align-items:center;gap:6px;background:rgba(59,130,246,0.15);
-                   border:1px solid rgba(59,130,246,0.4);color:#93C5FD;border-radius:8px;
-                   padding:4px 10px;font-size:0.78rem;cursor:pointer;">
-        <i class="bi bi-bell-slash" id="pushBtnIcon"></i>
-        <span id="pushBtnLabel">Notifs push</span>
-    </button>
-</div>
-{% endif %}
+<!-- Overlay mobile -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-{% if user and user.role == 'admin' %}
-<!-- BARRE NOTIFICATIONS admin -->
-<div class="notif-topbar">
-    <!-- espace réservé pour que la cloche ne chevauche pas le bouton push -->
-    <div style="width:0;"></div>
-    <div class="dropdown">
-        <button class="notif-btn" id="notifBtn" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
-            <i class="bi bi-bell{% if notif_count and notif_count > 0 %}-fill{% endif %}" id="notifBellIcon"></i>
-            {% if notif_count and notif_count > 0 %}
-            <span class="notif-badge" id="notifBadge">{{ notif_count if notif_count <= 9 else '9+' }}</span>
-            {% endif %}
-        </button>
-        <div class="dropdown-menu dropdown-menu-end notif-dropdown">
-            <div class="notif-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-bell"></i> &nbsp;Notifications — 24h</span>
-                {% if notif_count and notif_count > 0 %}
-                <span style="font-size:.72rem;color:var(--green);">{{ notif_count }} non vue{{ 's' if notif_count > 1 }}</span>
-                {% endif %}
+<!-- ════════════════════════ MAIN ════════════════════════ -->
+<main class="main {% if not user %}no-sidebar{% endif %}">
+
+    {% if user %}
+    <!-- ── TOPBAR ── -->
+    <header class="topbar">
+        <div class="topbar-left">
+            <button class="hamburger" id="sidebarToggle" aria-label="Menu">
+                <i class="bi bi-list"></i>
+            </button>
+            <div class="breadcrumb-nav">
+                SyndicPro&nbsp;/&nbsp;<b>{% if request.endpoint == 'dashboard' %}Tableau de bord
+                {% elif request.endpoint == 'apartments' %}Appartements
+                {% elif request.endpoint == 'payments' %}Encaissements
+                {% elif request.endpoint == 'virements_liste' %}Virements
+                {% elif request.endpoint == 'expenses' %}Dépenses
+                {% elif request.endpoint == 'users' %}Utilisateurs
+                {% elif request.endpoint in ['intervenants','edit_intervenant'] %}Intervenants
+                {% elif request.endpoint == 'tickets' %}Tickets
+                {% elif request.endpoint == 'tresorerie' %}Trésorerie
+                {% elif request.endpoint == 'comptable' %}Comptable
+                {% elif request.endpoint == 'alerts' %}Alertes
+                {% elif request.endpoint == 'announcements' %}Annonces
+                {% elif request.endpoint == 'automation' %}Automatisation
+                {% elif request.endpoint == 'ai_chat' %}Assistant IA
+                {% elif request.endpoint == 'access_log' %}Registre Accès
+                {% elif request.endpoint == 'settings' %}Paramètres
+                {% elif request.endpoint == 'subscription_status' %}Abonnement
+                {% elif request.endpoint in ['litiges','litige_detail','autre_litige_dossier'] %}Litiges
+                {% elif request.endpoint in ['appels_fonds','appel_fonds_detail'] %}Appels de Fonds
+                {% elif request.endpoint == 'appels_fonds_resident' %}Appels de Fonds
+                {% elif request.endpoint in ['messagerie','messagerie_fil'] %}Messagerie
+                {% elif request.endpoint in ['assembly_list','assembly_detail','assembly_pv','assembly_new'] %}Assemblées
+                {% elif request.endpoint in ['lifts','lift_detail'] %}Ascenseurs
+                {% elif request.endpoint == 'residents_menu' %}Mon Espace
+                {% elif request.endpoint == 'superadmin_dashboard' %}Super Admin
+                {% elif request.endpoint == 'etats_financiers' %}États Financiers
+                {% elif request.endpoint == 'onboarding_import' %}Import Excel
+                {% elif request.endpoint == 'flouci_links' %}Liens Flouci
+                {% elif request.endpoint == 'konnect_links' %}Liens Konnect
+                {% elif request.endpoint == 'change_password' %}Mot de passe
+                {% elif request.endpoint == 'financial_statements' %}États Financiers
+                {% else %}SyndicPro{% endif %}</b>
             </div>
-
-            {% if unpaid_critical and unpaid_critical > 0 %}
-            <a href="{{ url_for('alerts') }}" class="notif-item">
-                <div class="notif-icon" style="background:rgba(239,68,68,0.15);">
-                    <i class="bi bi-exclamation-triangle-fill" style="color:#F87171;"></i>
-                </div>
-                <div>
-                    <div class="notif-text">{{ unpaid_critical }} impayé{{ 's' if unpaid_critical > 1 }} critiques</div>
-                    <div class="notif-sub">Retard de plus de 3 mois</div>
-                </div>
-            </a>
-            {% endif %}
-
-            {% if notif_list %}
-                {% for n in notif_list %}
-                <a href="{{ n.url }}" class="notif-item" style="position:relative;">
-                    {% if n.new %}
-                    <span style="position:absolute;top:10px;left:6px;width:7px;height:7px;border-radius:50%;background:var(--green);"></span>
-                    {% endif %}
-                    <div class="notif-icon" style="background:{{ n.color }}22;margin-left:{% if n.new %}6px{% else %}0{% endif %};">
-                        <i class="bi bi-{{ n.icon }}" style="color:{{ n.color }};"></i>
-                    </div>
-                    <div style="flex:1;min-width:0;">
-                        <div class="notif-text" {% if n.new %}style="color:var(--text);font-weight:600;"{% endif %}>{{ n.text }}</div>
-                        <div class="notif-sub">{{ n.sub }}</div>
-                    </div>
-                    <div class="notif-time">{{ n.ts.strftime('%H:%M') }}</div>
-                </a>
-                {% endfor %}
-            {% else %}
-                <div class="notif-empty">
-                    <i class="bi bi-check-circle" style="font-size:1.5rem;display:block;margin-bottom:.5rem;"></i>
-                    Aucune activité récente
-                </div>
-            {% endif %}
         </div>
+        <div class="topbar-right">
+            <!-- Bouton push notifications -->
+            <button id="pushActivateBtn" title="Notifications push" class="d-none d-sm-flex">
+                <i class="bi bi-bell-slash" id="pushBtnIcon"></i>
+                <span id="pushBtnLabel">Notifs push</span>
+            </button>
+
+            {% if user.role == 'admin' %}
+            <!-- Cloche notifications (admin) -->
+            <div class="dropdown">
+                <button class="tb-btn" id="notifBtn"
+                        data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
+                    <i class="bi bi-bell{% if notif_count and notif_count > 0 %}-fill{% endif %}"
+                       id="notifBellIcon"></i>
+                    {% if notif_count and notif_count > 0 %}
+                    <span class="notif-badge" id="notifBadge">
+                        {{ notif_count if notif_count <= 9 else '9+' }}
+                    </span>
+                    <span class="tb-dot"></span>
+                    {% endif %}
+                </button>
+                <div class="dropdown-menu dropdown-menu-end notif-dropdown">
+                    <div class="notif-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-bell"></i>&nbsp; Notifications — 24h</span>
+                        {% if notif_count and notif_count > 0 %}
+                        <span style="font-size:.72rem;color:var(--green);">
+                            {{ notif_count }} non vue{{ 's' if notif_count > 1 }}
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    {% if unpaid_critical and unpaid_critical > 0 %}
+                    <a href="{{ url_for('alerts') }}" class="notif-item">
+                        <div class="notif-icon" style="background:rgba(239,68,68,0.15);">
+                            <i class="bi bi-exclamation-triangle-fill" style="color:#F87171;"></i>
+                        </div>
+                        <div>
+                            <div class="notif-text">
+                                {{ unpaid_critical }} impayé{{ 's' if unpaid_critical > 1 }} critiques
+                            </div>
+                            <div class="notif-sub">Retard de plus de 3 mois</div>
+                        </div>
+                    </a>
+                    {% endif %}
+
+                    {% if notif_list %}
+                    {% for n in notif_list %}
+                    <a href="{{ n.url }}" class="notif-item" style="position:relative;">
+                        {% if n.new %}
+                        <span style="position:absolute;top:10px;left:6px;
+                                     width:7px;height:7px;border-radius:50%;background:var(--green);"></span>
+                        {% endif %}
+                        <div class="notif-icon"
+                             style="background:{{ n.color }}22;
+                                    margin-left:{% if n.new %}6px{% else %}0{% endif %};">
+                            <i class="bi bi-{{ n.icon }}" style="color:{{ n.color }};"></i>
+                        </div>
+                        <div style="flex:1;min-width:0;">
+                            <div class="notif-text"
+                                 {% if n.new %}style="color:var(--text);font-weight:600;"{% endif %}>
+                                {{ n.text }}
+                            </div>
+                            <div class="notif-sub">{{ n.sub }}</div>
+                        </div>
+                        <div class="notif-time">{{ n.ts.strftime('%H:%M') }}</div>
+                    </a>
+                    {% endfor %}
+                    {% else %}
+                    <div class="notif-empty">
+                        <i class="bi bi-check-circle"
+                           style="font-size:1.5rem;display:block;margin-bottom:.5rem;"></i>
+                        Aucune activité récente
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Avatar utilisateur -->
+            <div class="tb-avatar" title="{{ user.name }}">
+                {{ (user.name[:2]) | upper if user.name | length >= 2 else user.name | upper }}
+            </div>
+        </div>
+    </header>
+    {% endif %}
+
+    <!-- ── CONTENU PRINCIPAL ── -->
+    <div class="content">
+        {% block content %}{% endblock %}
     </div>
-</div>
-{% endif %}
+
+</main>
+
+</div><!-- /.layout -->
+
+{% if user %}
+<!-- ════════════════════════ BOTTOM NAV (mobile) ════════════════════════ -->
+<nav class="bottom-nav">
+    <div class="bn-items">
+        {% if user.role == 'admin' %}
+        <a class="bn-item {% if request.endpoint == 'dashboard' %}active{% endif %}"
+           href="{{ url_for('dashboard') }}">
+            <i class="bi bi-grid-1x2-fill"></i><span>Accueil</span>
+        </a>
+        <a class="bn-item {% if request.endpoint == 'payments' %}active{% endif %}"
+           href="{{ url_for('payments') }}">
+            <i class="bi bi-cash-coin"></i><span>Paiements</span>
+        </a>
+        <a class="bn-item {% if request.endpoint == 'tickets' %}active{% endif %}"
+           href="{{ url_for('tickets') }}">
+            <i class="bi bi-ticket-detailed"></i><span>Tickets</span>
+        </a>
+        <a class="bn-item {% if request.endpoint in ['messagerie','messagerie_fil'] %}active{% endif %}"
+           href="{{ url_for('messagerie') }}" style="position:relative;">
+            <i class="bi bi-chat-dots"></i><span>Messages</span>
+            {% if unread_messages_count | default(0) > 0 %}
+            <span class="bn-badge"></span>
+            {% endif %}
+        </a>
+        <button class="bn-item" onclick="openSidebar()" type="button">
+            <i class="bi bi-grid-3x3-gap"></i><span>Menu</span>
+        </button>
+
+        {% elif user.role == 'resident' %}
+        <a class="bn-item {% if request.endpoint == 'dashboard' %}active{% endif %}"
+           href="{{ url_for('dashboard') }}">
+            <i class="bi bi-grid-1x2-fill"></i><span>Accueil</span>
+        </a>
+        <a class="bn-item {% if request.endpoint == 'residents_menu' %}active{% endif %}"
+           href="{{ url_for('residents_menu') }}">
+            <i class="bi bi-person-badge"></i><span>Mon Apt</span>
+        </a>
+        <a class="bn-item {% if request.endpoint == 'tickets' %}active{% endif %}"
+           href="{{ url_for('tickets') }}">
+            <i class="bi bi-chat-left-dots"></i><span>Tickets</span>
+        </a>
+        <a class="bn-item {% if request.endpoint in ['messagerie','messagerie_fil'] %}active{% endif %}"
+           href="{{ url_for('messagerie') }}" style="position:relative;">
+            <i class="bi bi-chat-dots"></i><span>Messages</span>
+            {% if unread_messages_count | default(0) > 0 %}
+            <span class="bn-badge"></span>
+            {% endif %}
+        </a>
+        <button class="bn-item" onclick="openSidebar()" type="button">
+            <i class="bi bi-grid-3x3-gap"></i><span>Menu</span>
+        </button>
+        {% endif %}
+    </div>
+</nav>
 
 <!-- ── Bannière installation PWA (Android/Chrome) ── -->
 <div id="pwa-install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9998;
-     background:linear-gradient(135deg,#1D4ED8,#6366f1);color:#fff;
-     padding:12px 16px;align-items:center;gap:12px;box-shadow:0 -4px 20px rgba(0,0,0,.4);">
-    <img src="/static/icons/icon-192.png" style="width:40px;height:40px;border-radius:10px;flex-shrink:0;" alt="SyndicPro">
+     background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;
+     padding:12px 16px;align-items:center;gap:12px;box-shadow:0 -4px 20px rgba(0,0,0,.5);">
+    <img src="/static/icons/icon-192.png"
+         style="width:40px;height:40px;border-radius:10px;flex-shrink:0;" alt="SyndicPro">
     <div style="flex:1;min-width:0;">
         <div style="font-weight:700;font-size:.92rem;">Installer SyndicPro</div>
         <div style="font-size:.78rem;opacity:.85;">Accès rapide depuis votre écran d'accueil</div>
     </div>
-    <button data-pwa-install style="background:#fff;color:#1D4ED8;border:none;border-radius:8px;
-            padding:7px 14px;font-weight:700;font-size:.82rem;cursor:pointer;white-space:nowrap;">
+    <button data-pwa-install
+            style="background:#fff;color:var(--accent);border:none;border-radius:8px;
+                   padding:7px 14px;font-weight:700;font-size:.82rem;cursor:pointer;white-space:nowrap;">
         Installer
     </button>
-    <button data-pwa-dismiss style="background:none;border:none;color:#fff;opacity:.7;
-            cursor:pointer;font-size:1.2rem;padding:4px;line-height:1;">✕</button>
+    <button data-pwa-dismiss
+            style="background:none;border:none;color:#fff;opacity:.7;
+                   cursor:pointer;font-size:1.2rem;padding:4px;line-height:1;">✕</button>
 </div>
 
 <!-- ── Bannière installation PWA (iOS/Safari) ── -->
 <div id="pwa-ios-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9998;
-     background:#1E293B;color:#fff;border-top:1px solid #334155;
-     padding:14px 16px;align-items:flex-start;gap:12px;box-shadow:0 -4px 20px rgba(0,0,0,.4);">
-    <img src="/static/icons/icon-192.png" style="width:40px;height:40px;border-radius:10px;flex-shrink:0;" alt="SyndicPro">
+     background:var(--bg2);color:#fff;border-top:1px solid var(--card-border);
+     padding:14px 16px;align-items:flex-start;gap:12px;box-shadow:0 -4px 20px rgba(0,0,0,.5);">
+    <img src="/static/icons/icon-192.png"
+         style="width:40px;height:40px;border-radius:10px;flex-shrink:0;" alt="SyndicPro">
     <div style="flex:1;">
-        <div style="font-weight:700;font-size:.92rem;margin-bottom:4px;">Installer SyndicPro sur iPhone</div>
+        <div style="font-weight:700;font-size:.92rem;margin-bottom:4px;">
+            Installer SyndicPro sur iPhone
+        </div>
         <div style="font-size:.8rem;opacity:.8;line-height:1.5;">
-            Appuyez sur <span style="background:#334155;padding:2px 6px;border-radius:5px;">
-            <svg width="14" height="14" viewBox="0 0 50 50" fill="white" style="vertical-align:middle;"><path d="M30.3 13.7L25 8.4l-5.3 5.3-1.4-1.4L25 5.6l6.7 6.7z"/><path d="M24 7h2v21h-2z"/><path d="M35 40H15c-1.7 0-3-1.3-3-3V19c0-1.7 1.3-3 3-3h7v2h-7c-.6 0-1 .4-1 1v18c0 .6.4 1 1 1h20c.6 0 1-.4 1-1V19c0-.6-.4-1-1-1h-7v-2h7c1.7 0 3 1.3 3 3v18c0 1.7-1.3 3-3 3z"/></svg>
-            </span> puis <strong>"Sur l'écran d'accueil"</strong>
+            Appuyez sur
+            <span style="background:rgba(255,255,255,0.12);padding:2px 6px;border-radius:5px;">
+            <svg width="14" height="14" viewBox="0 0 50 50" fill="white" style="vertical-align:middle;">
+                <path d="M30.3 13.7L25 8.4l-5.3 5.3-1.4-1.4L25 5.6l6.7 6.7z"/>
+                <path d="M24 7h2v21h-2z"/>
+                <path d="M35 40H15c-1.7 0-3-1.3-3-3V19c0-1.7 1.3-3 3-3h7v2h-7c-.6 0-1 .4-1 1v18c0 .6.4 1 1 1h20c.6 0 1-.4 1-1V19c0-.6-.4-1-1-1h-7v-2h7c1.7 0 3 1.3 3 3v18c0 1.7-1.3 3-3 3z"/>
+            </svg>
+            </span>
+            puis <strong>"Sur l'écran d'accueil"</strong>
         </div>
     </div>
-    <button data-pwa-dismiss style="background:none;border:none;color:#fff;opacity:.7;
-            cursor:pointer;font-size:1.2rem;padding:4px;line-height:1;flex-shrink:0;">✕</button>
+    <button data-pwa-dismiss
+            style="background:none;border:none;color:#fff;opacity:.7;
+                   cursor:pointer;font-size:1.2rem;padding:4px;line-height:1;flex-shrink:0;">✕</button>
 </div>
+{% endif %}
 
-<!-- FLASH MESSAGES — toasts fixes en haut à droite -->
+<!-- ── FLASH MESSAGES (toasts) ── -->
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
 <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:9999;margin-top:10px;">
     {% for category, message in messages %}
     {% set icon = 'check-circle-fill' if category == 'success' else ('exclamation-triangle-fill' if category == 'warning' else ('x-circle-fill' if category == 'danger' else 'info-circle-fill')) %}
-    {% set bg = '#0f5132' if category == 'success' else ('#664d03' if category == 'warning' else ('#842029' if category == 'danger' else '#055160')) %}
+    {% set bg       = 'rgba(16,185,129,0.15)'  if category == 'success' else ('rgba(245,158,11,0.15)'  if category == 'warning' else ('rgba(239,68,68,0.15)'   if category == 'danger' else 'rgba(56,189,248,0.15)')) %}
+    {% set bdr      = '#10B981'                 if category == 'success' else ('#F59E0B'                 if category == 'warning' else ('#EF4444'                  if category == 'danger' else '#38BDF8')) %}
+    {% set txt      = '#6EE7B7'                 if category == 'success' else ('#FCD34D'                 if category == 'warning' else ('#FCA5A5'                  if category == 'danger' else '#7DD3FC')) %}
     <div class="toast align-items-center show border-0 mb-2"
-         role="alert" style="background:{{ bg }};color:#fff;min-width:280px;max-width:400px;border-radius:10px;">
+         role="alert"
+         style="background:{{ bg }};border:1px solid {{ bdr }}33!important;
+                color:{{ txt }};min-width:280px;max-width:400px;
+                border-radius:12px;backdrop-filter:blur(10px);">
         <div class="d-flex">
             <div class="toast-body d-flex align-items-start gap-2" style="font-size:.9rem;">
                 <i class="bi bi-{{ icon }} flex-shrink-0 mt-1"></i>
@@ -945,61 +1204,88 @@
 {% endif %}
 {% endwith %}
 
-<!-- CONTENU PRINCIPAL -->
-<main class="main-content {% if not user %}no-sidebar{% endif %}">
-    {% if user and user.role == 'admin' %}<div class="notif-topbar-spacer"></div>{% endif %}
-    {% block content %}{% endblock %}
-</main>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // Auto-dismiss toasts après 4 secondes
-    document.querySelectorAll('.toast').forEach(function(toast) {
-        setTimeout(function() {
-            var bsToast = bootstrap.Toast.getOrCreateInstance(toast);
-            bsToast.hide();
-        }, 4000);
+// ── Auto-dismiss toasts ──────────────────────────────────────────────────
+document.querySelectorAll('.toast').forEach(function(t) {
+    setTimeout(function() {
+        bootstrap.Toast.getOrCreateInstance(t).hide();
+    }, 4000);
+});
+
+// ── Sidebar mobile ───────────────────────────────────────────────────────
+const sidebar       = document.getElementById('sidebar');
+const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+function openSidebar() {
+    if (!sidebar) return;
+    sidebar.classList.add('open');
+    sidebarOverlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+function closeSidebar() {
+    if (!sidebar) return;
+    sidebar.classList.remove('open');
+    sidebarOverlay.classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+const sidebarToggle = document.getElementById('sidebarToggle');
+if (sidebarToggle) sidebarToggle.addEventListener('click', openSidebar);
+if (sidebarOverlay) sidebarOverlay.addEventListener('click', closeSidebar);
+
+// ── Collapsible nav groups ───────────────────────────────────────────────
+function toggleGroup(id) {
+    const g = document.getElementById(id);
+    if (!g) return;
+    g.classList.toggle('open');
+    // Persist state
+    const state = {};
+    document.querySelectorAll('.nav-group[id]').forEach(el => {
+        state[el.id] = el.classList.contains('open');
     });
+    try { localStorage.setItem('sp-nav', JSON.stringify(state)); } catch(e) {}
+}
 
-    // Toggle sidebar mobile
-    const toggle = document.getElementById('sidebarToggle');
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
+// Restore group state — auto-open if contains active item
+(function() {
+    const saved = {};
+    try { Object.assign(saved, JSON.parse(localStorage.getItem('sp-nav') || '{}')); } catch(e) {}
+    document.querySelectorAll('.nav-group[id]').forEach(el => {
+        if (el.querySelector('.nav-item.active, .sidebar-ann-item.active')) {
+            el.classList.add('open');
+        } else if (el.id in saved) {
+            saved[el.id] ? el.classList.add('open') : el.classList.remove('open');
+        }
+    });
+})();
 
-    if (toggle) {
-        toggle.addEventListener('click', () => {
-            sidebar.classList.toggle('open');
-            overlay.classList.toggle('open');
+// ── Notifications : marquer vues à l'ouverture de la cloche ─────────────
+const notifBtn = document.getElementById('notifBtn');
+if (notifBtn) {
+    notifBtn.addEventListener('shown.bs.dropdown', function() {
+        const badge = document.getElementById('notifBadge');
+        const icon  = document.getElementById('notifBellIcon');
+        if (!badge) return;
+        fetch('/api/notif/seen', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.content || ''
+            }
+        }).then(() => {
+            badge.remove();
+            if (icon) icon.className = icon.className.replace('bi-bell-fill', 'bi-bell');
+            const dot = notifBtn.querySelector('.tb-dot');
+            if (dot) dot.remove();
         });
-
-        overlay.addEventListener('click', () => {
-            sidebar.classList.remove('open');
-            overlay.classList.remove('open');
-        });
-    }
-
-    // ── Notifications : marquer comme vues à l'ouverture de la cloche ──
-    const notifBtn = document.getElementById('notifBtn');
-    if (notifBtn) {
-        notifBtn.addEventListener('shown.bs.dropdown', function () {
-            const badge = document.getElementById('notifBadge');
-            const icon  = document.getElementById('notifBellIcon');
-            if (!badge) return; // déjà à 0, rien à faire
-            fetch('/api/notif/seen', { method: 'POST',
-                headers: { 'X-CSRFToken': document.cookie.match(/csrf_token=([^;]+)/)?.[1] || '' }
-            }).then(() => {
-                // Effacer le badge immédiatement dans la page courante
-                badge.remove();
-                if (icon) {
-                    icon.className = icon.className.replace('bi-bell-fill', 'bi-bell');
-                }
-            });
-        });
-    }
+    });
+}
 </script>
+
 {% block extra_js %}{% endblock %}
+
 <script>
-// ── Service Worker + Web Push ──────────────────────────────────────────────
+// ── Service Worker + Web Push ─────────────────────────────────────────────
 (function() {
     const btn   = document.getElementById('pushActivateBtn');
     const icon  = document.getElementById('pushBtnIcon');
@@ -1008,25 +1294,29 @@
 
     function setBtn(state) {
         if (state === 'active') {
-            btn.style.cssText += ';background:rgba(16,185,129,0.15)!important;border-color:rgba(16,185,129,0.4)!important;color:#34D399!important;cursor:default!important;';
+            btn.style.cssText = 'display:flex;align-items:center;gap:6px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.4);color:#34D399;border-radius:8px;padding:5px 10px;font-size:0.77rem;cursor:default;';
             icon.className = 'bi bi-bell-fill';
             label.textContent = 'Notifs actives';
         } else if (state === 'blocked') {
-            btn.style.cssText += ';background:rgba(239,68,68,0.12)!important;border-color:rgba(239,68,68,0.4)!important;color:#F87171!important;cursor:help!important;';
+            btn.style.cssText = 'display:flex;align-items:center;gap:6px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.4);color:#F87171;border-radius:8px;padding:5px 10px;font-size:0.77rem;cursor:help;';
             icon.className = 'bi bi-bell-slash-fill';
             label.textContent = 'Notifs bloquées';
-            btn.title = 'Autorisez les notifications dans les paramètres de votre navigateur';
+            btn.title = "Autorisez les notifications dans les paramètres du navigateur";
         } else {
+            btn.style.cssText = 'display:flex;align-items:center;gap:6px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);color:#818CF8;border-radius:8px;padding:5px 10px;font-size:0.77rem;cursor:pointer;';
             icon.className = 'bi bi-bell-slash';
             label.textContent = 'Activer les notifs';
         }
     }
 
-    // Navigateur ne supporte pas push → cacher le bouton
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
         btn.style.display = 'none';
         return;
     }
+
+    // Show button now that push is supported
+    btn.classList.remove('d-none');
+    btn.style.display = 'flex';
 
     let swReg = null;
 
@@ -1036,7 +1326,6 @@
         return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
     }
 
-    // S'assure que le SW est enregistré avant de s'abonner
     async function getSW() {
         if (swReg) return swReg;
         swReg = await navigator.serviceWorker.register('/static/sw.js');
@@ -1048,87 +1337,58 @@
         try {
             icon.className = 'bi bi-hourglass-split';
             label.textContent = 'Activation...';
-            btn.style.cursor = 'wait';
-
-            const reg = await getSW();
-
+            const reg  = await getSW();
             const resp = await fetch('/api/push/vapid-key');
             const data = await resp.json();
-            if (!data.key) {
-                console.warn('[Push] VAPID_PUBLIC_KEY vide — vérifiez Render');
-                setBtn('inactive');
-                return;
-            }
-
+            if (!data.key) { setBtn('inactive'); return; }
             const sub = await reg.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(data.key),
             });
-
             const csrf = document.querySelector('meta[name=csrf-token]')?.content || '';
             await fetch('/api/push/subscribe', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
                 body: JSON.stringify(sub.toJSON()),
             });
-
             localStorage.setItem('pushSubscribed', '1');
             setBtn('active');
-        } catch (e) {
+        } catch(e) {
             console.warn('[Push] doSubscribe error:', e);
             localStorage.removeItem('pushSubscribed');
             setBtn('inactive');
         }
     }
 
-    // Affichage immédiat depuis localStorage
     const perm0 = Notification.permission;
-    if (perm0 === 'denied') {
-        setBtn('blocked');
-        localStorage.removeItem('pushSubscribed');
-    } else if (perm0 === 'granted' && localStorage.getItem('pushSubscribed') === '1') {
-        setBtn('active');
-    }
+    if (perm0 === 'denied') { setBtn('blocked'); localStorage.removeItem('pushSubscribed'); }
+    else if (perm0 === 'granted' && localStorage.getItem('pushSubscribed') === '1') { setBtn('active'); }
+    else { setBtn('inactive'); }
 
-    // Clic — fonctionne même si initPush() n'est pas encore terminé
     btn.addEventListener('click', async () => {
         const perm = Notification.permission;
         if (perm === 'denied') {
-            alert('Les notifications sont bloquées.\nCliquez sur le cadenas 🔒 dans la barre d\'adresse → Notifications → Autoriser.');
+            alert("Les notifications sont bloquées.\nCliquez sur le cadenas 🔒 → Notifications → Autoriser.");
             return;
         }
-        if (perm === 'granted') {
-            await doSubscribe();
-            return;
-        }
-        // 'default' → demander la permission au navigateur
+        if (perm === 'granted') { await doSubscribe(); return; }
         try {
             const result = await Notification.requestPermission();
             if (result === 'granted') await doSubscribe();
             else setBtn('blocked');
-        } catch(e) {
-            console.warn('[Push] requestPermission error:', e);
-        }
+        } catch(e) { console.warn('[Push] requestPermission error:', e); }
     });
 
-    // Init au chargement : détection de l'état existant
     async function initPush() {
-        const reg = await getSW();
+        const reg  = await getSW();
         const perm = Notification.permission;
         if (perm === 'denied') { setBtn('blocked'); localStorage.removeItem('pushSubscribed'); return; }
         if (perm === 'granted') {
             const existing = await reg.pushManager.getSubscription();
-            if (existing) {
-                localStorage.setItem('pushSubscribed', '1');
-                setBtn('active');
-            } else {
-                localStorage.removeItem('pushSubscribed');
-                // Pas d'abonnement trouvé → ré-abonner silencieusement
-                await doSubscribe();
-            }
+            if (existing) { localStorage.setItem('pushSubscribed', '1'); setBtn('active'); }
+            else { localStorage.removeItem('pushSubscribed'); await doSubscribe(); }
         }
     }
-
     window.addEventListener('load', () => initPush().catch(e => console.warn('[Push] init error:', e)));
 })();
 </script>
@@ -1138,64 +1398,56 @@
 (function() {
     let deferredPrompt = null;
 
-    // Bannière d'installation personnalisée
     function showInstallBanner() {
-        const banner = document.getElementById('pwa-install-banner');
-        if (banner) banner.style.display = 'flex';
+        const b = document.getElementById('pwa-install-banner');
+        if (b) b.style.display = 'flex';
     }
-
     function hideInstallBanner() {
-        const banner = document.getElementById('pwa-install-banner');
-        if (banner) banner.style.display = 'none';
+        const b = document.getElementById('pwa-install-banner');
+        if (b) b.style.display = 'none';
         localStorage.setItem('pwa-dismissed', '1');
     }
 
-    // Capturer l'événement beforeinstallprompt (Chrome / Android)
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        // Ne pas montrer si déjà installé ou déjà refusé
         if (!window.matchMedia('(display-mode: standalone)').matches &&
             !localStorage.getItem('pwa-dismissed')) {
             showInstallBanner();
         }
-        // Mettre à jour le bouton sidebar si présent
         const sideBtn = document.getElementById('pwa-sidebar-btn');
         if (sideBtn) sideBtn.style.display = 'flex';
     });
 
-    // Bouton "Installer" dans la bannière ou la sidebar
     document.addEventListener('click', async (e) => {
         const btn = e.target.closest('[data-pwa-install]');
         if (!btn) return;
         hideInstallBanner();
         if (!deferredPrompt) return;
         deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
+        await deferredPrompt.userChoice;
         deferredPrompt = null;
         const sideBtn = document.getElementById('pwa-sidebar-btn');
         if (sideBtn) sideBtn.style.display = 'none';
     });
 
-    // Bouton "Plus tard" dans la bannière
     document.addEventListener('click', (e) => {
         if (e.target.closest('[data-pwa-dismiss]')) hideInstallBanner();
     });
 
-    // Déjà installé → cacher le bouton sidebar
     if (window.matchMedia('(display-mode: standalone)').matches) {
         const sideBtn = document.getElementById('pwa-sidebar-btn');
         if (sideBtn) sideBtn.style.display = 'none';
     }
 
-    // iOS : Safari ne supporte pas beforeinstallprompt → message manuel
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    const isInStandaloneMode = ('standalone' in window.navigator) && window.navigator.standalone;
-    if (isIOS && !isInStandaloneMode && !localStorage.getItem('pwa-dismissed')) {
+    const isStandalone = ('standalone' in window.navigator) && window.navigator.standalone;
+    if (isIOS && !isStandalone && !localStorage.getItem('pwa-dismissed')) {
         const iosBanner = document.getElementById('pwa-ios-banner');
         if (iosBanner) iosBanner.style.display = 'flex';
     }
 })();
 </script>
+
 </body>
 </html>
