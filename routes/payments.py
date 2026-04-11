@@ -318,13 +318,25 @@ def edit_payment(payment_id):
     p = Payment.query.filter_by(id=payment_id, organization_id=org.id).first_or_404()
     apartments = Apartment.query.filter_by(organization_id=org.id).all()
     if request.method == 'POST':
-        p.apartment_id = int(request.form['apartment_id'])
-        p.amount = float(request.form['amount'])
-        p.payment_date = datetime.strptime(request.form['payment_date'], '%Y-%m-%d').date()
-        p.month_paid = request.form['month_paid']
-        p.description = request.form.get('description', '')
-        db.session.commit()
-        flash('Encaissement modifié', 'success')
+        try:
+            amount = float(request.form['amount'])
+            if amount <= 0 or amount > 9_999_999:
+                flash('Montant invalide (entre 0.01 et 9 999 999 DT).', 'danger')
+                return redirect(url_for('edit_payment', payment_id=payment_id))
+            payment_date = datetime.strptime(request.form['payment_date'], '%Y-%m-%d').date()
+            if payment_date > datetime.today().date():
+                flash('La date ne peut pas être dans le futur.', 'danger')
+                return redirect(url_for('edit_payment', payment_id=payment_id))
+            p.apartment_id = int(request.form['apartment_id'])
+            p.amount = amount
+            p.payment_date = payment_date
+            p.month_paid = request.form['month_paid']
+            p.description = request.form.get('description', '')[:200]
+            db.session.commit()
+            flash('Encaissement modifié', 'success')
+        except Exception as e:
+            app.logger.error("ERREUR edit_payment: %s", e, exc_info=True)
+            flash('Une erreur est survenue lors de la modification.', 'danger')
         return redirect(url_for('payments'))
     return render_template('edit_payment.html', payment=p, apartments=apartments, user=current_user())
 
