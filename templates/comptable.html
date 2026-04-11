@@ -95,11 +95,11 @@
                     <table class="table table-hover table-bordered mb-0 comptable-table">
                         <thead class="table-dark sticky-top">
                             <tr>
-                                <th class="align-middle sticky-column" style="min-width: 130px; z-index: 10;">
+                                <th class="align-middle sticky-column" style="min-width: 110px; z-index: 10;">
                                     <i class="bi bi-building"></i> APPT
                                 </th>
                                 {% for year, month in months %}
-                                <th class="text-center align-middle month-column" style="min-width: 40px;">
+                                <th class="text-center align-middle month-column" style="min-width: 36px;">
                                     <div class="month-header-compact">
                                         <strong>{{ ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'][month-1] }}</strong>
                                         <br>
@@ -272,13 +272,13 @@
 .sticky-top { position: sticky; top: 0; z-index: 10; }
 
 /* Cellules de statut */
-.status-cell { padding: 6px 4px; }
+.status-cell { padding: 4px 2px; }
 .paid-cell   { background-color: rgba(16,185,129,0.13) !important; }
 .unpaid-cell { background-color: rgba(239,68,68,0.10)  !important; }
 
 /* Icônes statut (spécifiques comptable) */
 .status-badge  { display: inline-flex; align-items: center; justify-content: center;
-                 width: 22px; height: 22px; border-radius: 50%; font-size: 0.82rem; }
+                 width: 18px; height: 18px; border-radius: 50%; font-size: 0.72rem; }
 .status-paid   { color: #10B981; background: rgba(16,185,129,0.15); }
 .status-unpaid { color: #EF4444; background: rgba(239,68,68,0.12); }
 
