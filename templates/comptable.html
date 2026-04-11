@@ -295,9 +295,9 @@
 }
 .impaye-badge { font-size: 0.72rem; padding: 3px 7px; }
 
-/* Résumé mensuel pied */
-.month-summary { display: flex; align-items: center; justify-content: center; gap: 3px; }
-.month-summary .badge { font-size: 0.65rem; padding: 2px 5px; }
+/* Résumé mensuel pied — empilé verticalement */
+.month-summary { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.month-summary .badge { font-size: 0.62rem; padding: 1px 4px; min-width: 18px; text-align: center; }
 
 /* Responsive mobile — mêmes valeurs que trésorerie */
 @media (max-width: 768px) {
