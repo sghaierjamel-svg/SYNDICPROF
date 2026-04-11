@@ -43,13 +43,13 @@
         }
 
         /* Empêche tout débordement horizontal qui force le dézoom */
-        html { overflow-x: hidden; max-width: 100%; }
+        /* NB: overflow-x:hidden sur html/body bloque le scroll tactile des enfants sur iOS → on l'enlève */
+        html { max-width: 100%; }
         body {
             background: var(--bg);
             color: var(--text);
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             min-height: 100vh;
-            overflow-x: hidden;
             max-width: 100%;
             margin: 0; padding: 0;
         }
@@ -697,7 +697,7 @@
             .tb-avatar { width: 30px; height: 30px; font-size: .72rem; }
 
             /* Contenu */
-            .content { padding: 14px 12px 96px !important; overflow-x: hidden; }
+            .content { padding: 14px 12px 96px !important; }
 
             /* ── Titres de pages ── */
             h2 { font-size: 1.2rem !important; margin-bottom: .75rem !important; }
@@ -717,26 +717,25 @@
             .card-header { padding: .75rem 1rem !important; font-size: .88rem !important; }
             .card-body { padding: .85rem !important; }
 
-            /* ── Tables : scroll horizontal forcé (CSS + JS auto-wrap) ── */
+            /* ── Tables : scroll horizontal fiable (wrapper + touch-action) ── */
             .table-responsive,
             .table-responsive-sm,
             .table-responsive-md,
             .sp-table-wrap {
-                overflow-x: auto !important;
+                overflow-x: scroll !important;          /* scroll (pas auto) = toujours scrollable */
                 -webkit-overflow-scrolling: touch;
+                touch-action: pan-x pan-y;              /* iOS : active le scroll tactile horizontal */
                 width: 100% !important;
                 max-width: 100% !important;
-            }
-            /* Fallback CSS pur : toute table devient scrollable */
-            .content table {
                 display: block !important;
-                overflow-x: auto !important;
-                -webkit-overflow-scrolling: touch;
-                max-width: 100%;
             }
-            /* Mais si déjà dans un wrapper, on remet display:table */
+            /* Les tables dans un wrapper restent en display:table et prennent leur largeur naturelle */
             .table-responsive table,
-            .sp-table-wrap table { display: table !important; }
+            .sp-table-wrap table {
+                display: table !important;
+                width: max-content !important;
+                min-width: 480px;
+            }
             .table th, .table td { padding: .4rem .55rem !important; font-size: .8rem !important; white-space: nowrap; }
             .table thead th { font-size: .72rem !important; }
             /* Colonnes secondaires masquées sur mobile */
@@ -909,11 +908,9 @@
                 <i class="bi bi-chevron-right nav-group-arrow"></i>
             </div>
             <div class="nav-group-items">
-                <a class="nav-item {% if request.endpoint == 'payments' %}active{% endif %}"
-                   href="{{ url_for('payments') }}">Encaissements</a>
-                <a class="nav-item {% if request.endpoint == 'virements_liste' %}active{% endif %}"
-                   href="{{ url_for('virements_liste') }}">
-                    Virements
+                <a class="nav-item {% if request.endpoint in ['payments','virements_liste'] %}active{% endif %}"
+                   href="{{ url_for('payments') }}">
+                    Encaissements
                     {% set pending_count = pending_virements_count | default(0) %}
                     {% if pending_count > 0 %}
                     <span class="nav-badge badge-warning">{{ pending_count }}</span>
@@ -1442,35 +1439,31 @@ if (notifBtn) {
 
 {% block extra_js %}{% endblock %}
 
-<!-- ── Fix tableaux mobiles : auto-wrap scroll horizontal ── -->
+<!-- ── Fix tableaux mobiles : auto-wrap scroll horizontal (v3 — fiable iOS/Android) ── -->
 <script>
 (function() {
-    if (window.innerWidth > 768) return;
+    if (window.innerWidth > 900) return;
 
-    // Enveloppe automatiquement chaque tableau dans un div scrollable
+    // Enveloppe chaque tableau nu dans un div scrollable
     document.querySelectorAll('.content table').forEach(function(tbl) {
-        // Ne pas re-wrapper si déjà dans .table-responsive
         if (tbl.closest('.table-responsive') || tbl.closest('.sp-table-wrap')) return;
         var wrap = document.createElement('div');
         wrap.className = 'sp-table-wrap';
+        // overflow-x:scroll (pas auto) + touch-action = scroll tactile fiable sur iOS/Android
         wrap.style.cssText = [
-            'overflow-x:auto',
+            'overflow-x:scroll',
             '-webkit-overflow-scrolling:touch',
+            'touch-action:pan-x pan-y',
             'width:100%',
             'max-width:100%',
+            'display:block',
             'border-radius:10px',
             'margin-bottom:1rem'
         ].join(';');
         tbl.parentNode.insertBefore(wrap, tbl);
         wrap.appendChild(tbl);
-        // S'assure que la table elle-même ne force pas le layout
-        tbl.style.minWidth = '500px';
-    });
-
-    // Empêche les éléments larges isolés de déborder
-    document.querySelectorAll('.content [style*="width"]').forEach(function(el) {
-        var w = parseInt(el.style.width);
-        if (w > window.innerWidth) el.style.width = '100%';
+        // La table prend sa largeur naturelle — pas de contrainte qui empêche le contenu de s'afficher
+        tbl.style.cssText += ';display:table;width:max-content;min-width:480px;';
     });
 })();
 </script>

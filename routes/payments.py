@@ -1,7 +1,7 @@
 from flask import render_template, request, redirect, url_for, flash, jsonify, send_file
 import io
 from core import app, db
-from models import Apartment, Payment, User, MiscReceipt, KonnectPayment, FlouciPayment
+from models import Apartment, Payment, User, MiscReceipt, KonnectPayment, FlouciPayment, PaymentRequest
 from utils import (current_user, current_organization, login_required,
                    admin_required, subscription_required,
                    get_unpaid_months_count, get_next_unpaid_month)
@@ -206,9 +206,17 @@ def payments():
     flouci_links = FlouciPayment.query.filter_by(organization_id=org.id)\
         .order_by(FlouciPayment.created_at.desc()).all()
 
+    virement_pending = PaymentRequest.query.filter_by(
+        organization_id=org.id, status='en_attente'
+    ).order_by(PaymentRequest.created_at.desc()).all()
+    virement_all = PaymentRequest.query.filter_by(
+        organization_id=org.id
+    ).order_by(PaymentRequest.created_at.desc()).limit(50).all()
+
     return render_template('payments.html', apartments=apartments, payments=payments_list,
                            misc_list=misc_list, konnect_links=konnect_links,
-                           flouci_links=flouci_links, org=org, user=current_user())
+                           flouci_links=flouci_links, org=org, user=current_user(),
+                           virement_pending=virement_pending, virement_all=virement_all)
 
 
 @app.route('/misc-receipt/add', methods=['POST'])
