@@ -676,13 +676,47 @@
             :root { --sidebar-w: 232px; }
         }
         @media (max-width: 768px) {
+            /* Sidebar glisse hors écran */
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
+
+            /* Hamburger visible, main sans marge */
             .hamburger { display: block; }
             .main { margin-left: 0 !important; }
-            .content { padding: 16px; padding-bottom: 90px; }
+
+            /* Contenu : padding réduit + espace bottom nav */
+            .content { padding: 14px 12px 96px; overflow-x: hidden; }
+
+            /* Topbar compacte */
+            .topbar { padding: 0 12px; height: 52px; }
+            .breadcrumb-nav { font-size: .78rem; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            #pushActivateBtn { display: none !important; }
+
+            /* Bottom nav visible */
             .bottom-nav { display: block; }
-            .topbar { padding: 0 14px; }
+
+            /* Cartes : pas de hover translate sur mobile (évite les glitches) */
+            .card:hover { transform: none !important; }
+
+            /* Tables : scroll horizontal */
+            .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+            /* Boutons : taille confortable */
+            .btn { padding: .55rem 1rem !important; font-size: .85rem !important; }
+            .btn-sm { padding: .3rem .7rem !important; font-size: .78rem !important; }
+
+            /* Formulaires */
+            .form-control, .form-select { padding: .6rem .85rem !important; font-size: .9rem !important; }
+
+            /* Grilles Bootstrap : 1 col sur mobile */
+            .row.g-4 { --bs-gutter-y: 0.75rem; }
+        }
+        @media (max-width: 480px) {
+            .topbar { padding: 0 10px; height: 50px; }
+            .breadcrumb-nav { display: none; }
+            .tb-avatar { width: 30px; height: 30px; font-size: .72rem; }
+            .tb-btn { width: 30px; height: 30px; font-size: .9rem; }
+            .content { padding: 12px 10px 96px; }
         }
     </style>
 </head>
@@ -803,6 +837,8 @@
                    href="{{ url_for('assembly_list') }}">Assemblées</a>
                 <a class="nav-item {% if request.endpoint == 'access_log' %}active{% endif %}"
                    href="{{ url_for('access_log') }}">Registre Accès</a>
+                <a class="nav-item {% if request.endpoint in ['lifts','lift_detail'] %}active{% endif %}"
+                   href="{{ url_for('lifts') }}">Ascenseurs</a>
             </div>
         </div>
 
@@ -817,8 +853,6 @@
                    href="{{ url_for('automation') }}">Automatisation</a>
                 <a class="nav-item {% if request.endpoint == 'ai_chat' %}active{% endif %}"
                    href="{{ url_for('ai_chat') }}">Assistant IA ✨</a>
-                <a class="nav-item {% if request.endpoint in ['lifts','lift_detail'] %}active{% endif %}"
-                   href="{{ url_for('lifts') }}">Ascenseurs</a>
             </div>
         </div>
 

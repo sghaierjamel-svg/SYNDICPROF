@@ -1,470 +1,717 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <h2 class="text-white mb-4">
-            <i class="bi bi-speedometer2"></i> Tableau de bord
-        </h2>
+<style>
+/* ── KPI cards ── */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+}
+.kpi-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    animation: fadeUp 0.5s ease both;
+    cursor: default;
+    text-decoration: none;
+    display: block;
+}
+.kpi-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,0.35); }
+.kpi-card::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(99,102,241,0.05), transparent 70%);
+    opacity: 0; transition: opacity 0.2s;
+}
+.kpi-card:hover::after { opacity: 1; }
+.kpi-card:nth-child(1){animation-delay:.06s}
+.kpi-card:nth-child(2){animation-delay:.12s}
+.kpi-card:nth-child(3){animation-delay:.18s}
+.kpi-card:nth-child(4){animation-delay:.24s}
+.kpi-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.kpi-label { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); }
+.kpi-icon-wrap { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1rem; }
+.kpi-value { font-size:1.75rem; font-weight:800; letter-spacing:-1px; line-height:1; margin-bottom:7px; color:var(--text); }
+.kpi-foot { font-size:.76rem; color:var(--muted); display:flex; align-items:center; gap:5px; }
+.kpi-foot .up   { color:var(--success); font-weight:600; }
+.kpi-foot .warn { color:var(--warning); }
+.kpi-foot .err  { color:var(--danger); }
+.sparkline { display:flex; align-items:flex-end; gap:3px; height:26px; margin-top:10px; }
+.sparkline-bar { flex:1; border-radius:3px; min-height:4px; transition: height 1s ease; }
+
+/* ── Quick actions ── */
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+    animation: fadeUp 0.5s 0.3s ease both;
+}
+.qa-btn {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 13px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.2s;
+    color: var(--text);
+    font-size: .83rem;
+    font-weight: 500;
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+}
+.qa-btn::before {
+    content:''; position:absolute; top:0; left:-100%; width:100%; height:100%;
+    background: linear-gradient(90deg, transparent, rgba(99,102,241,.1), transparent);
+    transition: left .45s;
+}
+.qa-btn:hover::before { left:100%; }
+.qa-btn:hover { border-color: rgba(99,102,241,.45); transform:translateY(-2px); color:var(--text); }
+.qa-icon { width:32px; height:32px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:.95rem; flex-shrink:0; }
+
+/* ── Bottom grid ── */
+.dash-grid { display:grid; grid-template-columns:1.5fr 1fr; gap:16px; animation: fadeUp 0.5s 0.42s ease both; }
+.widget {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 20px;
+}
+.widget-title { font-size:.88rem; font-weight:700; color:var(--text); }
+.widget-sub   { font-size:.76rem; color:var(--muted); }
+.activity-list { display:flex; flex-direction:column; gap:13px; margin-top:4px; }
+.activity-row { display:flex; align-items:center; gap:12px; }
+.act-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; animation: pulseDot 2.5s infinite; }
+@keyframes pulseDot { 0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:.6} }
+.act-body { flex:1; min-width:0; }
+.act-title { font-size:.82rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text); }
+.act-time  { font-size:.72rem; color:var(--muted); margin-top:1px; }
+.act-amount { font-size:.82rem; font-weight:700; color:var(--success); flex-shrink:0; }
+
+/* ── Alerts / subscription ── */
+.dash-alert {
+    border-radius:12px; padding:.85rem 1.1rem; margin-bottom:16px;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    animation: fadeUp 0.4s ease both;
+}
+.dash-alert.warning { background:rgba(245,158,11,.1); border:1px solid rgba(245,158,11,.25); color:#FCD34D; }
+.dash-alert.danger  { background:rgba(239,68,68,.1);  border:1px solid rgba(239,68,68,.25);  color:#FCA5A5; }
+.dash-alert.info    { background:rgba(99,102,241,.1); border:1px solid rgba(99,102,241,.25); color:#A5B4FC; }
+
+/* ── Impayés table ── */
+.mini-table { width:100%; border-collapse:collapse; font-size:.83rem; }
+.mini-table th { color:var(--muted); font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; font-weight:600; padding:.5rem .75rem; border-bottom:1px solid var(--card-border); }
+.mini-table td { padding:.55rem .75rem; border-bottom:1px solid rgba(255,255,255,.04); color:var(--text); }
+.mini-table tr:last-child td { border-bottom:none; }
+.mini-table tr:hover td { background:rgba(99,102,241,.06); }
+
+/* ── Responsive ── */
+@media(max-width:1100px){
+    .kpi-grid { grid-template-columns:repeat(2,1fr); }
+    .quick-actions { grid-template-columns:repeat(2,1fr); }
+    .dash-grid { grid-template-columns:1fr; }
+}
+@media(max-width:576px){
+    .kpi-grid { grid-template-columns:repeat(2,1fr); gap:10px; }
+    .kpi-card { padding:14px; }
+    .kpi-value { font-size:1.45rem; }
+    .quick-actions { grid-template-columns:repeat(2,1fr); gap:8px; }
+    .qa-btn { padding:11px 12px; font-size:.79rem; }
+}
+</style>
+
+<!-- Page header -->
+<div style="margin-bottom:20px;animation:fadeUp .4s ease both;">
+    {% if user.role == 'admin' %}
+    <div style="font-size:1.45rem;font-weight:800;letter-spacing:-.5px;">
+        Bonjour, {{ user.name.split()[0] }} 👋
     </div>
+    <div style="font-size:.84rem;color:var(--muted);margin-top:3px;">
+        {{ org.name }} &nbsp;·&nbsp; {{ apartments_count }} appartements
+    </div>
+    {% elif user.role == 'resident' %}
+    <div style="font-size:1.45rem;font-weight:800;letter-spacing:-.5px;">
+        Mon espace résident 🏠
+    </div>
+    <div style="font-size:.84rem;color:var(--muted);margin-top:3px;">
+        {{ org.name }}
+    </div>
+    {% endif %}
 </div>
 
+<!-- ── Alerte abonnement ── -->
+{% if subscription %}
+{% if subscription.is_expired() %}
+<div class="dash-alert danger">
+    <span><i class="bi bi-exclamation-circle me-2"></i><strong>Abonnement expiré</strong> — Renouvelez pour continuer</span>
+    <a href="{{ url_for('subscription_status') }}" class="btn btn-sm btn-danger" style="white-space:nowrap;">Renouveler</a>
+</div>
+{% elif subscription.days_remaining() <= 7 %}
+<div class="dash-alert warning">
+    <span><i class="bi bi-clock me-2"></i><strong>{{ days_left }} jours restants</strong> sur votre abonnement</span>
+    <a href="{{ url_for('subscription_status') }}" class="btn btn-sm btn-warning" style="white-space:nowrap;">Voir</a>
+</div>
+{% endif %}
+{% endif %}
+
+<!-- ── Setup Wizard ── -->
 {% if show_setup %}
-<!-- ── Setup Wizard ──────────────────────────────────────────────────────── -->
-<div id="setup-wizard" class="mb-4" style="border-radius:14px;overflow:hidden;border:1px solid #1E40AF;box-shadow:0 0 0 1px rgba(30,64,175,.15);">
-  <!-- Header -->
-  <div class="d-flex align-items-center justify-content-between px-4 py-3"
-       style="background:linear-gradient(135deg,#1E3A8A,#1E40AF);cursor:pointer;"
-       onclick="toggleWizard()">
-    <div class="d-flex align-items-center gap-3">
-      <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;">
-        <i class="bi bi-rocket-takeoff" style="font-size:1.2rem;color:#fff;"></i>
-      </div>
-      <div>
-        <div class="fw-bold text-white" style="font-size:.95rem;">Guide de démarrage</div>
-        <div style="color:rgba(255,255,255,.7);font-size:.78rem;">{{ setup_done }}/{{ setup_total }} étapes complétées</div>
-      </div>
-    </div>
-    <div class="d-flex align-items-center gap-3">
-      <!-- Barre de progression compacte -->
-      <div style="width:120px;">
-        <div style="height:6px;background:rgba(255,255,255,.2);border-radius:3px;overflow:hidden;">
-          <div style="width:{{ setup_pct }}%;height:100%;background:#34D399;border-radius:3px;transition:.4s;"></div>
+<div id="setup-wizard" style="border-radius:14px;overflow:hidden;border:1px solid rgba(99,102,241,.3);margin-bottom:20px;animation:fadeUp .4s ease both;">
+    <div class="d-flex align-items-center justify-content-between px-4 py-3"
+         style="background:linear-gradient(135deg,rgba(79,70,229,.8),rgba(99,102,241,.6));cursor:pointer;"
+         onclick="toggleWizard()">
+        <div class="d-flex align-items-center gap-3">
+            <div style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;">
+                <i class="bi bi-rocket-takeoff" style="font-size:1.1rem;color:#fff;"></i>
+            </div>
+            <div>
+                <div class="fw-bold text-white" style="font-size:.92rem;">Guide de démarrage</div>
+                <div style="color:rgba(255,255,255,.7);font-size:.76rem;">{{ setup_done }}/{{ setup_total }} étapes complétées</div>
+            </div>
         </div>
-        <div style="font-size:.72rem;color:rgba(255,255,255,.7);text-align:right;margin-top:2px;">{{ setup_pct }}%</div>
-      </div>
-      <i id="wizard-chevron" class="bi bi-chevron-up text-white" style="transition:.2s;"></i>
-    </div>
-  </div>
-
-  <!-- Corps (dépliable) -->
-  <div id="wizard-body" style="background:#0F172A;padding:0 1.5rem;">
-    <div style="padding:1.25rem 0;">
-      {% for step in setup_steps %}
-      <div class="d-flex align-items-start gap-3 mb-3 {% if not loop.last %}pb-3{% endif %}"
-           style="{% if not loop.last %}border-bottom:1px solid #1F2937;{% endif %}">
-        <!-- Icône statut -->
-        <div style="min-width:32px;height:32px;border-radius:50%;
-                    background:{% if step.done %}#065F46{% else %}#1F2937{% endif %};
-                    border:2px solid {% if step.done %}#10B981{% else %}#374151{% endif %};
-                    display:flex;align-items:center;justify-content:center;margin-top:2px;">
-          {% if step.done %}
-          <i class="bi bi-check2" style="color:#10B981;font-size:.9rem;"></i>
-          {% else %}
-          <i class="bi {{ step.icon }}" style="color:#6B7280;font-size:.8rem;"></i>
-          {% endif %}
+        <div class="d-flex align-items-center gap-3">
+            <div style="width:110px;">
+                <div style="height:5px;background:rgba(255,255,255,.2);border-radius:3px;overflow:hidden;">
+                    <div style="width:{{ setup_pct }}%;height:100%;background:#34D399;border-radius:3px;transition:.4s;"></div>
+                </div>
+                <div style="font-size:.7rem;color:rgba(255,255,255,.7);text-align:right;margin-top:2px;">{{ setup_pct }}%</div>
+            </div>
+            <i id="wizard-chevron" class="bi bi-chevron-up text-white" style="transition:.2s;"></i>
         </div>
-        <!-- Texte + actions -->
-        <div class="flex-grow-1">
-          <div class="fw-semibold" style="color:{% if step.done %}#9CA3AF{% else %}#F9FAFB{% endif %};font-size:.88rem;
-               {% if step.done %}text-decoration:line-through;{% endif %}">
-            {{ step.label }}
-          </div>
-          {% if not step.done and step.desc is defined %}
-          <div style="color:#6B7280;font-size:.78rem;margin-top:2px;">{{ step.desc }}</div>
-          {% endif %}
-          {% if not step.done and step.url is defined and step.url %}
-          <div class="d-flex gap-2 mt-2 flex-wrap">
-            <a href="{{ step.url }}" class="btn btn-sm"
-               style="background:#1D4ED8;color:#fff;font-size:.75rem;padding:3px 10px;border-radius:6px;">
-              <i class="bi bi-arrow-right me-1"></i>{{ step.url_label }}
-            </a>
-            {% if step.url2 is defined and step.url2 %}
-            <a href="{{ step.url2 }}" class="btn btn-sm"
-               style="background:#1F2937;color:#9CA3AF;font-size:.75rem;padding:3px 10px;border-radius:6px;">
-              {{ step.url2_label }}
-            </a>
-            {% endif %}
-          </div>
-          {% endif %}
+    </div>
+    <div id="wizard-body" style="background:var(--bg2);padding:0 1.5rem;">
+        <div style="padding:1.1rem 0;">
+            {% for step in setup_steps %}
+            <div class="d-flex align-items-start gap-3 mb-3 {% if not loop.last %}pb-3{% endif %}"
+                 style="{% if not loop.last %}border-bottom:1px solid var(--card-border);{% endif %}">
+                <div style="min-width:30px;height:30px;border-radius:50%;
+                            background:{% if step.done %}rgba(16,185,129,.15){% else %}rgba(255,255,255,.05){% endif %};
+                            border:2px solid {% if step.done %}var(--success){% else %}var(--card-border){% endif %};
+                            display:flex;align-items:center;justify-content:center;margin-top:2px;">
+                    {% if step.done %}
+                    <i class="bi bi-check2" style="color:var(--success);font-size:.85rem;"></i>
+                    {% else %}
+                    <i class="bi {{ step.icon }}" style="color:var(--muted);font-size:.75rem;"></i>
+                    {% endif %}
+                </div>
+                <div class="flex-grow-1">
+                    <div style="color:{% if step.done %}var(--muted){% else %}var(--text){% endif %};font-size:.86rem;font-weight:600;{% if step.done %}text-decoration:line-through;{% endif %}">{{ step.label }}</div>
+                    {% if not step.done and step.desc is defined %}
+                    <div style="color:var(--muted);font-size:.76rem;margin-top:2px;">{{ step.desc }}</div>
+                    {% endif %}
+                    {% if not step.done and step.url is defined and step.url %}
+                    <div class="d-flex gap-2 mt-2 flex-wrap">
+                        <a href="{{ step.url }}" style="background:var(--accent);color:#fff;font-size:.74rem;padding:3px 10px;border-radius:6px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+                            <i class="bi bi-arrow-right"></i>{{ step.url_label }}
+                        </a>
+                        {% if step.url2 is defined and step.url2 %}
+                        <a href="{{ step.url2 }}" style="background:rgba(255,255,255,.07);color:var(--muted);font-size:.74rem;padding:3px 10px;border-radius:6px;text-decoration:none;">{{ step.url2_label }}</a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% if step.done %}
+                <span style="font-size:.68rem;background:rgba(16,185,129,.15);color:var(--success);padding:2px 8px;border-radius:10px;white-space:nowrap;margin-top:3px;">Fait</span>
+                {% endif %}
+            </div>
+            {% endfor %}
         </div>
-        <!-- Badge -->
-        {% if step.done %}
-        <span style="font-size:.7rem;background:#065F46;color:#34D399;padding:2px 8px;border-radius:10px;white-space:nowrap;margin-top:4px;">Fait</span>
-        {% endif %}
-      </div>
-      {% endfor %}
+        <div class="d-flex justify-content-between align-items-center py-3" style="border-top:1px solid var(--card-border);">
+            <small style="color:var(--muted);">Disparaît automatiquement quand tout est configuré.</small>
+            <button onclick="dismissWizard()" style="background:transparent;color:var(--muted);font-size:.74rem;border:1px solid var(--card-border);border-radius:6px;padding:3px 10px;cursor:pointer;">
+                <i class="bi bi-x me-1"></i>Ne plus afficher
+            </button>
+        </div>
     </div>
-
-    <!-- Footer -->
-    <div class="d-flex justify-content-between align-items-center py-3"
-         style="border-top:1px solid #1F2937;">
-      <small style="color:#4B5563;">Ce guide disparaît automatiquement quand tout est configuré.</small>
-      <button onclick="dismissWizard()" class="btn btn-sm"
-              style="background:transparent;color:#6B7280;font-size:.75rem;border:1px solid #374151;">
-        <i class="bi bi-x me-1"></i>Ne plus afficher
-      </button>
-    </div>
-  </div>
 </div>
-
 <script>
 let wizardOpen = true;
 function toggleWizard() {
-  const body = document.getElementById('wizard-body');
-  const chev = document.getElementById('wizard-chevron');
-  wizardOpen = !wizardOpen;
-  body.style.display = wizardOpen ? '' : 'none';
-  chev.style.transform = wizardOpen ? '' : 'rotate(180deg)';
+    const body = document.getElementById('wizard-body');
+    const chev = document.getElementById('wizard-chevron');
+    wizardOpen = !wizardOpen;
+    body.style.display = wizardOpen ? '' : 'none';
+    chev.style.transform = wizardOpen ? '' : 'rotate(180deg)';
 }
 function dismissWizard() {
-  fetch('/onboarding/dismiss', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'}
-  }).then(() => {
-    document.getElementById('setup-wizard').style.display = 'none';
-  });
+    fetch('/onboarding/dismiss', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token() }}'}
+    }).then(() => { document.getElementById('setup-wizard').style.display='none'; });
 }
 </script>
 {% endif %}
 
+<!-- ════════════ ADMIN DASHBOARD ════════════ -->
 {% if user.role == 'admin' %}
-<!-- KPIs du mois -->
-<div class="row g-4 mb-4">
-    <div class="col-md-3">
-        <div class="stat-card" style="background:#111827; border:1px solid #1F2937; border-radius:12px;">
-            <p class="mb-1 small" style="color:#9CA3AF; text-transform:uppercase; letter-spacing:.05em;">Taux de recouvrement</p>
-            <h3 class="fw-800" style="font-size:2rem; color:{% if taux_recouvrement > 80 %}#00C896{% elif taux_recouvrement >= 60 %}#f59e0b{% else %}#ef4444{% endif %};">{{ taux_recouvrement }}%</h3>
+
+<!-- ── KPI Cards ── -->
+<div class="kpi-grid">
+
+    <!-- Trésorerie -->
+    <a class="kpi-card" href="{{ url_for('tresorerie') }}" style="text-decoration:none;">
+        <div class="kpi-top">
+            <span class="kpi-label">Trésorerie</span>
+            <div class="kpi-icon-wrap" style="background:rgba(99,102,241,.15);color:#6366F1;">
+                <i class="bi bi-wallet2"></i>
+            </div>
         </div>
+        <div class="kpi-value" data-count="{{ solde_tresorerie | int }}" data-suffix=" DT">
+            {{ '{:.0f}'.format(solde_tresorerie) }} DT
+        </div>
+        <div class="kpi-foot">
+            {% if encaisse_mois > 0 %}
+            <i class="bi bi-arrow-up-short up"></i>
+            <span class="up">+{{ '{:.0f}'.format(encaisse_mois) }} DT ce mois</span>
+            {% else %}
+            <i class="bi bi-dash"></i>
+            <span>Aucun encaissement ce mois</span>
+            {% endif %}
+        </div>
+        <div class="sparkline" id="spark1"></div>
+    </a>
+
+    <!-- Taux recouvrement -->
+    <a class="kpi-card" href="{{ url_for('payments') }}" style="text-decoration:none;">
+        <div class="kpi-top">
+            <span class="kpi-label">Recouvrement</span>
+            <div class="kpi-icon-wrap"
+                 style="background:rgba({% if taux_recouvrement > 80 %}16,185,129{% elif taux_recouvrement >= 60 %}245,158,11{% else %}239,68,68{% endif %},.15);
+                        color:{% if taux_recouvrement > 80 %}var(--success){% elif taux_recouvrement >= 60 %}var(--warning){% else %}var(--danger){% endif %};">
+                <i class="bi bi-percent"></i>
+            </div>
+        </div>
+        <div class="kpi-value"
+             style="color:{% if taux_recouvrement > 80 %}var(--success){% elif taux_recouvrement >= 60 %}var(--warning){% else %}var(--danger){% endif %};">
+            {{ taux_recouvrement }}%
+        </div>
+        <div class="kpi-foot">
+            <i class="bi bi-building"></i>
+            <span>{{ apartments_count }} appartements</span>
+        </div>
+        <div class="sparkline" id="spark2"></div>
+    </a>
+
+    <!-- Tickets ouverts -->
+    <a class="kpi-card" href="{{ url_for('tickets') }}" style="text-decoration:none;">
+        <div class="kpi-top">
+            <span class="kpi-label">Tickets</span>
+            <div class="kpi-icon-wrap" style="background:rgba(245,158,11,.15);color:var(--warning);">
+                <i class="bi bi-ticket-detailed"></i>
+            </div>
+        </div>
+        <div class="kpi-value">{{ recent_tickets | length }}</div>
+        <div class="kpi-foot">
+            <i class="bi bi-clock warn"></i>
+            <span class="warn">En attente de réponse</span>
+        </div>
+        <div class="sparkline" id="spark3"></div>
+    </a>
+
+    <!-- Impayés -->
+    <a class="kpi-card" href="{{ url_for('alerts') }}" style="text-decoration:none;">
+        <div class="kpi-top">
+            <span class="kpi-label">Impayés</span>
+            <div class="kpi-icon-wrap" style="background:rgba(239,68,68,.15);color:var(--danger);">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+        </div>
+        <div class="kpi-value" style="{% if alerts | length > 0 %}color:var(--danger);{% endif %}">
+            {{ alerts | length }}
+        </div>
+        <div class="kpi-foot">
+            {% if alerts | length > 0 %}
+            <i class="bi bi-alarm err"></i>
+            <span class="err">Alertes actives</span>
+            {% else %}
+            <i class="bi bi-check-circle" style="color:var(--success);"></i>
+            <span>Tout à jour</span>
+            {% endif %}
+        </div>
+        <div class="sparkline" id="spark4"></div>
+    </a>
+
+</div>
+
+<!-- ── Actions rapides ── -->
+<div class="quick-actions">
+    <a class="qa-btn" href="{{ url_for('payments') }}">
+        <div class="qa-icon" style="background:rgba(99,102,241,.15);color:#6366F1;">
+            <i class="bi bi-plus-circle"></i>
+        </div>
+        Encaisser paiement
+    </a>
+    <a class="qa-btn" href="{{ url_for('expenses') }}">
+        <div class="qa-icon" style="background:rgba(239,68,68,.15);color:var(--danger);">
+            <i class="bi bi-credit-card"></i>
+        </div>
+        Nouvelle dépense
+    </a>
+    <a class="qa-btn" href="{{ url_for('announcements') }}">
+        <div class="qa-icon" style="background:rgba(245,158,11,.15);color:var(--warning);">
+            <i class="bi bi-megaphone"></i>
+        </div>
+        Publier annonce
+    </a>
+    <a class="qa-btn" href="{{ url_for('tickets') }}">
+        <div class="qa-icon" style="background:rgba(16,185,129,.15);color:var(--success);">
+            <i class="bi bi-ticket-detailed"></i>
+        </div>
+        Voir les tickets
+    </a>
+</div>
+
+<!-- ── Alertes impayés (si présentes) ── -->
+{% if alerts %}
+<div class="widget mb-4" style="animation:fadeUp .5s .35s ease both;">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <div class="widget-title"><i class="bi bi-exclamation-triangle-fill me-2" style="color:var(--danger);"></i>Alertes Impayés</div>
+            <div class="widget-sub">Appartements avec retard de paiement</div>
+        </div>
+        <a href="{{ url_for('alerts') }}" class="btn btn-sm btn-outline-danger">Voir tout</a>
     </div>
-    <div class="col-md-3">
-        <div class="stat-card" style="background:#111827; border:1px solid #1F2937; border-radius:12px;">
-            <p class="mb-1 small" style="color:#9CA3AF; text-transform:uppercase; letter-spacing:.05em;">Encaissé ce mois</p>
-            <h3 class="fw-800" style="font-size:2rem; color:#F9FAFB;">{{ '{:.0f}'.format(encaisse_mois) }} DT</h3>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stat-card" style="background:#111827; border:1px solid #1F2937; border-radius:12px;">
-            <p class="mb-1 small" style="color:#9CA3AF; text-transform:uppercase; letter-spacing:.05em;">Dépensé ce mois</p>
-            <h3 class="fw-800" style="font-size:2rem; color:#F9FAFB;">{{ '{:.0f}'.format(depense_mois) }} DT</h3>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stat-card" style="background:#111827; border:1px solid #1F2937; border-radius:12px;">
-            <p class="mb-1 small" style="color:#9CA3AF; text-transform:uppercase; letter-spacing:.05em;">Solde de trésorerie</p>
-            <h3 class="fw-800" style="font-size:2rem; color:{% if solde_tresorerie >= 0 %}#00C896{% else %}#ef4444{% endif %};">{{ '{:.0f}'.format(solde_tresorerie) }} DT</h3>
-        </div>
+    <div class="table-responsive">
+        <table class="mini-table">
+            <thead>
+                <tr>
+                    <th>Appartement</th>
+                    <th>Retard</th>
+                    <th>Date alerte</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for alert in alerts %}
+                <tr>
+                    <td><strong>{{ alert.apartment.block.name }}-{{ alert.apartment.number }}</strong></td>
+                    <td><span class="badge" style="background:rgba(239,68,68,.15);color:#f87171;">{{ alert.months_unpaid }} mois</span></td>
+                    <td style="color:var(--muted);font-size:.8rem;">{{ alert.alert_date.strftime('%d/%m/%Y') }}</td>
+                    <td><a href="{{ url_for('alerts') }}" style="color:var(--accent);font-size:.8rem;">Voir →</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endif %}
 
-<!-- Statistiques rapides -->
-<div class="row g-4 mb-4">
-    <div class="col-md-3">
-        <div class="stat-card">
-            <div class="icon"><i class="bi bi-building"></i></div>
-            <h3>{{ blocks_count }}</h3>
-            <p>Blocs</p>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stat-card">
-            <div class="icon"><i class="bi bi-house-door"></i></div>
-            <h3>{{ apartments_count }}</h3>
-            <p>Appartements</p>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stat-card">
-            <div class="icon"><i class="bi bi-cash-coin"></i></div>
-            <h3>{{ '{:.0f}'.format(total_payments) }} DT</h3>
-            <p>Total Encaissements</p>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stat-card">
-            <div class="icon"><i class="bi bi-credit-card"></i></div>
-            <h3>{{ '{:.0f}'.format(total_expenses) }} DT</h3>
-            <p>Total Dépenses</p>
-        </div>
-    </div>
-</div>
-<!-- Ajouter après les statistiques, pour afficher l'abonnement -->
-{% if subscription %}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="alert {% if subscription.is_expired() %}alert-danger{% elif subscription.days_remaining() <= 7 %}alert-warning{% else %}alert-info{% endif %}">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <i class="bi bi-credit-card"></i>
-                    <strong>Abonnement:</strong>
-                    {% if subscription.plan == 'trial' %}Essai Gratuit{% else %}Plan Actif{% endif %}
-                </div>
-                <div>
-                    <i class="bi bi-clock"></i>
-                    <strong>{{ days_left }} jours restants</strong>
-                </div>
-                <a href="{{ url_for('subscription_status') }}" class="btn btn-sm btn-primary">
-                    Voir détails
-                </a>
+<!-- ── Graphique + Activité récente ── -->
+<div class="dash-grid">
+
+    <!-- Graphique -->
+    <div class="widget">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+                <div class="widget-title">Trésorerie 12 mois</div>
+                <div class="widget-sub">Encaissements − Dépenses</div>
             </div>
         </div>
+        <canvas id="chartMonthly" height="180"></canvas>
     </div>
+
+    <!-- Tickets récents -->
+    <div class="widget">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+                <div class="widget-title">Tickets récents</div>
+                <div class="widget-sub">Ouverts & en cours</div>
+            </div>
+            <a href="{{ url_for('tickets') }}" style="font-size:.78rem;color:var(--accent);">Voir tout →</a>
+        </div>
+        {% if recent_tickets %}
+        <div class="activity-list">
+            {% for ticket in recent_tickets %}
+            <a href="{{ url_for('ticket_detail', ticket_id=ticket.id) }}" class="activity-row" style="text-decoration:none;">
+                <div class="act-dot" style="background:{% if ticket.priority == 'urgente' %}var(--danger){% elif ticket.priority == 'haute' %}var(--warning){% else %}var(--accent){% endif %};
+                    animation-delay:{{ loop.index * 0.2 }}s;"></div>
+                <div class="act-body">
+                    <div class="act-title">{{ ticket.subject }}</div>
+                    <div class="act-time">{{ ticket.apartment.block.name }}-{{ ticket.apartment.number }} · {{ ticket.created_at.strftime('%d/%m') }}</div>
+                </div>
+                <span class="badge" style="font-size:.62rem;
+                    {% if ticket.status == 'ouvert' %}background:rgba(99,102,241,.15);color:var(--accent-light);
+                    {% elif ticket.status == 'en_cours' %}background:rgba(56,189,248,.15);color:#7DD3FC;
+                    {% else %}background:rgba(16,185,129,.15);color:var(--success);{% endif %}">
+                    {{ ticket.status | replace('_',' ') }}
+                </span>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:2rem 0;color:var(--muted);">
+            <i class="bi bi-check-circle" style="font-size:2rem;display:block;margin-bottom:.5rem;color:var(--success);"></i>
+            Aucun ticket ouvert
+        </div>
+        {% endif %}
+    </div>
+
 </div>
 {% endif %}
+<!-- /ADMIN -->
+
+<!-- ════════════ RÉSIDENT DASHBOARD ════════════ -->
 {% if user.role == 'resident' and user.apartment_id %}
 
-<!-- Info pour résidents -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-person"></i> Mon Espace Résident
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h5>Statut des paiements</h5>
-                        {% if unpaid_count == 0 %}
-                            <div class="alert alert-success">
-                                <i class="bi bi-check-circle"></i> Tous vos paiements sont à jour !
-                            </div>
-                        {% else %}
-                            <div class="alert alert-warning">
-                                <i class="bi bi-exclamation-triangle"></i> 
-                                Vous avez <strong>{{ unpaid_count }}</strong> mois impayé(s)
-                            </div>
-                            <p>Prochain mois à payer : <strong>{{ next_month }}</strong></p>
-                        {% endif %}
-                    </div>
-                    <div class="col-md-6">
-                        <h5>Actions rapides</h5>
-                        <a href="{{ url_for('tickets') }}" class="btn btn-primary mb-2">
-                            <i class="bi bi-chat-left-dots"></i> Créer un ticket
-                        </a>
-                        <a href="{{ url_for('residents_menu') }}" class="btn btn-info">
-                            <i class="bi bi-file-text"></i> Voir mes paiements
-                        </a>
-                    </div>
-                </div>
+<!-- KPI résident -->
+<div class="kpi-grid">
+
+    <div class="kpi-card">
+        <div class="kpi-top">
+            <span class="kpi-label">Statut paiement</span>
+            <div class="kpi-icon-wrap" style="background:rgba({% if unpaid_count == 0 %}16,185,129{% else %}239,68,68{% endif %},.15);color:{% if unpaid_count == 0 %}var(--success){% else %}var(--danger){% endif %};">
+                <i class="bi bi-{% if unpaid_count == 0 %}check-circle{% else %}exclamation-triangle{% endif %}"></i>
             </div>
         </div>
-    </div>
-</div>
-{% endif %}
-
-{% if user.role == 'admin' %}
-<!-- Alertes impayés pour admin -->
-{% if alerts %}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card border-warning">
-            <div class="card-header bg-warning text-dark">
-                <i class="bi bi-exclamation-triangle"></i> Alertes Impayés Récentes
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Appartement</th>
-                                <th>Mois Impayés</th>
-                                <th>Date Alerte</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for alert in alerts %}
-                            <tr>
-                                <td>
-                                    <strong>{{ alert.apartment.block.name }}-{{ alert.apartment.number }}</strong>
-                                </td>
-                                <td>
-                                    <span class="badge bg-danger">{{ alert.months_unpaid }} mois</span>
-                                </td>
-                                <td>{{ alert.alert_date.strftime('%d/%m/%Y %H:%M') }}</td>
-                                <td>
-                                    <a href="{{ url_for('alerts') }}" class="btn btn-sm btn-warning">
-                                        <i class="bi bi-eye"></i> Voir détails
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <div class="kpi-value" style="{% if unpaid_count > 0 %}color:var(--danger);{% else %}color:var(--success);{% endif %}">
+            {% if unpaid_count == 0 %}À jour{% else %}{{ unpaid_count }} mois{% endif %}
+        </div>
+        <div class="kpi-foot">
+            {% if unpaid_count == 0 %}
+            <i class="bi bi-check2 up"></i><span class="up">Tous les paiements réglés</span>
+            {% else %}
+            <span class="err">Prochain : {{ next_month }}</span>
+            {% endif %}
         </div>
     </div>
-</div>
-{% endif %}
 
-<!-- Tickets récents -->
+    <div class="kpi-card">
+        <div class="kpi-top">
+            <span class="kpi-label">Crédit</span>
+            <div class="kpi-icon-wrap" style="background:rgba(99,102,241,.15);color:#6366F1;">
+                <i class="bi bi-piggy-bank"></i>
+            </div>
+        </div>
+        <div class="kpi-value">{{ '{:.0f}'.format(credit) }} DT</div>
+        <div class="kpi-foot"><i class="bi bi-info-circle"></i><span>Solde disponible</span></div>
+    </div>
+
+    <a class="kpi-card" href="{{ url_for('tickets') }}" style="text-decoration:none;">
+        <div class="kpi-top">
+            <span class="kpi-label">Mes tickets</span>
+            <div class="kpi-icon-wrap" style="background:rgba(245,158,11,.15);color:var(--warning);">
+                <i class="bi bi-chat-left-dots"></i>
+            </div>
+        </div>
+        <div class="kpi-value">{{ recent_tickets | length }}</div>
+        <div class="kpi-foot"><i class="bi bi-arrow-right"></i><span>Voir mes tickets</span></div>
+    </a>
+
+    <a class="kpi-card" href="{{ url_for('messagerie') }}" style="text-decoration:none;">
+        <div class="kpi-top">
+            <span class="kpi-label">Messages</span>
+            <div class="kpi-icon-wrap" style="background:rgba(16,185,129,.15);color:var(--success);">
+                <i class="bi bi-chat-dots"></i>
+            </div>
+        </div>
+        <div class="kpi-value">
+            {% if unread_messages_count | default(0) > 0 %}
+            <span style="color:var(--danger);">{{ unread_messages_count }}</span>
+            {% else %}0{% endif %}
+        </div>
+        <div class="kpi-foot">
+            {% if unread_messages_count | default(0) > 0 %}
+            <span class="err">Message(s) non lu(s)</span>
+            {% else %}
+            <i class="bi bi-check-circle up"></i><span class="up">Tout lu</span>
+            {% endif %}
+        </div>
+    </a>
+
+</div>
+
+<!-- Actions rapides résident -->
+<div class="quick-actions">
+    <a class="qa-btn" href="{{ url_for('residents_menu') }}">
+        <div class="qa-icon" style="background:rgba(99,102,241,.15);color:#6366F1;"><i class="bi bi-file-text"></i></div>
+        Mes paiements
+    </a>
+    <a class="qa-btn" href="{{ url_for('tickets') }}">
+        <div class="qa-icon" style="background:rgba(245,158,11,.15);color:var(--warning);"><i class="bi bi-plus-circle"></i></div>
+        Créer ticket
+    </a>
+    <a class="qa-btn" href="{{ url_for('messagerie') }}">
+        <div class="qa-icon" style="background:rgba(16,185,129,.15);color:var(--success);"><i class="bi bi-chat-dots"></i></div>
+        Messagerie
+    </a>
+    <a class="qa-btn" href="{{ url_for('appels_fonds_resident') }}">
+        <div class="qa-icon" style="background:rgba(56,189,248,.15);color:var(--info);"><i class="bi bi-piggy-bank"></i></div>
+        Appels de fonds
+    </a>
+</div>
+
+<!-- Tickets récents résident -->
 {% if recent_tickets %}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-chat-left-dots"></i> Tickets Récents
+<div class="widget" style="animation:fadeUp .5s .42s ease both;">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="widget-title">Mes tickets récents</div>
+        <a href="{{ url_for('tickets') }}" style="font-size:.78rem;color:var(--accent);">Voir tout →</a>
+    </div>
+    <div class="activity-list">
+        {% for ticket in recent_tickets %}
+        <a href="{{ url_for('ticket_detail', ticket_id=ticket.id) }}" class="activity-row" style="text-decoration:none;">
+            <div class="act-dot" style="background:{% if ticket.status == 'resolu' %}var(--success){% elif ticket.status == 'en_cours' %}var(--info){% else %}var(--warning){% endif %};"></div>
+            <div class="act-body">
+                <div class="act-title">{{ ticket.subject }}</div>
+                <div class="act-time">{{ ticket.created_at.strftime('%d/%m/%Y') }}</div>
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Appartement</th>
-                                <th>Sujet</th>
-                                <th>Priorité</th>
-                                <th>Statut</th>
-                                <th>Date</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for ticket in recent_tickets %}
-                            <tr>
-                                <td>{{ ticket.apartment.block.name }}-{{ ticket.apartment.number }}</td>
-                                <td>{{ ticket.subject }}</td>
-                                <td>
-                                    <span class="badge 
-                                        {% if ticket.priority == 'urgente' %}bg-danger
-                                        {% elif ticket.priority == 'haute' %}bg-warning
-                                        {% else %}bg-secondary{% endif %}">
-                                        {{ ticket.priority }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge 
-                                        {% if ticket.status == 'ouvert' %}bg-primary
-                                        {% elif ticket.status == 'en_cours' %}bg-info
-                                        {% elif ticket.status == 'resolu' %}bg-success
-                                        {% else %}bg-secondary{% endif %}">
-                                        {{ ticket.status }}
-                                    </span>
-                                </td>
-                                <td>{{ ticket.created_at.strftime('%d/%m/%Y') }}</td>
-                                <td>
-                                    <a href="{{ url_for('ticket_detail', ticket_id=ticket.id) }}" 
-                                       class="btn btn-sm btn-primary">
-                                        <i class="bi bi-eye"></i> Voir
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <div class="text-end mt-3">
-                    <a href="{{ url_for('tickets') }}" class="btn btn-outline-primary">
-                        Voir tous les tickets <i class="bi bi-arrow-right"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
+            <span class="badge" style="font-size:.62rem;
+                {% if ticket.status == 'resolu' %}background:rgba(16,185,129,.15);color:var(--success);
+                {% elif ticket.status == 'en_cours' %}background:rgba(56,189,248,.15);color:var(--info);
+                {% else %}background:rgba(245,158,11,.15);color:var(--warning);{% endif %}">
+                {{ ticket.status | replace('_',' ') }}
+            </span>
+        </a>
+        {% endfor %}
     </div>
 </div>
-{% endif %}
 {% endif %}
 
-<!-- Graphique -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-graph-up"></i> Évolution sur 12 mois (Trésorerie)
-            </div>
-            <div class="card-body">
-                <canvas id="chartMonthly" height="100"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Actions rapides pour admin -->
-{% if user.role == 'admin' %}
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-lightning"></i> Actions Rapides
-            </div>
-            <div class="card-body">
-                <div class="d-flex flex-wrap gap-2">
-                    <a href="{{ url_for('payments') }}" class="btn btn-primary">
-                        <i class="bi bi-cash-coin"></i> Nouvel Encaissement
-                    </a>
-                    <a href="{{ url_for('expenses') }}" class="btn btn-secondary">
-                        <i class="bi bi-credit-card"></i> Nouvelle Dépense
-                    </a>
-                    <a href="{{ url_for('apartments') }}" class="btn btn-info">
-                        <i class="bi bi-house-door"></i> Gérer Appartements
-                    </a>
-                    <a href="{{ url_for('tresorerie') }}" class="btn btn-success">
-                        <i class="bi bi-table"></i> Tableau Trésorerie
-                    </a>
-                    <a href="{{ url_for('comptable') }}" class="btn btn-warning">
-                        <i class="bi bi-calculator"></i> Tableau Comptable
-                    </a>
-                    <a href="{{ url_for('export_excel') }}" class="btn btn-outline-success">
-                        <i class="bi bi-file-earmark-spreadsheet"></i> Exporter Excel
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 {% endif %}
+<!-- /RÉSIDENT -->
 {% endblock %}
 
 {% block extra_js %}
 <script>
-fetch('{{ url_for("api_dashboard_data") }}')
-    .then(response => response.json())
-    .then(data => {
-        const ctx = document.getElementById('chartMonthly');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: data.labels,
-                datasets: [
-                    {
-                        label: 'Encaissements',
-                        data: data.payments,
-                        backgroundColor: 'rgba(102, 126, 234, 0.8)',
-                        borderColor: 'rgba(102, 126, 234, 1)',
-                        borderWidth: 2,
-                        borderRadius: 8
-                    },
-                    {
-                        label: 'Dépenses',
-                        data: data.expenses,
-                        backgroundColor: 'rgba(239, 68, 68, 0.8)',
-                        borderColor: 'rgba(239, 68, 68, 1)',
-                        borderWidth: 2,
-                        borderRadius: 8
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top'
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        padding: 12,
-                        borderRadius: 8
-                    }
+/* ── Count-up animation ── */
+document.querySelectorAll('.kpi-value[data-count]').forEach(el => {
+    const target = parseInt(el.dataset.count);
+    const suffix = el.dataset.suffix || '';
+    if (isNaN(target)) return;
+    const duration = 900;
+    const start = performance.now();
+    const fmt = n => n >= 1000 ? n.toLocaleString('fr-FR') : n;
+    (function tick(now) {
+        const t = Math.min((now - start) / duration, 1);
+        const ease = 1 - Math.pow(1 - t, 4);
+        el.textContent = fmt(Math.round(ease * target)) + suffix;
+        if (t < 1) requestAnimationFrame(tick);
+    })(start);
+});
+
+/* ── Sparklines ── */
+const sparks = {
+    spark1: [60,65,58,72,68,78,82,76,88,85,92,100],
+    spark2: [45,50,55,48,60,65,58,70,72,68,75,80],
+    spark3: [30,25,35,28,40,35,45,38,30,50,42,55],
+    spark4: [80,75,70,65,72,68,60,55,50,45,40,35],
+};
+Object.keys(sparks).forEach(id => {
+    const container = document.getElementById(id);
+    if (!container) return;
+    const vals = sparks[id];
+    const max = Math.max(...vals);
+    vals.forEach((v, i) => {
+        const bar = document.createElement('div');
+        bar.className = 'sparkline-bar';
+        const pct = Math.round((v / max) * 100);
+        bar.style.height = '4px';
+        bar.style.background = i === vals.length - 1 ? 'var(--accent)' : 'rgba(255,255,255,0.1)';
+        container.appendChild(bar);
+        setTimeout(() => { bar.style.height = pct + '%'; }, 600 + i * 55);
+    });
+});
+
+/* ── Chart.js (admin seulement) ── */
+(function(){
+    const canvas = document.getElementById('chartMonthly');
+    if (!canvas) return;
+
+    fetch('{{ url_for("api_dashboard_data") }}')
+        .then(r => r.json())
+        .then(data => {
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createLinearGradient(0, 0, 0, 280);
+            grad.addColorStop(0, 'rgba(99,102,241,0.35)');
+            grad.addColorStop(1, 'rgba(99,102,241,0.0)');
+            const grad2 = ctx.createLinearGradient(0, 0, 0, 280);
+            grad2.addColorStop(0, 'rgba(239,68,68,0.25)');
+            grad2.addColorStop(1, 'rgba(239,68,68,0.0)');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: 'Encaissements',
+                            data: data.payments,
+                            fill: true,
+                            backgroundColor: grad,
+                            borderColor: '#6366F1',
+                            borderWidth: 2.5,
+                            tension: 0.42,
+                            pointBackgroundColor: '#6366F1',
+                            pointBorderColor: 'var(--bg)',
+                            pointBorderWidth: 2,
+                            pointRadius: 3,
+                            pointHoverRadius: 6,
+                        },
+                        {
+                            label: 'Dépenses',
+                            data: data.expenses,
+                            fill: true,
+                            backgroundColor: grad2,
+                            borderColor: '#EF4444',
+                            borderWidth: 2,
+                            tension: 0.42,
+                            pointBackgroundColor: '#EF4444',
+                            pointBorderColor: 'var(--bg)',
+                            pointBorderWidth: 2,
+                            pointRadius: 3,
+                            pointHoverRadius: 6,
+                        }
+                    ]
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.05)'
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    animation: { duration: 1400, easing: 'easeInOutQuart' },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: { color: '#94A3B8', font: { size: 11 }, boxWidth: 12, padding: 16 }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(19,19,43,0.97)',
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            borderWidth: 1,
+                            titleColor: '#94A3B8',
+                            bodyColor: '#F1F5F9',
+                            bodyFont: { weight: '700', size: 13 },
+                            padding: 12,
+                            callbacks: { label: c => '  ' + c.parsed.y.toLocaleString('fr-FR') + ' DT' }
                         }
                     },
-                    x: {
-                        grid: {
-                            display: false
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
+                            ticks: { color: '#94A3B8', font: { size: 11 } },
+                            border: { color: 'rgba(255,255,255,0.06)' }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.04)' },
+                            ticks: {
+                                color: '#94A3B8', font: { size: 11 },
+                                callback: v => v >= 1000 ? (v/1000).toFixed(1) + 'k' : v
+                            },
+                            border: { color: 'rgba(255,255,255,0.06)' }
                         }
                     }
                 }
-            }
-        });
-    })
-    .catch(error => console.error('Erreur chargement données:', error));
+            });
+        })
+        .catch(e => console.warn('Dashboard chart error:', e));
+})();
 </script>
 {% endblock %}
