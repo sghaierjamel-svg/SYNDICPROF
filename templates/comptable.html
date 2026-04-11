@@ -95,17 +95,11 @@
                     <table class="table table-hover table-bordered mb-0 comptable-table">
                         <thead class="table-dark sticky-top">
                             <tr>
-                                <th class="text-center align-middle sticky-column" style="min-width: 120px; z-index: 10;">
-                                    <i class="bi bi-building"></i> Appt
-                                </th>
-                                <th class="text-center align-middle" style="min-width: 70px;">
-                                    <i class="bi bi-cash"></i> Redev.
-                                </th>
-                                <th class="text-center align-middle" style="min-width: 68px;">
-                                    <i class="bi bi-piggy-bank"></i> Crédit
+                                <th class="align-middle sticky-column" style="min-width: 150px; z-index: 10;">
+                                    <i class="bi bi-building"></i> Appartement
                                 </th>
                                 {% for year, month in months %}
-                                <th class="text-center align-middle month-column" style="min-width: 50px;">
+                                <th class="text-center align-middle month-column" style="min-width: 46px;">
                                     <div class="month-header-compact">
                                         <strong>{{ ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'][month-1] }}</strong>
                                         <br>
@@ -113,7 +107,7 @@
                                     </div>
                                 </th>
                                 {% endfor %}
-                                <th class="text-center align-middle" style="min-width: 68px;">
+                                <th class="text-center align-middle" style="min-width: 76px;">
                                     <i class="bi bi-hourglass-split"></i> Impayés
                                 </th>
                             </tr>
@@ -121,28 +115,20 @@
                         <tbody>
                             {% for row in data %}
                             <tr class="apartment-row {% if row.unpaid_count >= 3 %}table-danger-light{% endif %}">
-                                <!-- Colonne Appartement -->
+                                <!-- Colonne Appartement (redevance + crédit intégrés) -->
                                 <td class="fw-bold sticky-column {% if row.unpaid_count >= 3 %}bg-danger-light{% endif %}">
-                                    <div class="d-flex align-items-center gap-1">
-                                        <i class="bi bi-house-door" style="color:{% if row.unpaid_count >= 3 %}#F87171{% else %}var(--accent){% endif %};font-size:.85rem;flex-shrink:0;"></i>
+                                    <div class="d-flex align-items-center gap-1 mb-1">
+                                        <i class="bi bi-house-door" style="color:{% if row.unpaid_count >= 3 %}#F87171{% else %}var(--accent){% endif %};font-size:.82rem;flex-shrink:0;"></i>
                                         <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ row.apartment }}</span>
                                     </div>
-                                </td>
-                                
-                                <!-- Redevance -->
-                                <td class="text-center">
-                                    <span class="badge bg-info">{{ '{:,.0f}'.format(row.monthly_fee) }} DT</span>
-                                </td>
-                                
-                                <!-- Crédit -->
-                                <td class="text-center">
-                                    {% if row.credit_balance > 0 %}
-                                        <span class="badge bg-success" title="Crédit disponible">
-                                            <i class="bi bi-piggy-bank-fill"></i> {{ '{:,.2f}'.format(row.credit_balance) }}
+                                    <div style="font-size:.65rem;font-weight:400;color:var(--muted);display:flex;gap:4px;flex-wrap:wrap;">
+                                        <span style="color:#38BDF8;">{{ '{:,.0f}'.format(row.monthly_fee) }} DT/m</span>
+                                        {% if row.credit_balance > 0 %}
+                                        <span style="color:#10B981;" title="Crédit disponible">
+                                            <i class="bi bi-piggy-bank-fill"></i> {{ '{:,.0f}'.format(row.credit_balance) }}
                                         </span>
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
+                                        {% endif %}
+                                    </div>
                                 </td>
                                 
                                 <!-- Mois Payés/Impayés -->
@@ -186,7 +172,6 @@
                                 <td class="sticky-column" style="background:rgba(99,102,241,0.2);color:#818CF8;">
                                     <i class="bi bi-calculator"></i> TOTAL / MOIS
                                 </td>
-                                <td colspan="2" class="text-center" style="color:var(--muted);">—</td>
                                 {% for year, month in months %}
                                     {% set month_key = '%04d-%02d'|format(year, month) %}
                                     {% set month_total = namespace(paid=0, unpaid=0) %}
