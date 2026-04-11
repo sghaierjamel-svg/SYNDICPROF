@@ -688,7 +688,6 @@
             .sidebar.open { transform: translateX(0); }
             .hamburger { display: block; }
             .main { margin-left: 0 !important; }
-            .bottom-nav { display: block; }
 
             /* Topbar */
             .topbar { padding: 0 10px; height: 52px; }
@@ -698,7 +697,7 @@
             .tb-avatar { width: 30px; height: 30px; font-size: .72rem; }
 
             /* Contenu */
-            .content { padding: 14px 12px 96px !important; }
+            .content { padding: 14px 12px 20px !important; }
 
             /* ── Titres de pages ── */
             h2 { font-size: 1.2rem !important; margin-bottom: .75rem !important; }
@@ -830,7 +829,7 @@
             .topbar { padding: 0 8px; height: 48px; }
             .breadcrumb-nav { display: none; }
             .topbar-right { gap: 5px; }
-            .content { padding: 10px 10px 92px !important; }
+            .content { padding: 10px 10px 16px !important; }
             h2 { font-size: 1.05rem !important; }
 
             /* 1 seule colonne partout */
@@ -1246,59 +1245,6 @@
 </div><!-- /.layout -->
 
 {% if user %}
-<!-- ════════════════════════ BOTTOM NAV (mobile) ════════════════════════ -->
-<nav class="bottom-nav">
-    <div class="bn-items">
-        {% if user.role == 'admin' %}
-        <a class="bn-item {% if request.endpoint == 'dashboard' %}active{% endif %}"
-           href="{{ url_for('dashboard') }}">
-            <i class="bi bi-grid-1x2-fill"></i><span>Accueil</span>
-        </a>
-        <a class="bn-item {% if request.endpoint == 'payments' %}active{% endif %}"
-           href="{{ url_for('payments') }}">
-            <i class="bi bi-cash-coin"></i><span>Paiements</span>
-        </a>
-        <a class="bn-item {% if request.endpoint == 'tickets' %}active{% endif %}"
-           href="{{ url_for('tickets') }}">
-            <i class="bi bi-ticket-detailed"></i><span>Tickets</span>
-        </a>
-        <a class="bn-item {% if request.endpoint in ['messagerie','messagerie_fil'] %}active{% endif %}"
-           href="{{ url_for('messagerie') }}" style="position:relative;">
-            <i class="bi bi-chat-dots"></i><span>Messages</span>
-            {% if unread_messages_count | default(0) > 0 %}
-            <span class="bn-badge"></span>
-            {% endif %}
-        </a>
-        <button class="bn-item" onclick="openSidebar()" type="button">
-            <i class="bi bi-grid-3x3-gap"></i><span>Menu</span>
-        </button>
-
-        {% elif user.role == 'resident' %}
-        <a class="bn-item {% if request.endpoint == 'dashboard' %}active{% endif %}"
-           href="{{ url_for('dashboard') }}">
-            <i class="bi bi-grid-1x2-fill"></i><span>Accueil</span>
-        </a>
-        <a class="bn-item {% if request.endpoint == 'residents_menu' %}active{% endif %}"
-           href="{{ url_for('residents_menu') }}">
-            <i class="bi bi-person-badge"></i><span>Mon Apt</span>
-        </a>
-        <a class="bn-item {% if request.endpoint == 'tickets' %}active{% endif %}"
-           href="{{ url_for('tickets') }}">
-            <i class="bi bi-chat-left-dots"></i><span>Tickets</span>
-        </a>
-        <a class="bn-item {% if request.endpoint in ['messagerie','messagerie_fil'] %}active{% endif %}"
-           href="{{ url_for('messagerie') }}" style="position:relative;">
-            <i class="bi bi-chat-dots"></i><span>Messages</span>
-            {% if unread_messages_count | default(0) > 0 %}
-            <span class="bn-badge"></span>
-            {% endif %}
-        </a>
-        <button class="bn-item" onclick="openSidebar()" type="button">
-            <i class="bi bi-grid-3x3-gap"></i><span>Menu</span>
-        </button>
-        {% endif %}
-    </div>
-</nav>
 
 <!-- ── Bannière installation PWA (Android/Chrome) ── -->
 <div id="pwa-install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9998;
