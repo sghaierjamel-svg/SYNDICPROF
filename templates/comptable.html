@@ -95,17 +95,17 @@
                     <table class="table table-hover table-bordered mb-0 comptable-table">
                         <thead class="table-dark sticky-top">
                             <tr>
-                                <th class="text-center align-middle sticky-column" style="min-width: 150px; z-index: 10;">
+                                <th class="text-center align-middle sticky-column" style="min-width: 120px; z-index: 10;">
                                     <i class="bi bi-building"></i> Appt
                                 </th>
-                                <th class="text-center align-middle" style="min-width: 100px;">
-                                    <i class="bi bi-cash"></i> Redevance
+                                <th class="text-center align-middle" style="min-width: 70px;">
+                                    <i class="bi bi-cash"></i> Redev.
                                 </th>
-                                <th class="text-center align-middle" style="min-width: 100px;">
+                                <th class="text-center align-middle" style="min-width: 68px;">
                                     <i class="bi bi-piggy-bank"></i> Crédit
                                 </th>
                                 {% for year, month in months %}
-                                <th class="text-center align-middle month-column" style="min-width: 90px;">
+                                <th class="text-center align-middle month-column" style="min-width: 46px;">
                                     <div class="month-header-compact">
                                         <strong>{{ ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'][month-1] }}</strong>
                                         <br>
@@ -113,7 +113,7 @@
                                     </div>
                                 </th>
                                 {% endfor %}
-                                <th class="text-center align-middle bg-light" style="min-width: 80px;">
+                                <th class="text-center align-middle" style="min-width: 68px;">
                                     <i class="bi bi-hourglass-split"></i> Impayés
                                 </th>
                             </tr>
@@ -122,7 +122,7 @@
                             {% for row in data %}
                             <tr class="apartment-row {% if row.unpaid_count >= 3 %}table-danger-light{% endif %}">
                                 <!-- Colonne Appartement -->
-                                <td class="fw-bold sticky-column {% if row.unpaid_count >= 3 %}bg-danger-light{% else %}bg-light{% endif %}">
+                                <td class="fw-bold sticky-column {% if row.unpaid_count >= 3 %}bg-danger-light{% endif %}">
                                     <div class="d-flex align-items-center">
                                         <i class="bi bi-house-door {% if row.unpaid_count >= 3 %}text-danger{% else %}text-primary{% endif %} me-2"></i>
                                         <span>{{ row.apartment }}</span>
@@ -163,7 +163,7 @@
                                 {% endfor %}
                                 
                                 <!-- Impayés -->
-                                <td class="text-center bg-light fw-bold">
+                                <td class="text-center fw-bold">
                                     {% if row.unpaid_count > 0 %}
                                         <span class="badge {% if row.unpaid_count >= 3 %}bg-danger{% elif row.unpaid_count >= 2 %}bg-warning{% else %}bg-secondary{% endif %} impaye-badge">
                                             <i class="bi bi-exclamation-triangle-fill"></i> {{ row.unpaid_count }}
@@ -181,12 +181,12 @@
                         </tbody>
                         
                         <!-- Total par mois -->
-                        <tfoot class="table-primary">
-                            <tr class="fw-bold">
-                                <td class="sticky-column" style="background: #dbeafe;">
+                        <tfoot>
+                            <tr class="fw-bold" style="background:rgba(99,102,241,0.15);">
+                                <td class="sticky-column" style="background:rgba(99,102,241,0.2);color:#818CF8;">
                                     <i class="bi bi-calculator"></i> TOTAL / MOIS
                                 </td>
-                                <td colspan="2" class="text-center">-</td>
+                                <td colspan="2" class="text-center" style="color:var(--muted);">—</td>
                                 {% for year, month in months %}
                                     {% set month_key = '%04d-%02d'|format(year, month) %}
                                     {% set month_total = namespace(paid=0, unpaid=0) %}
@@ -197,15 +197,14 @@
                                             {% set month_total.unpaid = month_total.unpaid + 1 %}
                                         {% endif %}
                                     {% endfor %}
-                                    <td class="text-center" style="background: #dbeafe;">
+                                    <td class="text-center">
                                         <div class="month-summary">
                                             <span class="badge bg-success">{{ month_total.paid }}</span>
-                                            /
                                             <span class="badge bg-danger">{{ month_total.unpaid }}</span>
                                         </div>
                                     </td>
                                 {% endfor %}
-                                <td class="text-center" style="background: #dbeafe;">
+                                <td class="text-center">
                                     <span class="badge bg-danger">{{ stats.total_impaye|int }} DT</span>
                                 </td>
                             </tr>
@@ -387,206 +386,79 @@
 </div>
 
 <style>
-/* Gradients pour statistiques */
-.bg-gradient-success {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-}
+.bg-gradient-success { background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important; }
+.bg-gradient-danger  { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important; }
+.bg-gradient-warning { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important; }
+.bg-gradient-info    { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important; }
+.bg-gradient-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; }
 
-.bg-gradient-danger {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
-}
-
-.bg-gradient-warning {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
-}
-
-.bg-gradient-info {
-    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important;
-}
-
-.bg-gradient-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-}
-
-/* Tableau comptable */
-.comptable-table {
-    font-size: 0.9rem;
-}
+/* Tableau compact */
+.comptable-table { font-size: 0.76rem; }
 
 .comptable-table thead th {
     font-weight: 600;
     text-transform: uppercase;
-    font-size: 0.85rem;
-    letter-spacing: 0.5px;
-    padding: 12px 8px;
+    font-size: 0.68rem;
+    letter-spacing: 0.2px;
+    padding: 6px 4px;
     background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
     border: none;
 }
 
-/* En-têtes de mois compacts */
-.month-header-compact strong {
-    font-size: 1.1rem;
-    display: block;
-    line-height: 1.2;
-}
+/* En-têtes de mois très compacts */
+.month-header-compact strong { font-size: 0.76rem; display: block; line-height: 1.2; }
+.month-header-compact small  { font-size: 0.62rem; opacity: 0.8; }
 
-.month-header-compact small {
-    font-size: 0.7rem;
-    opacity: 0.8;
-}
-
-/* Colonne fixe */
+/* Colonne fixe — fond sombre */
 .sticky-column {
     position: sticky;
     left: 0;
-    background: white;
+    background: #1A1A2E;
     z-index: 5;
-    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    box-shadow: 2px 0 6px rgba(0,0,0,0.4);
     font-weight: 600;
+    color: #F1F5F9;
 }
-
-.sticky-top {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
+.sticky-top { position: sticky; top: 0; z-index: 10; }
 
 /* Cellules de statut */
-.status-cell {
-    padding: 10px 5px;
-    transition: all 0.2s ease;
-}
+.status-cell { padding: 5px 3px; }
+.paid-cell   { background-color: rgba(16,185,129,0.1)  !important; }
+.unpaid-cell { background-color: rgba(239,68,68,0.08)  !important; }
 
-.status-cell:hover {
-    transform: scale(1.1);
-    z-index: 3;
-}
+/* Icônes ✓/✗ compactes */
+.status-badge { display: inline-block; font-size: 0.92rem; }
+.status-paid  { color: #10B981; }
+.status-unpaid { color: #EF4444; }
 
-.paid-cell {
-    background-color: #f0fdf4 !important;
-}
+/* Lignes */
+.table-danger-light { background-color: rgba(239,68,68,0.07) !important; }
+.bg-danger-light    { background-color: rgba(239,68,68,0.12) !important; }
 
-.unpaid-cell {
-    background-color: #fef2f2 !important;
-}
-
-/* Badges de statut */
-.status-badge {
-    display: inline-block;
-    font-size: 1.3rem;
-    transition: all 0.2s ease;
-}
-
-.status-paid {
-    color: #059669;
-}
-
-.status-unpaid {
-    color: #dc2626;
-}
-
-.status-badge:hover {
-    transform: scale(1.2);
-}
-
-/* Lignes d'appartements */
-.apartment-row:hover {
-    background-color: #fef3c7 !important;
-}
-
-.table-danger-light {
-    background-color: #fee2e2 !important;
-}
-
-.bg-danger-light {
-    background-color: #fecaca !important;
-}
-
-/* Badge impayé */
-.impaye-badge {
-    font-size: 0.9rem;
-    padding: 6px 10px;
-}
-
-/* Résumé mensuel */
-.month-summary {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-}
-
-.month-summary .badge {
-    font-size: 0.75rem;
-    padding: 4px 8px;
-}
-
-/* Cartes récapitulatives */
-.card {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-}
-
-/* Badges améliorés */
-.badge {
+/* Badges compacts */
+.comptable-table .badge {
+    padding: 2px 6px;
+    font-size: 0.68rem;
     font-weight: 600;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-radius: 4px;
 }
+.impaye-badge { font-size: 0.7rem; padding: 3px 6px; }
 
-/* Responsive */
+/* Résumé mensuel pied */
+.month-summary { display: flex; align-items: center; justify-content: center; gap: 3px; }
+.month-summary .badge { font-size: 0.65rem; padding: 2px 5px; }
+
+/* Responsive mobile */
 @media (max-width: 768px) {
-    .sticky-column {
-        min-width: 100px !important;
-        font-size: 0.8rem;
-    }
-    
-    .comptable-table {
-        font-size: 0.75rem;
-    }
-    
-    .month-header-compact strong {
-        font-size: 0.9rem;
-    }
-    
-    .status-badge {
-        font-size: 1rem;
-    }
+    .sticky-column   { min-width: 90px !important; font-size: 0.7rem; }
+    .comptable-table { font-size: 0.7rem; }
+    .month-header-compact strong { font-size: 0.68rem; }
+    .status-badge    { font-size: 0.82rem; }
 }
 
-/* Impression */
 @media print {
-    .sticky-column {
-        position: static;
-        box-shadow: none;
-    }
-    
-    .btn {
-        display: none;
-    }
-    
-    .status-badge {
-        font-size: 0.9rem;
-    }
-}
-
-/* Animation au chargement */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.apartment-row {
-    animation: fadeIn 0.3s ease-in-out;
+    .sticky-column { position: static; box-shadow: none; }
+    .btn { display: none; }
 }
 </style>
 {% endblock %}

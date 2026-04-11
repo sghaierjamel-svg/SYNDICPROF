@@ -91,15 +91,15 @@
                     <table class="table table-hover table-bordered mb-0 modern-table">
                         <thead class="table-dark sticky-top">
                             <tr>
-                                <th class="text-center align-middle sticky-column" style="min-width: 180px; z-index: 10;">
-                                    <i class="bi bi-building"></i> Appartement
+                                <th class="text-center align-middle sticky-column" style="min-width: 130px; z-index: 10;">
+                                    <i class="bi bi-building"></i> Appt
                                 </th>
                                 {% for year, month in months %}
-                                <th class="text-center align-middle" style="min-width: 100px;">
+                                <th class="text-center align-middle" style="min-width: 66px;">
                                     <div class="month-header">
                                         <strong>{{ ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'][month-1] }}</strong>
                                         <br>
-                                        <small class="text-muted">{{ year }}</small>
+                                        <small class="text-muted">'{{ (year % 100)|string }}</small>
                                     </div>
                                 </th>
                                 {% endfor %}
@@ -109,8 +109,8 @@
                             <!-- Ligne Encaissements par Appartement -->
                             {% for row in data %}
                             <tr class="apartment-row">
-                                <td class="fw-bold sticky-column bg-light">
-                                    <i class="bi bi-house-door text-primary"></i> {{ row.apartment }}
+                                <td class="fw-bold sticky-column">
+                                    <i class="bi bi-house-door" style="color:var(--accent);"></i> {{ row.apartment }}
                                 </td>
                                 {% for year, month in months %}
                                     {% set month_key = '%04d-%02d'|format(year, month) %}
@@ -152,10 +152,9 @@
                             <tr style="height: 3px; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);"></tr>
 
                             <!-- Ligne Dépenses -->
-                            <tr class="expense-row table-danger">
-                                <td class="fw-bold sticky-column" style="background: #fee2e2;">
-                                    <i class="bi bi-credit-card text-danger"></i> 
-                                    <span class="text-danger">DÉPENSES</span>
+                            <tr class="expense-row" style="background:rgba(239,68,68,0.08);">
+                                <td class="fw-bold sticky-column" style="background:rgba(239,68,68,0.15);color:#F87171;">
+                                    <i class="bi bi-credit-card"></i> DÉPENSES
                                 </td>
                                 {% for year, month in months %}
                                     {% set month_key = '%04d-%02d'|format(year, month) %}
@@ -176,27 +175,20 @@
                             <tr style="height: 3px; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);"></tr>
                             
                             <!-- Ligne Solde -->
-                            <tr class="solde-row table-primary">
-                                <td class="fw-bold sticky-column" style="background: #dbeafe; font-size: 1.1rem;">
-                                    <i class="bi bi-calculator text-primary"></i> 
-                                    <span class="text-primary">SOLDE MENSUEL</span>
+                            <tr class="solde-row" style="background:rgba(99,102,241,0.1);">
+                                <td class="fw-bold sticky-column" style="background:rgba(99,102,241,0.2);color:#818CF8;">
+                                    <i class="bi bi-calculator"></i> SOLDE MENSUEL
                                 </td>
                                 {% for year, month in months %}
                                     {% set month_key = '%04d-%02d'|format(year, month) %}
                                     {% set solde = solde_row.months[month_key] %}
-                                    <td class="text-center fw-bold" style="font-size: 1.05rem;">
+                                    <td class="text-center fw-bold">
                                         {% if solde > 0 %}
-                                            <span class="badge bg-primary" style="font-size: 0.95rem; padding: 8px 12px;">
-                                                +{{ '{:,.2f}'.format(solde) }}
-                                            </span>
+                                            <span class="badge bg-primary">+{{ '{:,.2f}'.format(solde) }}</span>
                                         {% elif solde < 0 %}
-                                            <span class="badge bg-warning text-dark" style="font-size: 0.95rem; padding: 8px 12px;">
-                                                {{ '{:,.2f}'.format(solde) }}
-                                            </span>
+                                            <span class="badge bg-warning text-dark">{{ '{:,.2f}'.format(solde) }}</span>
                                         {% else %}
-                                            <span class="badge bg-secondary" style="font-size: 0.95rem; padding: 8px 12px;">
-                                                0.00
-                                            </span>
+                                            <span class="badge bg-secondary">0.00</span>
                                         {% endif %}
                                     </td>
                                 {% endfor %}
@@ -261,133 +253,66 @@
 </div>
 
 <style>
-/* Gradients pour les cartes de statistiques */
-.bg-gradient-success {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-}
+.bg-gradient-success { background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important; }
+.bg-gradient-danger  { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important; }
+.bg-gradient-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; }
+.bg-gradient-info    { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important; }
 
-.bg-gradient-danger {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
-}
-
-.bg-gradient-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-}
-
-.bg-gradient-info {
-    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important;
-}
-
-/* Tableau moderne */
-.modern-table {
-    font-size: 0.9rem;
-}
+/* Tableau compact */
+.modern-table { font-size: 0.78rem; }
 
 .modern-table thead th {
     font-weight: 600;
     text-transform: uppercase;
-    font-size: 0.85rem;
-    letter-spacing: 0.5px;
-    padding: 15px 10px;
+    font-size: 0.72rem;
+    letter-spacing: 0.3px;
+    padding: 7px 5px;
     background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
     border: none;
 }
 
-.month-header strong {
-    font-size: 1rem;
-    display: block;
-}
+.month-header strong { font-size: 0.78rem; display: block; line-height: 1.2; }
+.month-header small  { font-size: 0.65rem; opacity: 0.8; }
 
-.month-header small {
-    font-size: 0.75rem;
-    opacity: 0.8;
-}
-
-/* Colonne fixe */
+/* Colonne fixe — fond sombre pour cohérence avec le thème */
 .sticky-column {
     position: sticky;
     left: 0;
-    background: white;
+    background: #1A1A2E;
     z-index: 5;
-    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    box-shadow: 2px 0 6px rgba(0,0,0,0.4);
     font-weight: 600;
+    color: #F1F5F9;
 }
-
-.sticky-top {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
+.sticky-top { position: sticky; top: 0; z-index: 10; }
 
 /* Cellules de montants */
-.amount-cell {
-    padding: 12px 8px;
-    transition: all 0.3s ease;
-}
-
-.amount-cell:hover {
-    background-color: #f3f4f6;
-    transform: scale(1.05);
-}
-
-.positive-amount {
-    background-color: #f0fdf4;
-}
-
-.empty-cell {
-    background-color: #fafafa;
-}
+.amount-cell { padding: 6px 4px; }
+.positive-amount { background-color: rgba(16,185,129,0.08); }
+.empty-cell      { background-color: transparent; }
 
 /* Lignes spéciales */
-.apartment-row:hover {
-    background-color: #fef3c7 !important;
-}
+.expense-row td { font-weight: 600; padding: 7px 5px; }
+.solde-row   td { font-weight: 700; padding: 7px 5px; }
 
-.expense-row td {
+/* Badges compacts */
+.modern-table .badge {
+    padding: 3px 7px;
+    font-size: 0.72rem;
     font-weight: 600;
-    padding: 15px 10px;
+    border-radius: 5px;
 }
 
-.solde-row td {
-    font-weight: 700;
-    padding: 15px 10px;
-}
-
-/* Badges améliorés */
-.badge {
-    padding: 6px 12px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    border-radius: 6px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-/* Responsive */
+/* Responsive mobile */
 @media (max-width: 768px) {
-    .sticky-column {
-        min-width: 120px !important;
-        font-size: 0.85rem;
-    }
-    
-    .modern-table {
-        font-size: 0.8rem;
-    }
-    
-    .month-header strong {
-        font-size: 0.9rem;
-    }
+    .sticky-column { min-width: 100px !important; font-size: 0.72rem; }
+    .modern-table  { font-size: 0.72rem; }
+    .month-header strong { font-size: 0.7rem; }
 }
 
-/* Impression */
 @media print {
-    .sticky-column {
-        position: static;
-        box-shadow: none;
-    }
-    
-    .btn {
-        display: none;
-    }
+    .sticky-column { position: static; box-shadow: none; }
+    .btn { display: none; }
 }
 </style>
 {% endblock %}
