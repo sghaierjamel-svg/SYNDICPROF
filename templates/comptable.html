@@ -95,7 +95,7 @@
                     <table class="table table-hover table-bordered mb-0 comptable-table">
                         <thead class="table-dark sticky-top">
                             <tr>
-                                <th class="align-middle sticky-column" style="min-width: 150px; z-index: 10;">
+                                <th class="align-middle sticky-column" style="min-width: 130px; z-index: 10;">
                                     <i class="bi bi-building"></i> APPT
                                 </th>
                                 {% for year, month in months %}
@@ -107,7 +107,7 @@
                                     </div>
                                 </th>
                                 {% endfor %}
-                                <th class="text-center align-middle" style="min-width: 76px;">
+                                <th class="text-center align-middle" style="min-width: 60px;">
                                     <i class="bi bi-hourglass-split"></i> Impayés
                                 </th>
                             </tr>
@@ -377,31 +377,23 @@
 .bg-gradient-info    { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important; }
 .bg-gradient-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; }
 
-/* KPI cards compactes sur desktop */
-.kpi-row .card-body { padding: .6rem .8rem !important; }
-.kpi-row h6 { font-size: .72rem !important; margin-bottom: .2rem !important; }
-.kpi-row h3 { font-size: 1.25rem !important; margin-bottom: 0 !important; }
-.kpi-row small { font-size: .68rem !important; }
-.kpi-row i[style*="2.5rem"] { font-size: 1.8rem !important; }
-
-/* Tableau compact */
-.comptable-table { font-size: 0.76rem; }
+/* Tableau — mêmes valeurs que trésorerie */
+.comptable-table { font-size: 0.78rem; }
 
 .comptable-table thead th {
     font-weight: 600;
     text-transform: uppercase;
-    font-size: 0.68rem;
-    letter-spacing: 0.2px;
-    padding: 6px 4px;
+    font-size: 0.72rem;
+    letter-spacing: 0.3px;
+    padding: 7px 5px;
     background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
     border: none;
 }
 
-/* En-têtes de mois très compacts */
-.month-header-compact strong { font-size: 0.76rem; display: block; line-height: 1.2; }
-.month-header-compact small  { font-size: 0.62rem; opacity: 0.8; }
+.month-header-compact strong { font-size: 0.78rem; display: block; line-height: 1.2; }
+.month-header-compact small  { font-size: 0.65rem; opacity: 0.8; }
 
-/* Colonne fixe — fond sombre */
+/* Colonne fixe */
 .sticky-column {
     position: sticky;
     left: 0;
@@ -414,38 +406,38 @@
 .sticky-top { position: sticky; top: 0; z-index: 10; }
 
 /* Cellules de statut */
-.status-cell { padding: 5px 3px; }
+.status-cell { padding: 6px 4px; }
 .paid-cell   { background-color: rgba(16,185,129,0.13) !important; }
 .unpaid-cell { background-color: rgba(239,68,68,0.10)  !important; }
 
-/* Icônes statut */
+/* Icônes statut (spécifiques comptable) */
 .status-badge  { display: inline-flex; align-items: center; justify-content: center;
                  width: 22px; height: 22px; border-radius: 50%; font-size: 0.82rem; }
 .status-paid   { color: #10B981; background: rgba(16,185,129,0.15); }
 .status-unpaid { color: #EF4444; background: rgba(239,68,68,0.12); }
 
-/* Lignes */
+/* Lignes alerte */
 .table-danger-light { background-color: rgba(239,68,68,0.07) !important; }
 .bg-danger-light    { background-color: rgba(239,68,68,0.12) !important; }
 
-/* Badges compacts */
+/* Badges — mêmes valeurs que trésorerie */
 .comptable-table .badge {
-    padding: 2px 6px;
-    font-size: 0.68rem;
+    padding: 3px 7px;
+    font-size: 0.72rem;
     font-weight: 600;
-    border-radius: 4px;
+    border-radius: 5px;
 }
-.impaye-badge { font-size: 0.7rem; padding: 3px 6px; }
+.impaye-badge { font-size: 0.72rem; padding: 3px 7px; }
 
 /* Résumé mensuel pied */
 .month-summary { display: flex; align-items: center; justify-content: center; gap: 3px; }
 .month-summary .badge { font-size: 0.65rem; padding: 2px 5px; }
 
-/* Responsive mobile */
+/* Responsive mobile — mêmes valeurs que trésorerie */
 @media (max-width: 768px) {
-    .sticky-column   { min-width: 90px !important; font-size: 0.7rem; }
-    .comptable-table { font-size: 0.7rem; }
-    .month-header-compact strong { font-size: 0.68rem; }
+    .sticky-column   { min-width: 100px !important; font-size: 0.72rem; }
+    .comptable-table { font-size: 0.72rem; }
+    .month-header-compact strong { font-size: 0.7rem; }
     .status-badge    { font-size: 0.82rem; }
     /* KPI cards: 2 par ligne sur mobile */
     .kpi-row > [class*="col-"] { width: 50% !important; }
