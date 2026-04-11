@@ -105,9 +105,9 @@
                                     <i class="bi bi-piggy-bank"></i> Crédit
                                 </th>
                                 {% for year, month in months %}
-                                <th class="text-center align-middle month-column" style="min-width: 46px;">
+                                <th class="text-center align-middle month-column" style="min-width: 50px;">
                                     <div class="month-header-compact">
-                                        <strong>{{ ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'][month-1] }}</strong>
+                                        <strong>{{ ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'][month-1] }}</strong>
                                         <br>
                                         <small>'{{ (year % 100)|string }}</small>
                                     </div>
@@ -123,9 +123,9 @@
                             <tr class="apartment-row {% if row.unpaid_count >= 3 %}table-danger-light{% endif %}">
                                 <!-- Colonne Appartement -->
                                 <td class="fw-bold sticky-column {% if row.unpaid_count >= 3 %}bg-danger-light{% endif %}">
-                                    <div class="d-flex align-items-center">
-                                        <i class="bi bi-house-door {% if row.unpaid_count >= 3 %}text-danger{% else %}text-primary{% endif %} me-2"></i>
-                                        <span>{{ row.apartment }}</span>
+                                    <div class="d-flex align-items-center gap-1">
+                                        <i class="bi bi-house-door" style="color:{% if row.unpaid_count >= 3 %}#F87171{% else %}var(--accent){% endif %};font-size:.85rem;flex-shrink:0;"></i>
+                                        <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ row.apartment }}</span>
                                     </div>
                                 </td>
                                 
@@ -151,12 +151,12 @@
                                     {% set month_data = row.months[month_key] %}
                                     <td class="text-center status-cell {% if month_data.paid %}paid-cell{% else %}unpaid-cell{% endif %}">
                                         {% if month_data.paid %}
-                                            <span class="status-badge status-paid">
+                                            <span class="status-badge status-paid" title="Payé">
                                                 <i class="bi bi-check-circle-fill"></i>
                                             </span>
                                         {% else %}
-                                            <span class="status-badge status-unpaid">
-                                                <i class="bi bi-x-circle-fill"></i>
+                                            <span class="status-badge status-unpaid" title="Impayé">
+                                                <i class="bi bi-dash-circle-fill"></i>
                                             </span>
                                         {% endif %}
                                     </td>
@@ -423,13 +423,14 @@
 
 /* Cellules de statut */
 .status-cell { padding: 5px 3px; }
-.paid-cell   { background-color: rgba(16,185,129,0.1)  !important; }
-.unpaid-cell { background-color: rgba(239,68,68,0.08)  !important; }
+.paid-cell   { background-color: rgba(16,185,129,0.13) !important; }
+.unpaid-cell { background-color: rgba(239,68,68,0.10)  !important; }
 
-/* Icônes ✓/✗ compactes */
-.status-badge { display: inline-block; font-size: 0.92rem; }
-.status-paid  { color: #10B981; }
-.status-unpaid { color: #EF4444; }
+/* Icônes statut */
+.status-badge  { display: inline-flex; align-items: center; justify-content: center;
+                 width: 22px; height: 22px; border-radius: 50%; font-size: 0.82rem; }
+.status-paid   { color: #10B981; background: rgba(16,185,129,0.15); }
+.status-unpaid { color: #EF4444; background: rgba(239,68,68,0.12); }
 
 /* Lignes */
 .table-danger-light { background-color: rgba(239,68,68,0.07) !important; }
