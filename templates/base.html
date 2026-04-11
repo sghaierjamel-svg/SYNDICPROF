@@ -977,22 +977,6 @@
             </div>
         </div>
 
-        <!-- Configuration -->
-        <div class="nav-group" id="g-conf">
-            <div class="nav-group-header" onclick="toggleGroup('g-conf')">
-                <span class="nav-group-label"><i class="bi bi-sliders"></i> Configuration</span>
-                <i class="bi bi-chevron-right nav-group-arrow"></i>
-            </div>
-            <div class="nav-group-items">
-                <a class="nav-item {% if request.endpoint == 'settings' %}active{% endif %}"
-                   href="{{ url_for('settings') }}">Résidence</a>
-                <a class="nav-item" href="{{ url_for('settings') }}#konnect">Konnect</a>
-                <a class="nav-item" href="{{ url_for('settings') }}#flouci">Flouci</a>
-                <a class="nav-item" href="{{ url_for('settings') }}#whatsapp">WhatsApp</a>
-                <a class="nav-item" href="{{ url_for('settings') }}#cameras">Caméras</a>
-            </div>
-        </div>
-
         {% endif %}
         <!-- /ADMIN -->
 

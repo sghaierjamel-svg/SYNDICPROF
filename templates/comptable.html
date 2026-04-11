@@ -99,7 +99,7 @@
                                     <i class="bi bi-building"></i> APPT
                                 </th>
                                 {% for year, month in months %}
-                                <th class="text-center align-middle month-column" style="min-width: 46px;">
+                                <th class="text-center align-middle month-column" style="min-width: 40px;">
                                     <div class="month-header-compact">
                                         <strong>{{ ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'][month-1] }}</strong>
                                         <br>
@@ -107,9 +107,6 @@
                                     </div>
                                 </th>
                                 {% endfor %}
-                                <th class="text-center align-middle" style="min-width: 60px;">
-                                    <i class="bi bi-hourglass-split"></i> Impayés
-                                </th>
                             </tr>
                         </thead>
                         <tbody>
@@ -121,16 +118,22 @@
                                         <i class="bi bi-house-door" style="color:{% if row.unpaid_count >= 3 %}#F87171{% else %}var(--accent){% endif %};font-size:.82rem;flex-shrink:0;"></i>
                                         <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ row.apartment }}</span>
                                     </div>
-                                    <div style="font-size:.65rem;font-weight:400;color:var(--muted);display:flex;gap:4px;flex-wrap:wrap;">
+                                    <div style="font-size:.65rem;font-weight:400;color:var(--muted);display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
                                         <span style="color:#38BDF8;">{{ '{:,.0f}'.format(row.monthly_fee) }} DT/m</span>
                                         {% if row.credit_balance > 0 %}
                                         <span style="color:#10B981;" title="Crédit disponible">
                                             <i class="bi bi-piggy-bank-fill"></i> {{ '{:,.0f}'.format(row.credit_balance) }}
                                         </span>
                                         {% endif %}
+                                        {% if row.unpaid_count > 0 %}
+                                        <span class="badge {% if row.unpaid_count >= 3 %}bg-danger{% elif row.unpaid_count >= 2 %}bg-warning text-dark{% else %}bg-secondary{% endif %}"
+                                              style="font-size:.6rem;padding:2px 5px;">
+                                            {{ row.unpaid_count }}m
+                                        </span>
+                                        {% endif %}
                                     </div>
                                 </td>
-                                
+
                                 <!-- Mois Payés/Impayés -->
                                 {% for year, month in months %}
                                     {% set month_key = '%04d-%02d'|format(year, month) %}
@@ -147,21 +150,6 @@
                                         {% endif %}
                                     </td>
                                 {% endfor %}
-                                
-                                <!-- Impayés -->
-                                <td class="text-center fw-bold">
-                                    {% if row.unpaid_count > 0 %}
-                                        <span class="badge {% if row.unpaid_count >= 3 %}bg-danger{% elif row.unpaid_count >= 2 %}bg-warning{% else %}bg-secondary{% endif %} impaye-badge">
-                                            <i class="bi bi-exclamation-triangle-fill"></i> {{ row.unpaid_count }}
-                                        </span>
-                                        <br>
-                                        <small class="text-danger fw-bold">{{ '{:,.0f}'.format(row.monthly_fee * row.unpaid_count) }} DT</small>
-                                    {% else %}
-                                        <span class="badge bg-success">
-                                            <i class="bi bi-check-lg"></i> OK
-                                        </span>
-                                    {% endif %}
-                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -189,9 +177,6 @@
                                         </div>
                                     </td>
                                 {% endfor %}
-                                <td class="text-center">
-                                    <span class="badge bg-danger">{{ stats.total_impaye|int }} DT</span>
-                                </td>
                             </tr>
                         </tfoot>
                     </table>
