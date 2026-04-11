@@ -14,7 +14,7 @@
 </div>
 
 <!-- Statistiques Rapides -->
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-4 kpi-row">
     {% set total_encaissements = namespace(value=0) %}
     {% set total_depenses = namespace(value=0) %}
     {% for row in data %}
@@ -308,6 +308,12 @@
     .sticky-column { min-width: 100px !important; font-size: 0.72rem; }
     .modern-table  { font-size: 0.72rem; }
     .month-header strong { font-size: 0.7rem; }
+    /* KPI cards: 2 par ligne sur mobile */
+    .kpi-row > [class*="col-"] { width: 50% !important; }
+    .kpi-row .card-body { padding: .5rem .6rem !important; }
+    .kpi-row h6 { font-size: .6rem !important; margin-bottom: .2rem !important; }
+    .kpi-row h3 { font-size: .9rem !important; }
+    .kpi-row i[style*="2.5rem"] { display: none; }
 }
 
 @media print {

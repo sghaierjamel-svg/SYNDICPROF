@@ -14,7 +14,7 @@
 </div>
 
 <!-- Statistiques Rapides -->
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-4 kpi-row">
     {% set stats = namespace(total_appts=0, appts_jour=0, appts_retard=0, total_impaye=0) %}
     {% for row in data %}
         {% set stats.total_appts = stats.total_appts + 1 %}
@@ -440,6 +440,13 @@
     .comptable-table { font-size: 0.7rem; }
     .month-header-compact strong { font-size: 0.68rem; }
     .status-badge    { font-size: 0.82rem; }
+    /* KPI cards: 2 par ligne sur mobile */
+    .kpi-row > [class*="col-"] { width: 50% !important; }
+    .kpi-row .card-body { padding: .5rem .6rem !important; }
+    .kpi-row h6 { font-size: .6rem !important; margin-bottom: .2rem !important; }
+    .kpi-row h3 { font-size: .9rem !important; margin-bottom: 0 !important; }
+    .kpi-row small { font-size: .6rem !important; }
+    .kpi-row i[style*="2.5rem"] { display: none; }
 }
 
 @media print {
