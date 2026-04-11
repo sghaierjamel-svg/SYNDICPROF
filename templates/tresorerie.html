@@ -69,6 +69,119 @@
     </div>
 </div>
 
+<!-- Graphique Encaissements vs Dépenses -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-gradient-primary text-white d-flex justify-content-between align-items-center">
+                <div><i class="bi bi-bar-chart-line"></i> <strong>Encaissements vs Dépenses</strong></div>
+                <small class="opacity-75">12 derniers mois</small>
+            </div>
+            <div class="card-body" style="padding: 1rem;">
+                <canvas id="tresoChart" style="max-height: 240px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+    const labels  = {{ months | map('join', '-') | list | tojson }};
+    const labelsF = [
+        {% for year, month in months %}
+        "{{ ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'][month-1] }} '{{ (year % 100)|string }}"{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    const encData = [
+        {% for year, month in months %}
+        {% set mk = '%04d-%02d'|format(year, month) %}
+        {% set total = namespace(v=0) %}
+        {% for row in data %}{% set total.v = total.v + row.months[mk] %}{% endfor %}
+        {% set total.v = total.v + misc_row.months[mk] %}
+        {{ total.v }}{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+    const depData = [
+        {% for year, month in months %}
+        {% set mk = '%04d-%02d'|format(year, month) %}
+        {{ expense_row.months[mk] }}{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+    const soldeData = encData.map((v, i) => v - depData[i]);
+
+    const ctx = document.getElementById('tresoChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labelsF,
+            datasets: [
+                {
+                    label: 'Encaissements',
+                    data: encData,
+                    backgroundColor: 'rgba(16,185,129,0.75)',
+                    borderColor: '#10b981',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    order: 2
+                },
+                {
+                    label: 'Dépenses',
+                    data: depData,
+                    backgroundColor: 'rgba(239,68,68,0.75)',
+                    borderColor: '#ef4444',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    order: 3
+                },
+                {
+                    label: 'Solde',
+                    data: soldeData,
+                    type: 'line',
+                    borderColor: '#818CF8',
+                    backgroundColor: 'rgba(129,140,248,0.12)',
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#818CF8',
+                    fill: true,
+                    tension: 0.35,
+                    order: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: {
+                    labels: { color: '#CBD5E1', font: { size: 11 }, boxWidth: 14 }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ` ${ctx.dataset.label} : ${ctx.parsed.y.toLocaleString('fr-TN', {minimumFractionDigits:2})} DT`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: '#94A3B8', font: { size: 10 } },
+                    grid:  { color: 'rgba(255,255,255,0.05)' }
+                },
+                y: {
+                    ticks: {
+                        color: '#94A3B8', font: { size: 10 },
+                        callback: v => v.toLocaleString('fr-TN') + ' DT'
+                    },
+                    grid: { color: 'rgba(255,255,255,0.07)' }
+                }
+            }
+        }
+    });
+})();
+</script>
+
 <!-- Tableau Principal -->
 <div class="row">
     <div class="col-12">
