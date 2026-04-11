@@ -74,15 +74,17 @@ def comptable():
     today = date.today()
     all_months = []
 
-    for i in range(11, -1, -1):
+    # 9 mois passés (mois courant inclus)
+    for i in range(8, -1, -1):
         month_date = today - relativedelta(months=i)
         all_months.append((month_date.year, month_date.month))
 
+    # 3 mois à venir
     for i in range(1, 4):
         month_date = today + relativedelta(months=i)
         all_months.append((month_date.year, month_date.month))
 
-    months = sorted(list(set(all_months)))
+    months = all_months  # déjà triés chronologiquement
 
     apartments = Apartment.query.filter_by(organization_id=org.id).order_by(Apartment.block_id, Apartment.number).all()
     payments = Payment.query.filter_by(organization_id=org.id).all()
