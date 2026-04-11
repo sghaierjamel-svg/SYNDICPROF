@@ -1150,6 +1150,17 @@
             </div>
         </div>
         <div class="topbar-right">
+            <!-- Bouton installer PWA (visible quand l'app est installable) -->
+            <button id="pwa-topbar-btn" data-pwa-install title="Installer l'application sur votre téléphone"
+                    style="display:none;align-items:center;gap:5px;
+                           background:linear-gradient(135deg,var(--accent),var(--accent2));
+                           color:#fff;border:none;border-radius:8px;
+                           padding:5px 11px;font-size:.78rem;font-weight:600;
+                           cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(99,102,241,.4);">
+                <i class="bi bi-download"></i>
+                <span class="d-none d-sm-inline">Installer</span>
+            </button>
+
             <!-- Bouton push notifications -->
             <button id="pushActivateBtn" title="Notifications push">
                 <i class="bi bi-bell-slash" id="pushBtnIcon"></i>
@@ -1544,55 +1555,96 @@ if (notifBtn) {
 <script>
 (function() {
     let deferredPrompt = null;
+    const DISMISS_KEY = 'pwa-dismissed-at';
+    const DISMISS_TTL = 3 * 24 * 60 * 60 * 1000; // réapparaît après 3 jours
+    // Migration : supprimer l'ancienne clé qui bloquait définitivement
+    localStorage.removeItem('pwa-dismissed');
 
-    function showInstallBanner() {
-        const b = document.getElementById('pwa-install-banner');
-        if (b) b.style.display = 'flex';
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                      || (('standalone' in navigator) && navigator.standalone);
+
+    function wasDismissedRecently() {
+        const t = localStorage.getItem(DISMISS_KEY);
+        return t && (Date.now() - Number(t) < DISMISS_TTL);
     }
-    function hideInstallBanner() {
+    function dismissBanners() {
+        localStorage.setItem(DISMISS_KEY, Date.now().toString());
         const b = document.getElementById('pwa-install-banner');
         if (b) b.style.display = 'none';
-        localStorage.setItem('pwa-dismissed', '1');
+        const ib = document.getElementById('pwa-ios-banner');
+        if (ib) ib.style.display = 'none';
+    }
+    function showTopbarBtn() {
+        const btn = document.getElementById('pwa-topbar-btn');
+        if (btn) btn.style.display = 'flex';
+    }
+    function hideTopbarBtn() {
+        const btn = document.getElementById('pwa-topbar-btn');
+        if (btn) btn.style.display = 'none';
     }
 
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        if (!window.matchMedia('(display-mode: standalone)').matches &&
-            !localStorage.getItem('pwa-dismissed')) {
-            showInstallBanner();
-        }
+    if (isStandalone) {
+        // Application déjà installée — cacher tout
         const sideBtn = document.getElementById('pwa-sidebar-btn');
-        if (sideBtn) sideBtn.style.display = 'flex';
-    });
+        if (sideBtn) sideBtn.style.display = 'none';
+    } else {
+        const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 
+        if (isIOS) {
+            // iOS/Safari : toujours montrer le bouton topbar (pas de beforeinstallprompt)
+            showTopbarBtn();
+            if (!wasDismissedRecently()) {
+                const ib = document.getElementById('pwa-ios-banner');
+                if (ib) ib.style.display = 'flex';
+            }
+        }
+
+        // Android/Chrome : écouter l'événement natif
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            showTopbarBtn();
+            const sideBtn = document.getElementById('pwa-sidebar-btn');
+            if (sideBtn) sideBtn.style.display = 'flex';
+            if (!wasDismissedRecently()) {
+                const b = document.getElementById('pwa-install-banner');
+                if (b) b.style.display = 'flex';
+            }
+        });
+
+        window.addEventListener('appinstalled', () => {
+            deferredPrompt = null;
+            hideTopbarBtn();
+            dismissBanners();
+        });
+    }
+
+    // Clic sur un bouton "Installer"
     document.addEventListener('click', async (e) => {
+        if (e.target.closest('[data-pwa-dismiss]')) {
+            dismissBanners();
+            return;
+        }
         const btn = e.target.closest('[data-pwa-install]');
         if (!btn) return;
-        hideInstallBanner();
-        if (!deferredPrompt) return;
-        deferredPrompt.prompt();
-        await deferredPrompt.userChoice;
-        deferredPrompt = null;
-        const sideBtn = document.getElementById('pwa-sidebar-btn');
-        if (sideBtn) sideBtn.style.display = 'none';
+        if (deferredPrompt) {
+            // Android : déclencher l'invite native
+            const b = document.getElementById('pwa-install-banner');
+            if (b) b.style.display = 'none';
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            deferredPrompt = null;
+            if (outcome === 'accepted') {
+                hideTopbarBtn();
+                const sideBtn = document.getElementById('pwa-sidebar-btn');
+                if (sideBtn) sideBtn.style.display = 'none';
+            }
+        } else {
+            // iOS : afficher les instructions
+            const ib = document.getElementById('pwa-ios-banner');
+            if (ib) ib.style.display = 'flex';
+        }
     });
-
-    document.addEventListener('click', (e) => {
-        if (e.target.closest('[data-pwa-dismiss]')) hideInstallBanner();
-    });
-
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-        const sideBtn = document.getElementById('pwa-sidebar-btn');
-        if (sideBtn) sideBtn.style.display = 'none';
-    }
-
-    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    const isStandalone = ('standalone' in window.navigator) && window.navigator.standalone;
-    if (isIOS && !isStandalone && !localStorage.getItem('pwa-dismissed')) {
-        const iosBanner = document.getElementById('pwa-ios-banner');
-        if (iosBanner) iosBanner.style.display = 'flex';
-    }
 })();
 </script>
 
