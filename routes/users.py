@@ -77,7 +77,7 @@ def edit_user(user_id):
     apartments = Apartment.query.filter_by(organization_id=org.id).all()
     if request.method == 'POST':
         u.name  = request.form.get('name', '').strip()
-        u.email = request.form.get('email', '').strip()
+        u.email = request.form.get('email', '').strip().lower()
         u.phone = request.form.get('phone', '').strip() or None
         new_role = request.form.get('role', u.role)
         if new_role in ['admin', 'resident']:

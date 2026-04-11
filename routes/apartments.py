@@ -69,7 +69,14 @@ def edit_apartment(apartment_id):
     if request.method == 'POST':
         apt.number = request.form['apt_number']
         apt.block_id = int(request.form['block_id'])
-        apt.monthly_fee = float(request.form.get('monthly_fee', 100.0))
+        try:
+            fee = float(request.form.get('monthly_fee', 100.0))
+            if fee <= 0 or fee > 99_999:
+                raise ValueError
+            apt.monthly_fee = fee
+        except (ValueError, TypeError):
+            flash('Redevance invalide (entre 0.01 et 99 999 DT).', 'danger')
+            return redirect(url_for('edit_apartment', apartment_id=apartment_id))
         apt.parking_spot = request.form.get('parking_spot', '').strip()[:20] or None
         db.session.commit()
         flash('Appartement modifié', 'success')

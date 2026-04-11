@@ -64,4 +64,14 @@ def add_security_headers(response):
     response.headers['X-XSS-Protection']       = '1; mode=block'
     response.headers['Referrer-Policy']        = 'strict-origin-when-cross-origin'
     response.headers['Permissions-Policy']     = 'geolocation=(), microphone=(), camera=()'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net fonts.googleapis.com; "
+        "font-src 'self' fonts.gstatic.com cdn.jsdelivr.net; "
+        "img-src 'self' data: blob:; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none';"
+    )
     return response

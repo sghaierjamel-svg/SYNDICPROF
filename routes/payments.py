@@ -159,7 +159,7 @@ def payments():
                 flash(f"Montant exact, aucun crédit résiduel", "info")
 
         except Exception as e:
-            print(f"ERREUR paiement: {str(e)}")
+            app.logger.error("ERREUR paiement: %s", e, exc_info=True)
             flash('Une erreur est survenue. Réessayez.', 'danger')
 
         return redirect(url_for('payments'))
@@ -247,7 +247,7 @@ def add_misc_receipt():
         db.session.commit()
         flash(f'Encaissement divers "{libelle}" enregistré ({amount:.2f} DT).', 'success')
     except Exception as e:
-        print(f"ERREUR misc_receipt: {e}")
+        app.logger.error("ERREUR misc_receipt: %s", e, exc_info=True)
         flash('Une erreur est survenue.', 'danger')
     return redirect(url_for('payments') + '#divers')
 
@@ -275,7 +275,7 @@ def edit_misc_receipt(receipt_id):
         db.session.commit()
         flash('Encaissement modifié.', 'success')
     except Exception as e:
-        print(f"ERREUR edit_misc_receipt: {e}")
+        app.logger.error("ERREUR edit_misc_receipt: %s", e, exc_info=True)
         flash('Une erreur est survenue.', 'danger')
     return redirect(url_for('payments') + '#divers')
 
