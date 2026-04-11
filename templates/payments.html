@@ -131,7 +131,7 @@
                                     data-unpaid="{{ apt.unpaid_count }}"
                                     data-next="{{ apt.next_unpaid }}"
                                     data-credit="{{ apt.credit_balance }}">
-                                {{ apt.block.name }}-{{ apt.number }}
+                                {% if apt.block %}{{ apt.block.name }}-{% endif %}{{ apt.number }}
                                 ({{ '{:.0f}'.format(apt.monthly_fee) }} DT · {{ apt.unpaid_count }} impayés{% if apt.credit_balance > 0 %} · crédit {{ '{:.0f}'.format(apt.credit_balance) }} DT{% endif %})
                             </option>
                             {% endfor %}
@@ -212,7 +212,7 @@
                         {% for p in payments %}
                         <tr>
                             <td style="white-space:nowrap;">{{ p.payment_date.strftime('%d/%m/%Y') }}</td>
-                            <td><strong>{{ p.apartment.block.name }}-{{ p.apartment.number }}</strong></td>
+                            <td><strong>{% if p.apartment.block %}{{ p.apartment.block.name }}-{% endif %}{{ p.apartment.number }}</strong></td>
                             <td><span class="badge bg-primary">{{ p.month_paid }}</span></td>
                             <td><strong style="color:#00C896;">{{ '{:.2f}'.format(p.amount) }} DT</strong></td>
                             <td>
