@@ -127,71 +127,124 @@
                 <div id="facturesList">
                 {% if all_months_list %}
                 {% for m in all_months_list %}
-                <div class="facture-card mb-3" data-status="{% if m.paid %}paid{% else %}unpaid{% endif %}"
-                     style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);
-                            border-radius:14px;padding:1rem 1.2rem;">
 
-                    {# Ligne 1 : icône + titre + badge #}
+                {% if not m.paid %}
+                {# ── Carte IMPAYÉE — cliquable, boutons paiement directs ── #}
+                <div class="facture-card mb-3 facture-unpaid"
+                     data-status="unpaid"
+                     data-month="{{ m.month_str }}"
+                     data-amount="{{ m.amount }}"
+                     style="background:rgba(239,68,68,.05);
+                            border:1.5px solid rgba(239,68,68,.3);
+                            border-radius:14px;padding:1rem 1.2rem;
+                            cursor:pointer;transition:border-color .15s,background .15s;">
+
+                    {# Ligne 1 : checkbox + titre + badge #}
                     <div class="d-flex align-items-center gap-3 mb-2">
-                        <i class="bi bi-receipt-cutoff" style="font-size:1.3rem;color:{% if m.paid %}var(--accent){% else %}#f59e0b{% endif %};flex-shrink:0;"></i>
-                        <span style="font-weight:600;font-size:.95rem;flex:1;">
-                            Facture de {{ m.label }}
-                        </span>
-                        {% if m.paid %}
-                        <span class="badge" style="background:#16a34a;color:#fff;border-radius:20px;padding:.3rem .8rem;font-size:.78rem;">
-                            Payée
-                        </span>
-                        {% else %}
-                        <span class="badge" style="background:rgba(239,68,68,.2);color:#f87171;border:1px solid #ef4444;border-radius:20px;padding:.3rem .8rem;font-size:.78rem;">
-                            Impayée
-                        </span>
-                        {% endif %}
-                    </div>
-
-                    {# Ligne 2 : date #}
-                    <div style="font-size:.82rem;color:var(--muted);margin-bottom:.6rem;padding-left:2.3rem;">
-                        {% if m.paid %}
-                        <span>Payée le {{ m.date_paid.strftime('%d/%m/%Y') }}</span>
-                        {% else %}
-                        Date d'échéance :
-                        <strong style="color:var(--text);">{{ m.due_date.strftime('%d %B %Y') }}</strong>
-                        {% if m.days_until_due >= 0 %}
-                        <span style="color:#4ade80;margin-left:6px;">— {{ m.days_until_due }} jour(s) restant(s)</span>
-                        {% else %}
-                        <span style="color:#ef4444;margin-left:6px;">— En retard de {{ -m.days_until_due }} jour(s)</span>
-                        {% endif %}
-                        {% endif %}
-                    </div>
-
-                    <hr style="border-color:rgba(255,255,255,.08);margin:.5rem 0;">
-
-                    {# Ligne 3 : reçu + montant + checkbox #}
-                    <div class="d-flex align-items-center gap-3" style="padding-left:2.3rem;">
-                        {% if m.paid and m.payment_id %}
-                        <a href="{{ url_for('payment_receipt', payment_id=m.payment_id) }}"
-                           style="color:var(--accent);font-size:.85rem;text-decoration:none;font-weight:500;">
-                            <i class="bi bi-download"></i> voir la facture
-                        </a>
-                        {% else %}
-                        <span style="color:var(--muted);font-size:.82rem;">—</span>
-                        {% endif %}
-
-                        <span style="flex:1;"></span>
-
-                        <span style="font-size:1.05rem;font-weight:700;color:var(--accent);">
-                            {{ '{:.1f}'.format(m.amount) }} TND
-                        </span>
-
-                        {% if not m.paid %}
                         <input type="checkbox"
                                class="form-check-input month-chk mt-0"
                                value="{{ m.month_str }}"
                                data-amount="{{ m.amount }}"
-                               style="width:1.2rem;height:1.2rem;cursor:pointer;">
+                               style="width:1.3rem;height:1.3rem;cursor:pointer;flex-shrink:0;">
+                        <i class="bi bi-receipt-cutoff" style="font-size:1.2rem;color:#f59e0b;flex-shrink:0;"></i>
+                        <span style="font-weight:600;font-size:.95rem;flex:1;">
+                            Facture {{ m.label }}
+                        </span>
+                        <span class="badge" style="background:rgba(239,68,68,.2);color:#f87171;
+                              border:1px solid #ef4444;border-radius:20px;
+                              padding:.25rem .7rem;font-size:.75rem;">
+                            Impayée
+                        </span>
+                    </div>
+
+                    {# Ligne 2 : échéance #}
+                    <div style="font-size:.8rem;color:var(--muted);margin-bottom:.7rem;padding-left:2.6rem;">
+                        Échéance : <strong style="color:var(--text);">{{ m.due_date.strftime('%d/%m/%Y') }}</strong>
+                        {% if m.days_until_due >= 0 %}
+                        <span style="color:#4ade80;margin-left:6px;">{{ m.days_until_due }}j restant(s)</span>
+                        {% else %}
+                        <span style="color:#ef4444;margin-left:6px;">{{ -m.days_until_due }}j de retard</span>
+                        {% endif %}
+                    </div>
+
+                    <hr style="border-color:rgba(255,255,255,.06);margin:.4rem 0 .7rem;">
+
+                    {# Ligne 3 : montant + boutons paiement #}
+                    <div class="d-flex align-items-center gap-2 flex-wrap" style="padding-left:2.6rem;">
+                        <span style="font-size:1.1rem;font-weight:700;color:#f87171;">
+                            {{ '{:.1f}'.format(m.amount) }} TND
+                        </span>
+                        <span style="flex:1;"></span>
+
+                        {# Bouton virement — toujours visible #}
+                        <button type="button"
+                                class="btn btn-sm btn-outline-secondary btn-virement-card"
+                                data-month="{{ m.month_str }}"
+                                data-amount="{{ m.amount }}"
+                                title="Déclarer un virement pour ce mois"
+                                style="font-size:.78rem;">
+                            <i class="bi bi-bank"></i>
+                        </button>
+
+                        {# Bouton paiement en ligne — si configuré #}
+                        {% if flouci_configured or konnect_configured %}
+                        <button type="button"
+                                class="btn btn-sm btn-primary btn-pay-card"
+                                data-month="{{ m.month_str }}"
+                                data-amount="{{ m.amount }}"
+                                style="font-size:.78rem;font-weight:600;">
+                            <i class="bi bi-credit-card me-1"></i>Payer {{ '{:.0f}'.format(m.amount) }} DT
+                        </button>
                         {% endif %}
                     </div>
 
                 </div>
+
+                {% else %}
+                {# ── Carte PAYÉE ── #}
+                <div class="facture-card mb-3"
+                     data-status="paid"
+                     style="background:rgba(255,255,255,.03);
+                            border:1px solid rgba(255,255,255,.08);
+                            border-radius:14px;padding:1rem 1.2rem;">
+
+                    {# Ligne 1 : icône + titre + badge #}
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <i class="bi bi-receipt-cutoff" style="font-size:1.2rem;color:var(--accent);flex-shrink:0;"></i>
+                        <span style="font-weight:600;font-size:.95rem;flex:1;">
+                            Facture {{ m.label }}
+                        </span>
+                        <span class="badge" style="background:rgba(0,200,150,.15);color:#00C896;
+                              border:1px solid #00C896;border-radius:20px;
+                              padding:.25rem .7rem;font-size:.75rem;">
+                            <i class="bi bi-check-circle me-1"></i>Payée
+                        </span>
+                    </div>
+
+                    {# Ligne 2 : date paiement #}
+                    <div style="font-size:.8rem;color:var(--muted);margin-bottom:.7rem;padding-left:2.3rem;">
+                        Payée le {{ m.date_paid.strftime('%d/%m/%Y') }}
+                    </div>
+
+                    <hr style="border-color:rgba(255,255,255,.06);margin:.4rem 0 .7rem;">
+
+                    {# Ligne 3 : reçu + montant #}
+                    <div class="d-flex align-items-center gap-3" style="padding-left:2.3rem;">
+                        {% if m.payment_id %}
+                        <a href="{{ url_for('payment_receipt', payment_id=m.payment_id) }}"
+                           style="color:var(--accent);font-size:.82rem;text-decoration:none;font-weight:500;">
+                            <i class="bi bi-download"></i> Télécharger reçu
+                        </a>
+                        {% endif %}
+                        <span style="flex:1;"></span>
+                        <span style="font-size:1.05rem;font-weight:700;color:var(--accent);">
+                            {{ '{:.1f}'.format(m.amount) }} TND
+                        </span>
+                    </div>
+
+                </div>
+                {% endif %}
+
                 {% endfor %}
                 {% else %}
                 <div class="text-center py-5" style="color:var(--muted);">
@@ -460,21 +513,79 @@
         });
     });
 
-    // Sélectionner tout
+    // ── Highlight carte selon checkbox ──────────────────────────────────────
+    function highlightCard(chk) {
+        const card = chk.closest('.facture-unpaid');
+        if (!card) return;
+        if (chk.checked) {
+            card.style.borderColor = '#6366f1';
+            card.style.background  = 'rgba(99,102,241,.12)';
+            card.style.boxShadow   = '0 0 0 2px rgba(99,102,241,.25)';
+        } else {
+            card.style.borderColor = 'rgba(239,68,68,.3)';
+            card.style.background  = 'rgba(239,68,68,.05)';
+            card.style.boxShadow   = '';
+        }
+    }
+
+    // ── Clic sur carte impayée → toggle checkbox ────────────────────────────
+    document.querySelectorAll('.facture-unpaid').forEach(card => {
+        card.addEventListener('click', function (e) {
+            if (e.target.closest('input, button, a, form')) return;
+            const chk = this.querySelector('.month-chk');
+            if (!chk) return;
+            chk.checked = !chk.checked;
+            highlightCard(chk);
+            updatePayButton();
+        });
+    });
+
+    // ── Sélectionner tout ───────────────────────────────────────────────────
     if (chkAll) {
         chkAll.addEventListener('change', function () {
-            document.querySelectorAll('.facture-card:not([style*="none"]) .month-chk')
-                    .forEach(c => c.checked = this.checked);
+            document.querySelectorAll('.facture-card:not([style*="display: none"]) .month-chk')
+                    .forEach(c => { c.checked = this.checked; highlightCard(c); });
             updatePayButton();
         });
     }
 
-    // Checkboxes individuelles
+    // ── Checkboxes individuelles ────────────────────────────────────────────
     document.querySelectorAll('.month-chk').forEach(c => {
-        c.addEventListener('change', updatePayButton);
+        c.addEventListener('change', function () {
+            highlightCard(this);
+            updatePayButton();
+        });
     });
 
-    // Etat initial
+    // ── Bouton "Payer X DT" sur chaque carte → paiement immédiat ───────────
+    document.querySelectorAll('.btn-pay-card').forEach(btn => {
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (!payForm) return;
+            monthsIn.value = this.dataset.month;
+            payForm.submit();
+        });
+    });
+
+    // ── Bouton virement sur chaque carte → modal pré-rempli ─────────────────
+    document.querySelectorAll('.btn-virement-card').forEach(btn => {
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const month  = this.dataset.month;   // ex: "2026-04"
+            const amount = this.dataset.amount;
+            const mtField = document.getElementById('vmt_month_target');
+            const amtField = document.getElementById('vmt_amount');
+            if (mtField)  mtField.value  = month;
+            if (amtField) {
+                amtField.value = amount;
+                amtField.dispatchEvent(new Event('input')); // déclenche calcul
+            }
+            const modal = document.getElementById('virementModal');
+            if (modal) new bootstrap.Modal(modal).show();
+        });
+    });
+
+    // ── État initial ────────────────────────────────────────────────────────
     updatePayButton();
 
     // Auto-ouvrir le modal virement si ?open=virement dans l'URL (lien sidebar)
@@ -483,10 +594,10 @@
         if (el) { new bootstrap.Modal(el).show(); }
     }
 
-    // Calcul dynamique nb mois dans le modal virement
-    const vmtAmount = document.getElementById('vmt_amount');
-    const vmtInfo   = document.getElementById('vmt_calc_info');
-    const vmtText   = document.getElementById('vmt_calc_text');
+    // ── Calcul dynamique nb mois dans le modal virement ─────────────────────
+    const vmtAmount  = document.getElementById('vmt_amount');
+    const vmtInfo    = document.getElementById('vmt_calc_info');
+    const vmtText    = document.getElementById('vmt_calc_text');
     const monthlyFee = {{ apt.monthly_fee if apt and apt.monthly_fee else 0 }};
     if (vmtAmount && vmtInfo && monthlyFee > 0) {
         vmtAmount.addEventListener('input', function () {
@@ -494,11 +605,12 @@
             if (!val || val <= 0) { vmtInfo.style.display = 'none'; return; }
             const nb = Math.floor(val / monthlyFee);
             if (nb >= 1) {
-                vmtText.textContent = `${val.toFixed(0)} DT ÷ ${monthlyFee.toFixed(0)} DT = ${nb} mois créditée${nb > 1 ? 's' : ''} à partir du mois sélectionné`;
+                vmtText.textContent = `${val.toFixed(0)} DT ÷ ${monthlyFee.toFixed(0)} DT = ${nb} mois crédité${nb > 1 ? 's' : ''} à partir du mois sélectionné`;
+                vmtInfo.style.color  = '#00C896';
                 vmtInfo.style.display = '';
             } else {
                 vmtText.textContent = `Montant inférieur à la redevance (${monthlyFee.toFixed(0)} DT)`;
-                vmtInfo.style.color = '#f87171';
+                vmtInfo.style.color  = '#f87171';
                 vmtInfo.style.display = '';
             }
         });
