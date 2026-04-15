@@ -991,7 +991,7 @@
         </a>
 
         <!-- Mes Charges -->
-        <div class="nav-group {% if request.endpoint in ['residents_menu','appels_fonds_resident'] %}open{% endif %}" id="g-charges">
+        <div class="nav-group {% if request.endpoint in ['residents_menu','appels_fonds_resident','virements_resident'] %}open{% endif %}" id="g-charges">
             <div class="nav-group-header" onclick="toggleGroup('g-charges')">
                 <span class="nav-group-label"><i class="bi bi-receipt"></i> Mes Charges</span>
                 <i class="bi bi-chevron-right nav-group-arrow"></i>
@@ -1001,6 +1001,10 @@
                    href="{{ url_for('residents_menu') }}">Mes Factures</a>
                 <a class="nav-item {% if request.endpoint == 'appels_fonds_resident' %}active{% endif %}"
                    href="{{ url_for('appels_fonds_resident') }}">Appels de Fonds</a>
+                <a class="nav-item"
+                   href="{{ url_for('residents_menu') }}?open=virement">
+                    <i class="bi bi-bank" style="font-size:.75rem;"></i> Déclarer un virement
+                </a>
             </div>
         </div>
 

@@ -428,6 +428,12 @@
 
     // Etat initial
     updatePayButton();
+
+    // Auto-ouvrir le modal virement si ?open=virement dans l'URL (lien sidebar)
+    if (new URLSearchParams(window.location.search).get('open') === 'virement') {
+        const el = document.getElementById('virementModal');
+        if (el) { new bootstrap.Modal(el).show(); }
+    }
 })();
 </script>
 
