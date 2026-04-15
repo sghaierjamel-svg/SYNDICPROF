@@ -159,30 +159,39 @@ def konnect_success():
         pass
 
     if verified:
-        # Enregistrer le paiement si pas déjà fait
-        existing = Payment.query.filter_by(
-            apartment_id=kp.apartment_id,
-            month_paid=kp.month_target
-        ).first()
-        if not existing:
-            p = Payment(
-                organization_id=kp.organization_id,
-                apartment_id=kp.apartment_id,
-                amount=kp.amount,
-                payment_date=datetime.utcnow().date(),
-                month_paid=kp.month_target,
-                description=f"Paiement en ligne Konnect — {kp.month_target}",
-                credit_used=0.0
-            )
-            db.session.add(p)
+        # Récupérer la liste des mois couverts (paiement groupé ou simple)
+        import json as _json
+        try:
+            months_to_pay = _json.loads(kp.months_json) if kp.months_json else [kp.month_target]
+        except Exception:
+            months_to_pay = [kp.month_target]
+
+        amount_per_month = round(kp.amount / len(months_to_pay), 3)
+
+        for _month in months_to_pay:
+            existing = Payment.query.filter_by(
+                apartment_id=kp.apartment_id, month_paid=_month
+            ).first()
+            if not existing:
+                p = Payment(
+                    organization_id=kp.organization_id,
+                    apartment_id=kp.apartment_id,
+                    amount=amount_per_month,
+                    payment_date=datetime.utcnow().date(),
+                    month_paid=_month,
+                    description=f"Paiement en ligne Konnect — {_month}",
+                    credit_used=0.0
+                )
+                db.session.add(p)
+
         kp.status = 'completed'
         kp.paid_at = datetime.utcnow()
         db.session.commit()
-        # Notification WhatsApp
+        # Notification WhatsApp (premier mois)
         try:
             apt = Apartment.query.get(kp.apartment_id)
             resident = User.query.filter_by(apartment_id=kp.apartment_id).first()
-            notify_payment(org, apt, kp.month_target, kp.amount, resident)
+            notify_payment(org, apt, months_to_pay[0], kp.amount, resident)
         except Exception:
             pass
 
@@ -240,6 +249,92 @@ def konnect_generate_link():
         return jsonify({'ok': False, 'message': err})
 
     return jsonify({'ok': True, 'pay_url': kp.pay_url, 'reused': False})
+
+
+# ─── RÉSIDENT : paiement groupé (plusieurs mois) ────────────────────────────
+
+@app.route('/konnect/pay-multi', methods=['POST'])
+@login_required
+@subscription_required
+def konnect_pay_multi():
+    """Résident sélectionne plusieurs mois → un seul lien Konnect pour le total."""
+    import json as _json
+    user = current_user()
+    if not user.apartment_id:
+        flash("Vous n'êtes pas affecté à un appartement.", "danger")
+        return redirect(url_for('residents_menu'))
+
+    org = current_organization()
+    if not org.konnect_api_key or not org.konnect_wallet_id:
+        flash("Le paiement en ligne n'est pas encore configuré pour votre syndic.", "warning")
+        return redirect(url_for('residents_menu'))
+
+    months_raw = request.form.get('months', '').strip()
+    if not months_raw:
+        flash("Aucun mois sélectionné.", "warning")
+        return redirect(url_for('residents_menu'))
+
+    months = [m.strip() for m in months_raw.split(',') if m.strip()]
+    if not months:
+        flash("Sélection invalide.", "danger")
+        return redirect(url_for('residents_menu'))
+
+    apt = Apartment.query.get(user.apartment_id)
+    total = round(apt.monthly_fee * len(months), 3)
+
+    # Éviter les doublons (mois déjà payés)
+    months = [m for m in months
+              if not Payment.query.filter_by(apartment_id=apt.id, month_paid=m).first()]
+    if not months:
+        flash("Tous les mois sélectionnés sont déjà payés.", "info")
+        return redirect(url_for('residents_menu'))
+
+    kp = KonnectPayment(
+        organization_id=org.id,
+        apartment_id=apt.id,
+        month_target=months[0],
+        amount=total,
+        months_json=_json.dumps(months),
+        created_by='resident',
+        status='pending'
+    )
+    db.session.add(kp)
+    db.session.flush()
+
+    try:
+        resp = __import__('requests').post(
+            'https://api.konnect.network/api/v2/payments/init-payment',
+            headers={'x-api-key': org.konnect_api_key, 'Content-Type': 'application/json'},
+            json={
+                'receiverWalletId': org.konnect_wallet_id,
+                'token': 'TND',
+                'amount': int(round(total * 1000)),
+                'type': 'immediate',
+                'description': (
+                    f"Charges {months[0]}→{months[-1]} — "
+                    f"{apt.block.name}-{apt.number}"
+                ),
+                'acceptedPaymentMethods': ['wallet', 'bank_card', 'e-DINAR'],
+                'successRedirectUrl': f"{BASE_URL}/konnect/success",
+                'failRedirectUrl': f"{BASE_URL}/konnect/fail",
+                'orderId': f"kp-{kp.id}",
+            },
+            timeout=15
+        )
+        if resp.status_code in (200, 201):
+            data = resp.json()
+            kp.konnect_payment_ref = data.get('paymentRef') or data.get('payment', {}).get('_id')
+            kp.pay_url = data.get('payUrl') or data.get('pay_url')
+            db.session.commit()
+            return redirect(kp.pay_url)
+        else:
+            db.session.rollback()
+            flash(f"Erreur Konnect ({resp.status_code})", "danger")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Connexion Konnect impossible : {e}", "danger")
+
+    return redirect(url_for('residents_menu'))
 
 
 # ─── ADMIN : liste des liens ──────────────────────────────────────────────────

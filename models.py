@@ -265,6 +265,7 @@ class KonnectPayment(db.Model):
     created_by = db.Column(db.String(20), default='resident')  # resident / admin
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     paid_at = db.Column(db.DateTime)
+    months_json = db.Column(db.Text, nullable=True)   # JSON liste mois pour paiement groupé
     apartment = db.relationship('Apartment', backref='konnect_payments', lazy=True)
 
 
@@ -765,6 +766,37 @@ def init_db():
                 print("Migration PostgreSQL : table konnect_payment vérifiée.")
     except Exception as e:
         print(f"Migration konnect_payment : {e}")
+
+    # Migration : colonne months_json sur konnect_payment (paiement groupé)
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text(
+                    "ALTER TABLE konnect_payment ADD COLUMN IF NOT EXISTS months_json TEXT"
+                ))
+                conn.commit()
+            else:
+                result = conn.execute(db.text("PRAGMA table_info(konnect_payment)"))
+                if 'months_json' not in [r[1] for r in result]:
+                    conn.execute(db.text("ALTER TABLE konnect_payment ADD COLUMN months_json TEXT"))
+                    conn.commit()
+    except Exception as e:
+        print(f"Migration konnect_payment.months_json : {e}")
+
+    # Générer invite_code pour les organisations qui n'en ont pas encore
+    try:
+        import secrets as _secrets
+        orgs_sans_code = Organization.query.filter(Organization.invite_code.is_(None)).all()
+        for _org in orgs_sans_code:
+            _code = _secrets.token_hex(4).upper()
+            while Organization.query.filter_by(invite_code=_code).first():
+                _code = _secrets.token_hex(4).upper()
+            _org.invite_code = _code
+        if orgs_sans_code:
+            db.session.commit()
+            print(f"invite_code généré pour {len(orgs_sans_code)} organisation(s).")
+    except Exception as e:
+        print(f"Génération invite_code : {e}")
 
     # Migration : table flouci_payment
     try:

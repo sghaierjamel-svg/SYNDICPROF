@@ -10,7 +10,7 @@ from dateutil.relativedelta import relativedelta
 def inject_notifications():
     """Injecte les notifications dans tous les templates (admin + résident)."""
     if _req.endpoint in (None, 'static', 'login', 'logout', 'register',
-                         'index', 'demo', 'subscription_status'):
+                         'register_resident', 'index', 'demo', 'subscription_status'):
         return {}
     user = current_user()
     if not user or not user.organization_id:

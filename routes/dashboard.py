@@ -190,6 +190,7 @@ def residents_menu():
     months_fr = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
                  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
 
+    all_months_list = []   # timeline complète pour la vue Factures
     if user.apartment_id:
         unpaid_count = get_unpaid_months_count(user.apartment_id)
         next_month   = get_next_unpaid_month(user.apartment_id)
@@ -206,7 +207,6 @@ def residents_menu():
         annual_total = sum(p.amount for p in all_payments if p.payment_date.year == current_year)
 
         # Historique 6 derniers mois (pour la vue rapide)
-        paid_months_set = {p.month_paid for p in all_payments}
         for (y, m) in last_n_months(6):
             month_str  = f"{y}-{m:02d}"
             paid_entry = next((p for p in all_payments if p.month_paid == month_str), None)
@@ -216,6 +216,33 @@ def residents_menu():
                 'amount': paid_entry.amount if paid_entry else 0,
                 'payment_id': paid_entry.id if paid_entry else None,
             })
+
+        # Timeline complète pour la vue Factures (du mois de création à aujourd'hui)
+        if apt:
+            from dateutil.relativedelta import relativedelta as _rdelta
+            from datetime import timedelta as _td
+            _paid_map = {p.month_paid: p for p in all_payments}
+            _start = (apt.created_at.date() if apt.created_at else date.today()).replace(day=1)
+            _today_start = date.today().replace(day=1)
+            _cur = _start
+            _months_fr_full = ['janvier','février','mars','avril','mai','juin',
+                                'juillet','août','septembre','octobre','novembre','décembre']
+            while _cur <= _today_start:
+                _ms = _cur.strftime('%Y-%m')
+                _pe = _paid_map.get(_ms)
+                _due = (_cur + _rdelta(months=1)) - _td(days=1)
+                all_months_list.append({
+                    'month_str':     _ms,
+                    'label':         f"{_months_fr_full[_cur.month-1]} {_cur.year}",
+                    'paid':          _pe is not None,
+                    'amount':        _pe.amount if _pe else (apt.monthly_fee if apt else 0),
+                    'payment_id':    _pe.id if _pe else None,
+                    'date_paid':     _pe.payment_date if _pe else None,
+                    'due_date':      _due,
+                    'days_until_due': (_due - date.today()).days,
+                })
+                _cur += _rdelta(months=1)
+            all_months_list.reverse()   # plus récent en premier
 
         my_tickets = Ticket.query.filter_by(apartment_id=user.apartment_id)\
             .order_by(Ticket.created_at.desc()).limit(5).all()
@@ -233,6 +260,7 @@ def residents_menu():
                            unpaid_count=unpaid_count, next_month=next_month,
                            credit=credit, apt=apt,
                            all_payments=all_payments,
+                           all_months_list=all_months_list,
                            history_6months=history_6months,
                            annual_total=annual_total,
                            current_year=current_year,

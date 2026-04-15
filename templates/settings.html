@@ -97,6 +97,37 @@
                     </button>
                 </div>
             </form>
+
+            <!-- Code d'invitation résident -->
+            <hr style="border-color:rgba(255,255,255,.1);margin:1.5rem 0;">
+            <div>
+                <h6 class="fw-bold mb-1">
+                    <i class="bi bi-key" style="color:#00C896;"></i>
+                    Code d'invitation résident
+                </h6>
+                <p class="text-muted small mb-3">
+                    Communiquez ce code à vos résidents pour qu'ils créent leur compte eux-mêmes
+                    sur la page d'inscription.
+                </p>
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <span id="inviteCodeDisplay"
+                          style="font-family:monospace;font-size:1.4rem;font-weight:700;
+                                 letter-spacing:4px;color:#00C896;background:rgba(0,200,150,.1);
+                                 padding:.4rem 1.2rem;border-radius:8px;border:1px solid rgba(0,200,150,.3);">
+                        {{ org.invite_code or '—' }}
+                    </span>
+                    {% if org.invite_code %}
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                            onclick="navigator.clipboard.writeText('{{ org.invite_code }}').then(()=>{this.innerHTML='<i class=\'bi bi-check-lg\'></i> Copié !';setTimeout(()=>{this.innerHTML='<i class=\'bi bi-clipboard\'></i> Copier';},2000)})">
+                        <i class="bi bi-clipboard"></i> Copier
+                    </button>
+                    <a href="{{ url_for('register_resident') }}" target="_blank"
+                       class="btn btn-sm btn-outline-info">
+                        <i class="bi bi-box-arrow-up-right"></i> Voir la page d'inscription
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
 </div>

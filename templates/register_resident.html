@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card shadow-lg">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="SyndicPro"
+                         style="height:100px;width:auto;mix-blend-mode:screen;">
+                    <h4 class="mt-3 fw-bold">Créer votre espace résident</h4>
+                    <p class="text-muted small">
+                        Entrez le code de votre résidence et votre numéro d'appartement.<br>
+                        Vos identifiants vous seront envoyés par email.
+                    </p>
+                </div>
+
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-envelope"></i> Votre adresse email
+                        </label>
+                        <input class="form-control form-control-lg" name="email"
+                               type="email" placeholder="votre@email.com" required autofocus>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-key"></i> Code de la résidence
+                        </label>
+                        <input class="form-control form-control-lg" name="invite_code"
+                               type="text" placeholder="Ex: A1B2C3D4"
+                               maxlength="8" style="letter-spacing:3px;font-family:monospace;font-size:1.1rem;"
+                               required>
+                        <div class="form-text">Ce code vous est communiqué par votre syndic.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-house-door"></i> Numéro d'appartement
+                        </label>
+                        <input class="form-control form-control-lg" name="apartment"
+                               type="text" placeholder="Ex: 101 ou A-101" required>
+                        <div class="form-text">
+                            Si votre résidence a plusieurs blocs, précisez le bloc :
+                            <code>A-101</code>, sinon entrez juste le numéro : <code>101</code>.
+                        </div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="bi bi-envelope-check"></i> Recevoir mes identifiants
+                        </button>
+                    </div>
+                </form>
+
+                <hr class="my-4">
+
+                <div class="text-center">
+                    <p class="text-muted mb-2">Vous avez déjà un compte ?</p>
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-box-arrow-in-right"></i> Se connecter
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}

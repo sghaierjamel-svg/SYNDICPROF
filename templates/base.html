@@ -990,16 +990,44 @@
             <i class="bi bi-grid-1x2-fill"></i> Tableau de bord
         </a>
 
-        <!-- Mon Espace -->
-        <div class="nav-group" id="g-resident">
-            <div class="nav-group-header" onclick="toggleGroup('g-resident')">
-                <span class="nav-group-label"><i class="bi bi-person-badge"></i> Mon Espace</span>
+        <!-- Mes Charges -->
+        <div class="nav-group {% if request.endpoint in ['residents_menu','appels_fonds_resident'] %}open{% endif %}" id="g-charges">
+            <div class="nav-group-header" onclick="toggleGroup('g-charges')">
+                <span class="nav-group-label"><i class="bi bi-receipt"></i> Mes Charges</span>
                 <i class="bi bi-chevron-right nav-group-arrow"></i>
             </div>
             <div class="nav-group-items">
                 <a class="nav-item {% if request.endpoint == 'residents_menu' %}active{% endif %}"
-                   href="{{ url_for('residents_menu') }}">Mon Appartement</a>
-                <a class="nav-item" href="{{ url_for('residents_menu') }}" style="font-weight:600;">
+                   href="{{ url_for('residents_menu') }}">Mes Factures</a>
+                <a class="nav-item {% if request.endpoint == 'appels_fonds_resident' %}active{% endif %}"
+                   href="{{ url_for('appels_fonds_resident') }}">Appels de Fonds</a>
+            </div>
+        </div>
+
+        <!-- Communication -->
+        <div class="nav-group {% if request.endpoint in ['messagerie','messagerie_fil','tickets','announcements','read_announcement'] %}open{% endif %}" id="g-comm">
+            <div class="nav-group-header" onclick="toggleGroup('g-comm')">
+                <span class="nav-group-label">
+                    <i class="bi bi-chat-dots"></i> Communication
+                    {% set _total_notif = (unread_messages_count | default(0)) + (sidebar_unread_count | default(0)) %}
+                    {% if _total_notif > 0 %}
+                    <span class="nav-badge badge-accent ms-1">{{ _total_notif }}</span>
+                    {% endif %}
+                </span>
+                <i class="bi bi-chevron-right nav-group-arrow"></i>
+            </div>
+            <div class="nav-group-items">
+                <a class="nav-item {% if request.endpoint in ['messagerie','messagerie_fil'] %}active{% endif %}"
+                   href="{{ url_for('messagerie') }}">
+                    Messagerie
+                    {% if unread_messages_count | default(0) > 0 %}
+                    <span class="nav-badge badge-accent">{{ unread_messages_count }}</span>
+                    {% endif %}
+                </a>
+                <a class="nav-item {% if request.endpoint == 'tickets' %}active{% endif %}"
+                   href="{{ url_for('tickets') }}">Tickets</a>
+                <a class="nav-item {% if request.endpoint in ['announcements','read_announcement'] %}active{% endif %}"
+                   href="{{ url_for('announcements') }}">
                     Annonces
                     {% if sidebar_unread_count and sidebar_unread_count > 0 %}
                     <span class="nav-badge badge-danger">{{ sidebar_unread_count }}</span>
@@ -1016,25 +1044,27 @@
                 </a>
                 {% endfor %}
                 {% endif %}
-                <a class="nav-item {% if request.endpoint == 'appels_fonds_resident' %}active{% endif %}"
-                   href="{{ url_for('appels_fonds_resident') }}">Appels de Fonds</a>
-                <a class="nav-item {% if request.endpoint in ['messagerie','messagerie_fil'] %}active{% endif %}"
-                   href="{{ url_for('messagerie') }}">
-                    Messagerie
-                    {% if unread_messages_count | default(0) > 0 %}
-                    <span class="nav-badge badge-accent">{{ unread_messages_count }}</span>
-                    {% endif %}
-                </a>
-                <a class="nav-item {% if request.endpoint in ['assembly_list','assembly_detail','assembly_pv'] %}active{% endif %}"
+            </div>
+        </div>
+
+        <!-- Ma Résidence -->
+        <div class="nav-group {% if request.endpoint in ['assembly_list','assembly_detail','assembly_pv','assembly_new','lifts','lift_detail'] %}open{% endif %}" id="g-residence">
+            <div class="nav-group-header" onclick="toggleGroup('g-residence')">
+                <span class="nav-group-label"><i class="bi bi-building"></i> Ma Résidence</span>
+                <i class="bi bi-chevron-right nav-group-arrow"></i>
+            </div>
+            <div class="nav-group-items">
+                <a class="nav-item {% if request.endpoint in ['assembly_list','assembly_detail','assembly_pv','assembly_new'] %}active{% endif %}"
                    href="{{ url_for('assembly_list') }}">Assemblées</a>
                 <a class="nav-item {% if request.endpoint in ['lifts','lift_detail'] %}active{% endif %}"
                    href="{{ url_for('lifts') }}">Ascenseurs</a>
             </div>
         </div>
 
-        <a class="nav-solo {% if request.endpoint == 'tickets' %}active{% endif %}"
-           href="{{ url_for('tickets') }}">
-            <i class="bi bi-chat-left-dots"></i> Tickets
+        <!-- Mon Compte -->
+        <a class="nav-solo {% if request.endpoint == 'change_password' %}active{% endif %}"
+           href="{{ url_for('change_password') }}">
+            <i class="bi bi-person-gear"></i> Mon Compte
         </a>
 
         {% endif %}

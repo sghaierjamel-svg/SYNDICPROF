@@ -1,9 +1,10 @@
 from flask import render_template, request, redirect, url_for, session, flash
 from core import app, limiter
-from models import User, Organization, Subscription
+from models import User, Organization, Subscription, Apartment, Block
 from utils import current_user
 from datetime import datetime, timedelta
 import re
+import secrets
 
 
 @app.route('/')
@@ -142,13 +143,19 @@ def register():
         while Organization.query.filter_by(slug=slug).first():
             slug = f"{base_slug}-{counter}"
             counter += 1
+        # Générer un code d'invitation unique pour les résidents
+        invite_code = secrets.token_hex(4).upper()
+        while Organization.query.filter_by(invite_code=invite_code).first():
+            invite_code = secrets.token_hex(4).upper()
+
         org = Organization(
             name=org_name,
             slug=slug,
             email=email,
             phone=phone,
             address=address,
-            is_active=True
+            is_active=True,
+            invite_code=invite_code,
         )
         db.session.add(org)
         db.session.flush()
@@ -179,3 +186,118 @@ def register():
         flash(f'Organisation créée avec succès ! Essai gratuit de 30 jours activé.', 'success')
         return redirect(url_for('login'))
     return render_template('register.html')
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Auto-inscription résident via code de résidence
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.route('/register-resident', methods=['GET', 'POST'])
+@limiter.limit("5 per minute", methods=['POST'], error_message="Trop de tentatives. Réessayez dans 1 minute.")
+def register_resident():
+    from core import db
+    if current_user():
+        return redirect(url_for('dashboard'))
+
+    if request.method == 'POST':
+        email        = request.form.get('email', '').strip().lower()
+        invite_code  = request.form.get('invite_code', '').strip().upper()
+        apt_input    = request.form.get('apartment', '').strip()   # ex: "A-101" ou "101"
+
+        # ── Validation de base ──────────────────────────────────────────────
+        if not email or not invite_code or not apt_input:
+            flash("Tous les champs sont obligatoires.", "danger")
+            return render_template('register_resident.html')
+
+        # ── Trouver l'organisation via le code ──────────────────────────────
+        org = Organization.query.filter_by(invite_code=invite_code).first()
+        if not org or not org.is_active:
+            flash("Code de résidence invalide ou résidence inactive.", "danger")
+            return render_template('register_resident.html')
+
+        # ── Retrouver l'appartement ─────────────────────────────────────────
+        # Format accepté : "A-101" (bloc-numéro) ou "101" (numéro seul)
+        block_name = None
+        apt_number = apt_input
+        if '-' in apt_input:
+            parts = apt_input.split('-', 1)
+            block_name = parts[0].strip().upper()
+            apt_number = parts[1].strip()
+
+        # Chercher dans les appartements de l'org
+        query = (Apartment.query
+                 .join(Block, Apartment.block_id == Block.id)
+                 .filter(Apartment.organization_id == org.id,
+                         Apartment.number == apt_number))
+        if block_name:
+            query = query.filter(Block.name.ilike(block_name))
+
+        candidates = query.all()
+
+        if not candidates:
+            flash(f"Appartement « {apt_input} » introuvable dans cette résidence. "
+                  "Vérifiez le format (ex: A-101 ou 101).", "danger")
+            return render_template('register_resident.html')
+
+        if len(candidates) > 1:
+            flash(f"Plusieurs appartements correspondent à « {apt_number} ». "
+                  "Précisez le bloc (ex: A-101).", "warning")
+            return render_template('register_resident.html')
+
+        apt = candidates[0]
+
+        # ── Vérifier qu'aucun résident n'occupe déjà cet appartement ────────
+        existing_resident = User.query.filter_by(
+            apartment_id=apt.id, role='resident'
+        ).first()
+        if existing_resident:
+            flash("Cet appartement possède déjà un compte résident. "
+                  "Contactez votre syndic si vous pensez qu'il y a une erreur.", "warning")
+            return render_template('register_resident.html')
+
+        # ── Vérifier que l'email n'existe pas déjà dans cette org ───────────
+        existing_email = User.query.filter_by(
+            email=email, organization_id=org.id
+        ).first()
+        if existing_email:
+            flash("Un compte existe déjà pour cet email dans cette résidence. "
+                  "Connectez-vous directement.", "warning")
+            return redirect(url_for('login'))
+
+        # ── Créer le compte résident avec mot de passe temporaire ────────────
+        temp_password = secrets.token_urlsafe(10)
+        apt_label = f"{apt.block.name}-{apt.number}" if apt.block else apt.number
+
+        resident = User(
+            organization_id=org.id,
+            email=email,
+            name=f"Résident {apt_label}",
+            role='resident',
+            apartment_id=apt.id,
+        )
+        resident.set_password(temp_password)
+        db.session.add(resident)
+        db.session.commit()
+
+        # ── Envoyer les identifiants par email ───────────────────────────────
+        try:
+            from utils_email import send_resident_credentials
+            send_resident_credentials(
+                org_name=org.name,
+                resident_name=f"Résident {apt_label}",
+                email=email,
+                password_temp=temp_password,
+                apt_label=apt_label,
+            )
+        except Exception as _e:
+            app.logger.error(f"[register_resident] Email non envoyé : {_e}", exc_info=True)
+
+        flash(
+            f"Compte créé pour {apt_label} — {org.name} ! "
+            "Vos identifiants ont été envoyés par email. "
+            "Pensez à changer votre mot de passe après la première connexion.",
+            "success"
+        )
+        return redirect(url_for('login'))
+
+    return render_template('register_resident.html')
