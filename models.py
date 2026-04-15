@@ -30,6 +30,8 @@ class Organization(db.Model):
     superadmin_notes = db.Column(db.Text, nullable=True)
     # Clé API lecteurs de badges (IoT)
     badges_api_key = db.Column(db.String(64), nullable=True)
+    # Code d'invitation résident (auto-inscription)
+    invite_code = db.Column(db.String(8), nullable=True, unique=True)
 
     subscription = db.relationship('Subscription', backref='organization', uselist=False, lazy=True)
     users = db.relationship('User', backref='organization', lazy=True)
@@ -615,6 +617,8 @@ def init_db():
                     'flouci_app_token': 'VARCHAR(200)',
                     'flouci_app_secret': 'VARCHAR(200)',
                     'setup_dismissed': 'BOOLEAN DEFAULT FALSE',
+                    'badges_api_key': 'VARCHAR(64)',
+                    'invite_code': 'VARCHAR(8)',
                 }
                 for col, col_type in pg_cols.items():
                     conn.execute(db.text(
@@ -635,6 +639,8 @@ def init_db():
                     'flouci_app_token': 'VARCHAR(200)',
                     'flouci_app_secret': 'VARCHAR(200)',
                     'setup_dismissed': 'BOOLEAN DEFAULT 0',
+                    'badges_api_key': 'VARCHAR(64)',
+                    'invite_code': 'VARCHAR(8)',
                 }
                 for col, col_type in sqlite_cols.items():
                     if col not in cols:
