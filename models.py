@@ -28,6 +28,8 @@ class Organization(db.Model):
     setup_dismissed = db.Column(db.Boolean, default=False)
     # Notes internes superadmin
     superadmin_notes = db.Column(db.Text, nullable=True)
+    # Clé API lecteurs de badges (IoT)
+    badges_api_key = db.Column(db.String(64), nullable=True)
 
     subscription = db.relationship('Subscription', backref='organization', uselist=False, lazy=True)
     users = db.relationship('User', backref='organization', lazy=True)
@@ -540,6 +542,34 @@ class AccessLog(db.Model):
     apartment = db.relationship('Apartment', backref='access_logs', lazy=True)
 
 
+class Badge(db.Model):
+    """Badge d'accès physique (carte, clé RFID) attribué à un résident"""
+    __tablename__ = 'badge'
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
+    badge_number = db.Column(db.String(50), nullable=False)   # numéro imprimé sur le badge
+    resident_id   = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    status = db.Column(db.String(20), default='actif')        # actif / bloqué / perdu / révoqué
+    issued_at  = db.Column(db.DateTime, default=datetime.utcnow)
+    blocked_at = db.Column(db.DateTime, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    resident = db.relationship('User', backref='badges', lazy=True)
+
+
+class BadgeAccessLog(db.Model):
+    """Journal automatique des passages enregistrés par les lecteurs de badges"""
+    __tablename__ = 'badge_access_log'
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
+    badge_id      = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=True)
+    badge_number  = db.Column(db.String(50), nullable=False)  # conservé même si badge inconnu
+    access_point  = db.Column(db.String(100), nullable=False) # entree_principale / ascenseur_A / parking…
+    direction     = db.Column(db.String(10), default='entree')# entree / sortie
+    access_granted = db.Column(db.Boolean, default=True)      # autorisé ou refusé
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    badge = db.relationship('Badge', backref='access_logs', lazy=True)
+
+
 def init_db():
     """Initialise la base de données multi-tenant"""
     db_dir = os.path.join(BASE_DIR, 'database')
@@ -633,6 +663,39 @@ def init_db():
                 print("Migration PostgreSQL : table access_log vérifiée.")
     except Exception as e:
         print(f"Migration access_log : {e}")
+
+    # Migration : tables badge + badge_access_log (PostgreSQL)
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS badge (
+                        id SERIAL PRIMARY KEY,
+                        organization_id INTEGER REFERENCES organization(id),
+                        badge_number VARCHAR(50) NOT NULL,
+                        resident_id INTEGER REFERENCES "user"(id),
+                        status VARCHAR(20) DEFAULT 'actif',
+                        issued_at TIMESTAMP DEFAULT NOW(),
+                        blocked_at TIMESTAMP,
+                        notes TEXT
+                    )
+                """))
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS badge_access_log (
+                        id SERIAL PRIMARY KEY,
+                        organization_id INTEGER REFERENCES organization(id),
+                        badge_id INTEGER REFERENCES badge(id),
+                        badge_number VARCHAR(50) NOT NULL,
+                        access_point VARCHAR(100) NOT NULL,
+                        direction VARCHAR(10) DEFAULT 'entree',
+                        access_granted BOOLEAN DEFAULT TRUE,
+                        timestamp TIMESTAMP DEFAULT NOW()
+                    )
+                """))
+                conn.commit()
+                print("Migration PostgreSQL : tables badge + badge_access_log vérifiées.")
+    except Exception as e:
+        print(f"Migration badge : {e}")
 
     # Migration : colonne parking_spot sur apartment (PostgreSQL)
     try:

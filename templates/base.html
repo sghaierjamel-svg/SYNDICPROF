@@ -958,6 +958,8 @@
                    href="{{ url_for('assembly_list') }}">Assemblées</a>
                 <a class="nav-item {% if request.endpoint == 'access_log' %}active{% endif %}"
                    href="{{ url_for('access_log') }}">Registre Accès</a>
+                <a class="nav-item {% if request.endpoint in ['badges','badge_journal'] %}active{% endif %}"
+                   href="{{ url_for('badges') }}">Badges</a>
                 <a class="nav-item {% if request.endpoint in ['lifts','lift_detail'] %}active{% endif %}"
                    href="{{ url_for('lifts') }}">Ascenseurs</a>
             </div>
@@ -1114,6 +1116,7 @@
                 {% elif request.endpoint == 'automation' %}Automatisation
                 {% elif request.endpoint == 'ai_chat' %}Assistant IA
                 {% elif request.endpoint == 'access_log' %}Registre Accès
+                {% elif request.endpoint in ['badges','badge_journal'] %}Badges
                 {% elif request.endpoint == 'settings' %}Paramètres
                 {% elif request.endpoint == 'subscription_status' %}Abonnement
                 {% elif request.endpoint in ['litiges','litige_detail','autre_litige_dossier'] %}Litiges

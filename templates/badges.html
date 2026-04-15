@@ -1,0 +1,277 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex align-items-center gap-3">
+        <div>
+            <h2 class="text-white mb-1">
+                <i class="bi bi-credit-card-2-front" style="color:#00C896;"></i> Gestion des Badges
+            </h2>
+            <p class="text-muted mb-0">Attribuez et gérez les badges d'accès de la résidence.</p>
+        </div>
+        <a href="{{ url_for('badge_journal') }}" class="btn btn-outline-light ms-auto">
+            <i class="bi bi-clock-history"></i> Journal des passages
+        </a>
+    </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card text-center py-3">
+            <div style="font-size:1.8rem;font-weight:700;color:#00C896;">{{ stats.total }}</div>
+            <div style="font-size:.82rem;color:#9CA3AF;">Total badges</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center py-3">
+            <div style="font-size:1.8rem;font-weight:700;color:#00C896;">{{ stats.actif }}</div>
+            <div style="font-size:.82rem;color:#9CA3AF;">Actifs</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center py-3">
+            <div style="font-size:1.8rem;font-weight:700;color:#f59e0b;">{{ stats.bloque }}</div>
+            <div style="font-size:.82rem;color:#9CA3AF;">Bloqués</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center py-3">
+            <div style="font-size:1.8rem;font-weight:700;color:#ef4444;">{{ stats.perdu }}</div>
+            <div style="font-size:.82rem;color:#9CA3AF;">Perdus</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+
+    <!-- Formulaire création -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-plus-circle" style="color:#00C896;"></i> Nouveau badge
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Numéro de badge *</label>
+                        <input type="text" name="badge_number" class="form-control"
+                               placeholder="Ex: B-001 ou 0A4F2E1C" required maxlength="50">
+                        <div class="form-text">Numéro imprimé sur le badge ou ID RFID.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Attribuer à un résident</label>
+                        <select name="resident_id" class="form-select">
+                            <option value="">— Non attribué —</option>
+                            {% for r in residents %}
+                            <option value="{{ r.id }}">{{ r.name }} ({{ r.email }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Notes</label>
+                        <input type="text" name="notes" class="form-control"
+                               placeholder="Ex: Badge de remplacement, accès parking..." maxlength="200">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-check-lg"></i> Créer le badge
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des badges -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-credit-card-2-front" style="color:#00C896;"></i>
+                Badges enregistrés
+                <span class="badge ms-auto" style="background:rgba(0,200,150,0.2); color:#00C896;">
+                    {{ badges|length }} badge(s)
+                </span>
+            </div>
+            <div class="card-body p-0">
+                {% if badges %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Badge</th>
+                                <th>Résident</th>
+                                <th>Statut</th>
+                                <th class="d-none d-md-table-cell">Émis le</th>
+                                <th class="d-none d-lg-table-cell">Notes</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for b in badges %}
+                            <tr>
+                                <td>
+                                    <strong style="font-family:monospace;">{{ b.badge_number }}</strong>
+                                </td>
+                                <td>
+                                    {% if b.resident %}
+                                    <span style="font-size:.88rem;">{{ b.resident.name }}</span>
+                                    {% else %}
+                                    <span style="color:#6B7280;font-size:.8rem;">Non attribué</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if b.status == 'actif' %}
+                                    <span class="badge" style="background:rgba(0,200,150,0.15);color:#00C896;">
+                                        <i class="bi bi-check-circle"></i> Actif
+                                    </span>
+                                    {% elif b.status == 'bloqué' %}
+                                    <span class="badge" style="background:rgba(245,158,11,0.15);color:#fcd34d;">
+                                        <i class="bi bi-lock"></i> Bloqué
+                                    </span>
+                                    {% elif b.status == 'perdu' %}
+                                    <span class="badge" style="background:rgba(239,68,68,0.15);color:#ef4444;">
+                                        <i class="bi bi-exclamation-triangle"></i> Perdu
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">
+                                        <i class="bi bi-x-circle"></i> Révoqué
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td class="d-none d-md-table-cell" style="color:#9CA3AF;font-size:.82rem;">
+                                    {{ b.issued_at.strftime('%d/%m/%Y') }}
+                                </td>
+                                <td class="d-none d-lg-table-cell" style="color:#9CA3AF;font-size:.82rem;">
+                                    {{ b.notes or '—' }}
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1 flex-wrap">
+
+                                        <!-- Bouton modifier (modal) -->
+                                        <button class="btn btn-sm btn-outline-secondary"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editModal{{ b.id }}"
+                                                title="Modifier">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+
+                                        <!-- Bouton changer statut -->
+                                        {% if b.status == 'actif' %}
+                                        <form method="POST" action="{{ url_for('badge_set_status', badge_id=b.id) }}" style="display:inline;">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <input type="hidden" name="status" value="bloqué">
+                                            <button type="submit" class="btn btn-sm btn-warning" title="Bloquer">
+                                                <i class="bi bi-lock"></i>
+                                            </button>
+                                        </form>
+                                        {% else %}
+                                        <form method="POST" action="{{ url_for('badge_set_status', badge_id=b.id) }}" style="display:inline;">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <input type="hidden" name="status" value="actif">
+                                            <button type="submit" class="btn btn-sm btn-success" title="Activer">
+                                                <i class="bi bi-unlock"></i>
+                                            </button>
+                                        </form>
+                                        {% endif %}
+
+                                        <!-- Marquer perdu -->
+                                        {% if b.status not in ['perdu','révoqué'] %}
+                                        <form method="POST" action="{{ url_for('badge_set_status', badge_id=b.id) }}" style="display:inline;">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <input type="hidden" name="status" value="perdu">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Marquer perdu"
+                                                    onclick="return confirm('Marquer ce badge comme perdu ?')">
+                                                <i class="bi bi-exclamation-triangle"></i>
+                                            </button>
+                                        </form>
+                                        {% endif %}
+
+                                        <!-- Supprimer -->
+                                        <form method="POST" action="{{ url_for('badge_delete', badge_id=b.id) }}" style="display:inline;">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-sm btn-danger" title="Supprimer"
+                                                    onclick="return confirm('Supprimer définitivement le badge {{ b.badge_number }} ?')">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-5 text-center" style="color:#9CA3AF;">
+                    <i class="bi bi-credit-card-2-front" style="font-size:3rem;"></i>
+                    <p class="mt-3 mb-0">Aucun badge enregistré.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modals de modification -->
+{% for b in badges %}
+<div class="modal fade" id="editModal{{ b.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="background:#1E2435;border:1px solid rgba(255,255,255,0.1);">
+            <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,0.1);">
+                <h5 class="modal-title text-white">
+                    <i class="bi bi-pencil" style="color:#00C896;"></i>
+                    Modifier badge {{ b.badge_number }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('badge_edit', badge_id=b.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-white">Attribuer à un résident</label>
+                        <select name="resident_id" class="form-select">
+                            <option value="">— Non attribué —</option>
+                            {% for r in residents %}
+                            <option value="{{ r.id }}" {% if b.resident_id == r.id %}selected{% endif %}>
+                                {{ r.name }} ({{ r.email }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-white">Statut</label>
+                        <form method="POST" action="{{ url_for('badge_set_status', badge_id=b.id) }}" id="statusForm{{ b.id }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <select name="status" class="form-select"
+                                    onchange="document.getElementById('statusForm{{ b.id }}').submit()">
+                                <option value="actif"    {% if b.status=='actif'    %}selected{% endif %}>Actif</option>
+                                <option value="bloqué"   {% if b.status=='bloqué'   %}selected{% endif %}>Bloqué</option>
+                                <option value="perdu"    {% if b.status=='perdu'    %}selected{% endif %}>Perdu</option>
+                                <option value="révoqué"  {% if b.status=='révoqué'  %}selected{% endif %}>Révoqué</option>
+                            </select>
+                        </form>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-white">Notes</label>
+                        <input type="text" name="notes" class="form-control"
+                               value="{{ b.notes or '' }}" maxlength="200">
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid rgba(255,255,255,0.1);">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg"></i> Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %}

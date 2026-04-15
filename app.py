@@ -30,6 +30,7 @@ import routes.push
 import routes.lifts
 import routes.payment_requests
 import routes.messaging
+import routes.badges
 
 
 @app.before_request

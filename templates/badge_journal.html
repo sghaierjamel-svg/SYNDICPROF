@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex align-items-center gap-3">
+        <div>
+            <h2 class="text-white mb-1">
+                <i class="bi bi-clock-history" style="color:#00C896;"></i> Journal des passages
+            </h2>
+            <p class="text-muted mb-0">Historique des entrées/sorties par badge.</p>
+        </div>
+        <a href="{{ url_for('badges') }}" class="btn btn-outline-light ms-auto">
+            <i class="bi bi-credit-card-2-front"></i> Badges
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+
+    <!-- Formulaire enregistrement passage manuel -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-plus-circle" style="color:#00C896;"></i> Enregistrer un passage
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Numéro de badge *</label>
+                        <input type="text" name="badge_number" class="form-control"
+                               placeholder="Ex: B-001" required maxlength="50"
+                               list="badgeList">
+                        <datalist id="badgeList">
+                            {% for b in badges %}
+                            <option value="{{ b.badge_number }}">{{ b.badge_number }}{% if b.resident %} — {{ b.resident.name }}{% endif %}</option>
+                            {% endfor %}
+                        </datalist>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Point d'accès *</label>
+                        <input type="text" name="access_point" class="form-control"
+                               placeholder="Ex: Entrée principale, Parking, Ascenseur A..."
+                               required maxlength="100">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Direction</label>
+                        <div class="d-flex gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="direction"
+                                       value="entree" id="dir_entree" checked>
+                                <label class="form-check-label" for="dir_entree">
+                                    <span style="color:#00C896;">↗ Entrée</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="direction"
+                                       value="sortie" id="dir_sortie">
+                                <label class="form-check-label" for="dir_sortie">
+                                    <span style="color:#f59e0b;">↙ Sortie</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Accès</label>
+                        <div class="d-flex gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="access_granted"
+                                       value="1" id="acc_ok" checked>
+                                <label class="form-check-label" for="acc_ok">
+                                    <span style="color:#00C896;">✓ Accordé</span>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="access_granted"
+                                       value="0" id="acc_refuse">
+                                <label class="form-check-label" for="acc_refuse">
+                                    <span style="color:#ef4444;">✗ Refusé</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-check-lg"></i> Enregistrer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Journal -->
+    <div class="col-lg-8">
+
+        <!-- Filtres -->
+        <div class="card mb-3">
+            <div class="card-body py-2">
+                <form method="GET" class="row g-2 align-items-end">
+                    <div class="col-sm-4">
+                        <label class="form-label fw-bold mb-1" style="font-size:.82rem;">Badge</label>
+                        <input type="text" name="badge" class="form-control form-control-sm"
+                               value="{{ filter_badge }}" placeholder="Filtrer par numéro...">
+                    </div>
+                    <div class="col-sm-4">
+                        <label class="form-label fw-bold mb-1" style="font-size:.82rem;">Point d'accès</label>
+                        <input type="text" name="point" class="form-control form-control-sm"
+                               value="{{ filter_point }}" placeholder="Filtrer par point...">
+                    </div>
+                    <div class="col-sm-2">
+                        <label class="form-label fw-bold mb-1" style="font-size:.82rem;">Accès</label>
+                        <select name="granted" class="form-select form-select-sm">
+                            <option value="" {% if filter_granted=='' %}selected{% endif %}>Tous</option>
+                            <option value="1" {% if filter_granted=='1' %}selected{% endif %}>Accordés</option>
+                            <option value="0" {% if filter_granted=='0' %}selected{% endif %}>Refusés</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-2">
+                        <button type="submit" class="btn btn-sm btn-primary w-100">
+                            <i class="bi bi-funnel"></i> Filtrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-list-ul" style="color:#00C896;"></i>
+                Passages récents
+                <span class="badge ms-auto" style="background:rgba(0,200,150,0.2); color:#00C896;">
+                    {{ logs|length }} entrée(s)
+                </span>
+            </div>
+            <div class="card-body p-0">
+                {% if logs %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Date / Heure</th>
+                                <th>Badge</th>
+                                <th class="d-none d-md-table-cell">Résident</th>
+                                <th>Point d'accès</th>
+                                <th>Direction</th>
+                                <th>Accès</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr>
+                                <td style="font-size:.82rem;color:#9CA3AF;white-space:nowrap;">
+                                    {{ log.timestamp.strftime('%d/%m/%Y') }}<br>
+                                    <span style="font-size:.75rem;">{{ log.timestamp.strftime('%H:%M') }}</span>
+                                </td>
+                                <td>
+                                    <strong style="font-family:monospace;font-size:.88rem;">
+                                        {{ log.badge_number }}
+                                    </strong>
+                                    {% if not log.badge %}
+                                    <span class="badge bg-secondary ms-1" style="font-size:.7rem;">inconnu</span>
+                                    {% endif %}
+                                </td>
+                                <td class="d-none d-md-table-cell" style="font-size:.85rem;">
+                                    {% if log.badge and log.badge.resident %}
+                                    {{ log.badge.resident.name }}
+                                    {% else %}
+                                    <span style="color:#6B7280;">—</span>
+                                    {% endif %}
+                                </td>
+                                <td style="font-size:.85rem;">{{ log.access_point }}</td>
+                                <td>
+                                    {% if log.direction == 'entree' %}
+                                    <span class="badge" style="background:rgba(0,200,150,0.15);color:#00C896;">
+                                        ↗ Entrée
+                                    </span>
+                                    {% else %}
+                                    <span class="badge" style="background:rgba(245,158,11,0.15);color:#fcd34d;">
+                                        ↙ Sortie
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if log.access_granted %}
+                                    <span class="badge" style="background:rgba(0,200,150,0.15);color:#00C896;">
+                                        <i class="bi bi-check-lg"></i> OK
+                                    </span>
+                                    {% else %}
+                                    <span class="badge" style="background:rgba(239,68,68,0.15);color:#ef4444;">
+                                        <i class="bi bi-x-lg"></i> Refusé
+                                    </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-5 text-center" style="color:#9CA3AF;">
+                    <i class="bi bi-clock-history" style="font-size:3rem;"></i>
+                    <p class="mt-3 mb-0">Aucun passage enregistré.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
