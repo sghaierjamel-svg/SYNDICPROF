@@ -125,6 +125,13 @@
                        class="btn btn-sm btn-outline-info">
                         <i class="bi bi-box-arrow-up-right"></i> Voir la page d'inscription
                     </a>
+                    <form method="POST" action="{{ url_for('regen_invite_code') }}" style="display:inline;"
+                          onsubmit="return confirm('Regénérer le code ? L\'ancien code ne fonctionnera plus pour les nouvelles inscriptions.')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-warning">
+                            <i class="bi bi-arrow-clockwise"></i> Regénérer
+                        </button>
+                    </form>
                     {% endif %}
                 </div>
             </div>

@@ -103,8 +103,11 @@
                     <label for="chkSelectAll" style="cursor:pointer;">Sélectionner tout</label>
                 </div>
 
-                {# Bouton payer la sélection #}
-                <form method="POST" action="{{ url_for('konnect_pay_multi') }}" id="multiPayForm" style="display:none;" class="mb-3">
+                {# Bouton payer la sélection — Flouci ou Konnect selon config #}
+                {% if flouci_configured or konnect_configured %}
+                <form method="POST"
+                      action="{{ url_for('flouci_pay_multi') if flouci_configured else url_for('konnect_pay_multi') }}"
+                      id="multiPayForm" style="display:none;" class="mb-3">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="months" id="selectedMonthsInput">
                     <button type="submit" id="payGroupBtn" class="btn btn-primary w-100 fw-bold">
@@ -112,6 +115,7 @@
                         <span id="payGroupLabel">Payer la sélection</span>
                     </button>
                 </form>
+                {% endif %}
 
                 {# Cards factures #}
                 <div id="facturesList">

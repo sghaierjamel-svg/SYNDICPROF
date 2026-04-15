@@ -1,6 +1,6 @@
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from core import app, db
-from models import Badge, BadgeAccessLog, User, Apartment
+from models import Badge, BadgeAccessLog, User, Apartment, Organization
 from utils import current_user, current_organization, login_required, admin_required, subscription_required
 from datetime import datetime
 
@@ -71,6 +71,7 @@ def badges():
                            badges=badges_list,
                            residents=residents,
                            stats=stats,
+                           org=org,
                            user=current_user())
 
 
@@ -211,3 +212,78 @@ def badge_journal():
                            filter_point=filter_point,
                            filter_granted=filter_granted,
                            user=current_user())
+
+
+# ─────────────────────────────────────────────
+#  API IoT — lecteurs RFID physiques
+# ─────────────────────────────────────────────
+
+@app.route('/api/badges/access', methods=['POST'])
+def badge_api_access():
+    """Endpoint public pour lecteurs RFID / contrôleurs d'accès.
+
+    Authentification : api_key dans le corps POST ou header X-Api-Key.
+
+    Paramètres POST :
+      api_key       — clé API de l'organisation (obligatoire si pas dans header)
+      badge_number  — numéro RFID lu par le lecteur (obligatoire)
+      access_point  — nom du point d'accès, ex. "Entrée principale" (optionnel)
+      direction     — "entree" ou "sortie" (optionnel, défaut: entree)
+
+    Réponse JSON :
+      { granted, badge_number, resident?, apartment?, reason? }
+    """
+    json_body = request.get_json(silent=True) or {}
+    api_key = (request.form.get('api_key')
+               or json_body.get('api_key', '')
+               or request.headers.get('X-Api-Key', ''))
+
+    if not api_key:
+        return jsonify({'granted': False, 'reason': 'Clé API manquante'}), 401
+
+    org = Organization.query.filter_by(badges_api_key=api_key).first()
+    if not org:
+        return jsonify({'granted': False, 'reason': 'Clé API invalide'}), 401
+
+    badge_number = (request.form.get('badge_number') or json_body.get('badge_number') or '').strip()
+    access_point = (request.form.get('access_point') or json_body.get('access_point') or 'Entrée principale').strip()
+    direction    = (request.form.get('direction') or json_body.get('direction') or 'entree').strip()
+
+    if not badge_number:
+        return jsonify({'granted': False, 'reason': 'badge_number manquant'}), 400
+
+    badge = Badge.query.filter_by(
+        organization_id=org.id, badge_number=badge_number
+    ).first()
+
+    granted = badge is not None and badge.status == 'actif'
+    reason  = None
+    if not badge:
+        reason = 'Badge inconnu'
+    elif badge.status != 'actif':
+        reason = f'Badge {badge.status}'
+
+    log = BadgeAccessLog(
+        organization_id=org.id,
+        badge_id=badge.id if badge else None,
+        badge_number=badge_number,
+        access_point=access_point,
+        direction=direction,
+        access_granted=granted,
+    )
+    db.session.add(log)
+    db.session.commit()
+
+    resp = {'granted': granted, 'badge_number': badge_number}
+    if granted and badge.resident_id:
+        resident = User.query.get(badge.resident_id)
+        if resident:
+            resp['resident'] = resident.name
+            if resident.apartment_id:
+                apt = Apartment.query.get(resident.apartment_id)
+                if apt and apt.block:
+                    resp['apartment'] = f"{apt.block.name}-{apt.number}"
+    if reason:
+        resp['reason'] = reason
+
+    return jsonify(resp)

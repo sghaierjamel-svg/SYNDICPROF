@@ -283,6 +283,7 @@ class FlouciPayment(db.Model):
     created_by = db.Column(db.String(20), default='resident')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     paid_at = db.Column(db.DateTime)
+    months_json = db.Column(db.Text, nullable=True)   # JSON liste mois pour paiement groupé
     apartment = db.relationship('Apartment', backref='flouci_payments', lazy=True)
 
 
@@ -821,6 +822,22 @@ def init_db():
                 print("Migration PostgreSQL : table flouci_payment vérifiée.")
     except Exception as e:
         print(f"Migration flouci_payment : {e}")
+
+    # Migration : colonne months_json sur flouci_payment (paiement groupé)
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text(
+                    "ALTER TABLE flouci_payment ADD COLUMN IF NOT EXISTS months_json TEXT"
+                ))
+                conn.commit()
+            else:
+                result = conn.execute(db.text("PRAGMA table_info(flouci_payment)"))
+                if 'months_json' not in [r[1] for r in result]:
+                    conn.execute(db.text("ALTER TABLE flouci_payment ADD COLUMN months_json TEXT"))
+                    conn.commit()
+    except Exception as e:
+        print(f"Migration flouci_payment.months_json : {e}")
 
     # Migration : table announcement
     try:

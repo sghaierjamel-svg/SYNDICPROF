@@ -217,6 +217,109 @@
 
 </div>
 
+<!-- Section API IoT -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="bi bi-cpu" style="color:#00C896;"></i>
+                API IoT — Intégration lecteurs RFID
+                <span class="badge ms-auto" style="background:rgba(0,200,150,.15);color:#00C896;">
+                    <i class="bi bi-shield-check"></i> Authentification par clé
+                </span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">
+                    Connectez vos lecteurs de badges RFID physiques directement à SyndicPro.
+                    Chaque passage est enregistré en temps réel dans le journal.
+                </p>
+
+                <!-- Clé API -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-white">Votre clé API badges</label>
+                    {% if org.badges_api_key %}
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <code id="badgesApiKeyDisplay"
+                              style="background:rgba(0,200,150,.08);border:1px solid rgba(0,200,150,.3);
+                                     color:#00C896;padding:.4rem 1rem;border-radius:8px;font-size:.9rem;
+                                     letter-spacing:1px;word-break:break-all;">
+                            {{ org.badges_api_key }}
+                        </code>
+                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                onclick="navigator.clipboard.writeText('{{ org.badges_api_key }}').then(()=>{this.innerHTML='<i class=\'bi bi-check-lg\'></i> Copié !';setTimeout(()=>{this.innerHTML='<i class=\'bi bi-clipboard\'></i> Copier';},2000)})">
+                            <i class="bi bi-clipboard"></i> Copier
+                        </button>
+                        <form method="POST" action="{{ url_for('regen_badges_api_key') }}" style="display:inline;"
+                              onsubmit="return confirm('Regénérer la clé API ? Les lecteurs configurés avec l\'ancienne clé devront être mis à jour.')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-warning">
+                                <i class="bi bi-arrow-clockwise"></i> Regénérer
+                            </button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div class="d-flex align-items-center gap-2">
+                        <span style="color:#9CA3AF;">Aucune clé générée.</span>
+                        <form method="POST" action="{{ url_for('regen_badges_api_key') }}" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-primary">
+                                <i class="bi bi-key"></i> Générer une clé API
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if org.badges_api_key %}
+                <!-- Documentation endpoint -->
+                <div style="background:rgba(0,0,0,.3);border-radius:10px;padding:1.2rem;font-size:.82rem;">
+                    <div class="mb-3">
+                        <span style="color:#9CA3AF;">Endpoint :</span>
+                        <code style="color:#00C896;margin-left:.5rem;">POST https://www.syndicpro.tn/api/badges/access</code>
+                    </div>
+                    <div class="mb-2" style="color:#9CA3AF;">Paramètres (form-data ou JSON) :</div>
+                    <table class="table table-sm mb-0" style="font-size:.8rem;">
+                        <thead>
+                            <tr>
+                                <th style="color:#d1d5db;background:transparent;">Paramètre</th>
+                                <th style="color:#d1d5db;background:transparent;">Obligatoire</th>
+                                <th style="color:#d1d5db;background:transparent;">Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code style="color:#60a5fa;">api_key</code></td>
+                                <td><span style="color:#4ade80;">Oui</span></td>
+                                <td style="color:#9CA3AF;">Votre clé API ci-dessus (ou header <code>X-Api-Key</code>)</td>
+                            </tr>
+                            <tr>
+                                <td><code style="color:#60a5fa;">badge_number</code></td>
+                                <td><span style="color:#4ade80;">Oui</span></td>
+                                <td style="color:#9CA3AF;">Code RFID lu par le lecteur (ex: <code>0A4F2E1C</code>)</td>
+                            </tr>
+                            <tr>
+                                <td><code style="color:#60a5fa;">access_point</code></td>
+                                <td><span style="color:#9CA3AF;">Non</span></td>
+                                <td style="color:#9CA3AF;">Nom du point d'accès (ex: <code>Entrée principale</code>)</td>
+                            </tr>
+                            <tr>
+                                <td><code style="color:#60a5fa;">direction</code></td>
+                                <td><span style="color:#9CA3AF;">Non</span></td>
+                                <td style="color:#9CA3AF;"><code>entree</code> (défaut) ou <code>sortie</code></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="mt-3" style="color:#9CA3AF;">Réponse JSON :</div>
+                    <pre style="background:rgba(0,0,0,.4);border-radius:6px;padding:.8rem;color:#e2e8f0;font-size:.78rem;margin-top:.4rem;overflow-x:auto;">{ "granted": true, "badge_number": "0A4F2E1C", "resident": "Mohamed Ali", "apartment": "A-101" }
+{ "granted": false, "badge_number": "XXXXXXXX", "reason": "Badge bloqué" }</pre>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modals de modification -->
 {% for b in badges %}
 <div class="modal fade" id="editModal{{ b.id }}" tabindex="-1">

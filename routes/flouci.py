@@ -154,28 +154,36 @@ def flouci_success():
         pass
 
     if verified:
-        existing = Payment.query.filter_by(
-            apartment_id=fp.apartment_id,
-            month_paid=fp.month_target
-        ).first()
-        if not existing:
-            p = Payment(
-                organization_id=fp.organization_id,
-                apartment_id=fp.apartment_id,
-                amount=fp.amount,
-                payment_date=datetime.utcnow().date(),
-                month_paid=fp.month_target,
-                description=f"Paiement en ligne Flouci — {fp.month_target}",
-                credit_used=0.0
-            )
-            db.session.add(p)
+        import json as _json
+        try:
+            months_to_pay = _json.loads(fp.months_json) if fp.months_json else [fp.month_target]
+        except Exception:
+            months_to_pay = [fp.month_target]
+
+        amount_per_month = round(fp.amount / len(months_to_pay), 3)
+
+        for _month in months_to_pay:
+            existing = Payment.query.filter_by(
+                apartment_id=fp.apartment_id, month_paid=_month
+            ).first()
+            if not existing:
+                p = Payment(
+                    organization_id=fp.organization_id,
+                    apartment_id=fp.apartment_id,
+                    amount=amount_per_month,
+                    payment_date=datetime.utcnow().date(),
+                    month_paid=_month,
+                    description=f"Paiement en ligne Flouci — {_month}",
+                    credit_used=0.0
+                )
+                db.session.add(p)
         fp.status = 'completed'
         fp.paid_at = datetime.utcnow()
         db.session.commit()
         try:
             apt = Apartment.query.get(fp.apartment_id)
             resident = User.query.filter_by(apartment_id=fp.apartment_id).first()
-            notify_payment(org, apt, fp.month_target, fp.amount, resident)
+            notify_payment(org, apt, months_to_pay[0], fp.amount, resident)
         except Exception:
             pass
 
@@ -193,6 +201,85 @@ def flouci_fail():
             fp.status = 'failed'
             db.session.commit()
     return render_template('flouci_fail.html', fp=fp, user=user)
+
+
+# ─── RÉSIDENT : paiement groupé (plusieurs mois) ────────────────────────────
+
+@app.route('/flouci/pay-multi', methods=['POST'])
+@login_required
+@subscription_required
+def flouci_pay_multi():
+    import json as _json
+    user = current_user()
+    if not user.apartment_id:
+        flash("Vous n'êtes pas affecté à un appartement.", "danger")
+        return redirect(url_for('residents_menu'))
+
+    org = current_organization()
+    if not org.flouci_app_token or not org.flouci_app_secret:
+        flash("Le paiement Flouci n'est pas encore configuré pour votre syndic.", "warning")
+        return redirect(url_for('residents_menu'))
+
+    months_raw = request.form.get('months', '').strip()
+    if not months_raw:
+        flash("Aucun mois sélectionné.", "warning")
+        return redirect(url_for('residents_menu'))
+
+    months = [m.strip() for m in months_raw.split(',') if m.strip()]
+    apt = Apartment.query.get(user.apartment_id)
+
+    # Exclure les mois déjà payés
+    months = [m for m in months
+              if not Payment.query.filter_by(apartment_id=apt.id, month_paid=m).first()]
+    if not months:
+        flash("Tous les mois sélectionnés sont déjà payés.", "info")
+        return redirect(url_for('residents_menu'))
+
+    total = round(apt.monthly_fee * len(months), 3)
+
+    fp = FlouciPayment(
+        organization_id=org.id,
+        apartment_id=apt.id,
+        month_target=months[0],
+        amount=total,
+        months_json=_json.dumps(months),
+        created_by='resident',
+        status='pending'
+    )
+    db.session.add(fp)
+    db.session.flush()
+
+    session_id = f"fp-{fp.id}-multi"
+    try:
+        resp = http.post(
+            FLOUCI_GENERATE_URL,
+            json={
+                'app_token': org.flouci_app_token,
+                'app_secret': org.flouci_app_secret,
+                'amount': int(round(total * 1000)),
+                'accept_card': 'true',
+                'session_id': session_id,
+                'success_link': f"{BASE_URL}/flouci/success",
+                'fail_link': f"{BASE_URL}/flouci/fail",
+                'developer_tracking_id': f"fp-{fp.id}",
+            },
+            timeout=15
+        )
+        if resp.status_code in (200, 201):
+            data = resp.json()
+            result = data.get('result', {})
+            fp.flouci_payment_id = result.get('payment_id') or result.get('paymentId')
+            fp.pay_url = result.get('link') or result.get('pay_url')
+            db.session.commit()
+            return redirect(fp.pay_url)
+        else:
+            db.session.rollback()
+            flash(f"Erreur Flouci ({resp.status_code})", "danger")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Connexion Flouci impossible : {e}", "danger")
+
+    return redirect(url_for('residents_menu'))
 
 
 # ─── ADMIN : générer un lien ─────────────────────────────────────────────────

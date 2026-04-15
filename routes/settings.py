@@ -123,6 +123,39 @@ def test_konnect():
         return jsonify({'ok': False, 'message': 'Impossible de joindre Konnect. Vérifiez votre connexion.'})
 
 
+# ─── Regénération de codes ────────────────────────────────────────────────────
+
+@app.route('/settings/regen-invite-code', methods=['POST'])
+@login_required
+@admin_required
+@subscription_required
+def regen_invite_code():
+    import secrets
+    org = current_organization()
+    while True:
+        new_code = secrets.token_hex(4).upper()
+        conflict = Organization.query.filter_by(invite_code=new_code).first()
+        if not conflict or conflict.id == org.id:
+            break
+    org.invite_code = new_code
+    db.session.commit()
+    flash(f"Code d'invitation regénéré : {new_code}", 'success')
+    return redirect(url_for('settings'))
+
+
+@app.route('/settings/regen-badges-api-key', methods=['POST'])
+@login_required
+@admin_required
+@subscription_required
+def regen_badges_api_key():
+    import secrets
+    org = current_organization()
+    org.badges_api_key = secrets.token_hex(16)
+    db.session.commit()
+    flash('Clé API badges regénérée avec succès.', 'success')
+    return redirect(url_for('badges'))
+
+
 # ─── Caméras de surveillance ──────────────────────────────────────────────────
 
 @app.route('/settings/cameras/ajouter', methods=['POST'])
