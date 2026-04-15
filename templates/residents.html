@@ -80,16 +80,22 @@
                 {# Filtres #}
                 <div class="d-flex gap-1 ms-auto flex-wrap" id="filterTabs">
                     <button class="btn btn-sm filter-tab" data-filter="unpaid"
-                            style="border-radius:20px;padding:.25rem .8rem;">
-                        Impayées
+                            data-color-active="#ef4444" data-color-text="#fff"
+                            style="border-radius:20px;padding:.25rem .8rem;
+                                   border:1px solid #ef4444;color:#f87171;background:rgba(239,68,68,.12);">
+                        <i class="bi bi-exclamation-circle me-1"></i>Impayées
                     </button>
                     <button class="btn btn-sm filter-tab" data-filter="paid"
-                            style="border-radius:20px;padding:.25rem .8rem;">
-                        Payées
+                            data-color-active="#00C896" data-color-text="#000"
+                            style="border-radius:20px;padding:.25rem .8rem;
+                                   border:1px solid #00C896;color:#00C896;background:rgba(0,200,150,.12);">
+                        <i class="bi bi-check-circle me-1"></i>Payées
                     </button>
                     <button class="btn btn-sm filter-tab active" data-filter="all"
-                            style="border-radius:20px;padding:.25rem .8rem;background:var(--accent);color:#000;border-color:var(--accent);">
-                        ✓ Tout
+                            data-color-active="#6366f1" data-color-text="#fff"
+                            style="border-radius:20px;padding:.25rem .8rem;
+                                   background:#6366f1;color:#fff;border:1px solid #6366f1;">
+                        <i class="bi bi-list-ul me-1"></i>Tout
                     </button>
                 </div>
             </div>
@@ -426,19 +432,30 @@
         payForm.style.display = '';
     }
 
-    // Filtres
+    // Filtres — chaque tab a sa couleur via data-color-active
+    const tabStyles = {
+        unpaid: { bg: 'rgba(239,68,68,.12)', border: '#ef4444', color: '#f87171', activeBg: '#ef4444', activeColor: '#fff' },
+        paid:   { bg: 'rgba(0,200,150,.12)', border: '#00C896', color: '#00C896', activeBg: '#00C896', activeColor: '#000' },
+        all:    { bg: 'rgba(99,102,241,.12)', border: '#6366f1', color: '#818cf8', activeBg: '#6366f1', activeColor: '#fff' },
+    };
     tabs.forEach(tab => {
         tab.addEventListener('click', function () {
             tabs.forEach(t => {
-                t.classList.remove('active');
-                t.style.background = '';
-                t.style.color = '';
-                t.style.borderColor = '';
+                const s = tabStyles[t.dataset.filter];
+                if (s) {
+                    t.classList.remove('active');
+                    t.style.background = s.bg;
+                    t.style.color = s.color;
+                    t.style.borderColor = s.border;
+                }
             });
-            this.classList.add('active');
-            this.style.background = 'var(--accent)';
-            this.style.color = '#000';
-            this.style.borderColor = 'var(--accent)';
+            const s = tabStyles[this.dataset.filter];
+            if (s) {
+                this.classList.add('active');
+                this.style.background = s.activeBg;
+                this.style.color = s.activeColor;
+                this.style.borderColor = s.activeBg;
+            }
             applyFilter(this.dataset.filter);
         });
     });
