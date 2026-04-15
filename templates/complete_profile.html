@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="row justify-content-center" style="min-height:70vh;align-items:center;">
+    <div class="col-12 col-sm-10 col-md-7 col-lg-5">
+
+        <!-- En-tête bienvenue -->
+        <div class="text-center mb-4">
+            <div style="font-size:3.5rem;margin-bottom:.5rem;">👋</div>
+            <h2 class="text-white fw-bold mb-1">Bienvenue sur SyndicPro</h2>
+            <p style="color:var(--muted);font-size:.95rem;">
+                Avant d'accéder à votre espace, complétez votre profil en 30 secondes.
+            </p>
+        </div>
+
+        <div class="card" style="border:1px solid rgba(99,102,241,.4);box-shadow:0 0 30px rgba(99,102,241,.1);">
+            <div class="card-body p-4">
+
+                <form method="POST" action="{{ url_for('complete_profile') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <!-- Nom complet -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold" for="nameInput">
+                            <i class="bi bi-person me-1" style="color:var(--accent);"></i>
+                            Votre nom complet *
+                        </label>
+                        <input type="text" id="nameInput" name="name" class="form-control form-control-lg"
+                               placeholder="Ex : Mohamed Ben Ali"
+                               value="{{ user.name or '' }}"
+                               maxlength="120" required autofocus>
+                        <div class="form-text">Tel qu'il apparaîtra sur vos reçus de paiement.</div>
+                    </div>
+
+                    <!-- WhatsApp -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold" for="phoneInput">
+                            <i class="bi bi-whatsapp me-1" style="color:#25d366;"></i>
+                            Numéro WhatsApp
+                            <small style="color:var(--muted);font-weight:400;">(recommandé)</small>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text" style="background:rgba(37,211,102,.1);
+                                  border-color:rgba(37,211,102,.3);color:#25d366;font-weight:600;">
+                                +216
+                            </span>
+                            <input type="tel" id="phoneInput" name="phone" class="form-control form-control-lg"
+                                   placeholder="Ex : 55 123 456"
+                                   value="{{ user.phone or '' }}"
+                                   maxlength="20"
+                                   pattern="[0-9 +\-\(\)]{6,20}">
+                        </div>
+                        <div class="form-text">
+                            <i class="bi bi-shield-check" style="color:#25d366;"></i>
+                            Utilisé uniquement pour les notifications de paiement et alertes de la résidence.
+                            Jamais partagé.
+                        </div>
+                    </div>
+
+                    <!-- Bouton -->
+                    <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold">
+                        <i class="bi bi-check-circle me-2"></i>Accéder à mon espace
+                    </button>
+
+                    <!-- Skip (sans WhatsApp) -->
+                    <div class="text-center mt-3">
+                        <form method="POST" action="{{ url_for('complete_profile') }}" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="name" id="skipName" value="{{ user.name or '' }}">
+                            <input type="hidden" name="phone" value="">
+                            <button type="submit" id="skipBtn"
+                                    class="btn btn-link btn-sm"
+                                    style="color:var(--muted);font-size:.82rem;"
+                                    onclick="document.getElementById('skipName').value = document.getElementById('nameInput').value || '{{ user.name or 'Résident' }}'">
+                                Continuer sans WhatsApp pour l'instant
+                            </button>
+                        </form>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+
+        <!-- Info résidence -->
+        {% set org = user.organization_id and namespace() %}
+        <div class="text-center mt-3" style="font-size:.8rem;color:var(--muted);">
+            <i class="bi bi-building me-1"></i>
+            Résidence connectée · <strong style="color:var(--text);">{{ user.email }}</strong>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

@@ -3,6 +3,31 @@ from core import app, db
 from utils import current_user, login_required
 
 
+@app.route('/profile/complete', methods=['GET', 'POST'])
+@login_required
+def complete_profile():
+    """Demande le nom + WhatsApp au résident à sa première connexion."""
+    user = current_user()
+    if user.role != 'resident':
+        return redirect(url_for('dashboard'))
+
+    if request.method == 'POST':
+        name  = request.form.get('name', '').strip()
+        phone = request.form.get('phone', '').strip()
+
+        if not name:
+            flash('Votre nom est obligatoire.', 'danger')
+            return redirect(url_for('complete_profile'))
+
+        user.name  = name
+        user.phone = phone or user.phone
+        db.session.commit()
+        flash(f'Bienvenue {name} ! Votre profil est complet.', 'success')
+        return redirect(url_for('residents_menu'))
+
+    return render_template('complete_profile.html', user=user)
+
+
 @app.route('/profile/change-password', methods=['GET', 'POST'])
 @login_required
 def change_password():

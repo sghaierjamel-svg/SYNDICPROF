@@ -10,7 +10,8 @@ from dateutil.relativedelta import relativedelta
 def inject_notifications():
     """Injecte les notifications dans tous les templates (admin + résident)."""
     if _req.endpoint in (None, 'static', 'login', 'logout', 'register',
-                         'register_resident', 'index', 'demo', 'subscription_status'):
+                         'register_resident', 'complete_profile',
+                         'index', 'demo', 'subscription_status'):
         return {}
     user = current_user()
     if not user or not user.organization_id:
@@ -156,6 +157,27 @@ def check_session_timeout():
                 flash("Session expirée, veuillez vous reconnecter.", "warning")
                 return redirect(url_for('login'))
         session['last_activity'] = datetime.utcnow().isoformat()
+
+
+@app.before_request
+def check_resident_profile_complete():
+    """Redirige les résidents dont le profil est incomplet (nom ou WhatsApp manquant)."""
+    from flask import request as req
+    # Routes autorisées sans profil complet
+    allowed = {
+        'complete_profile', 'logout', 'login', 'static',
+        'change_password', 'index', 'register_resident',
+    }
+    if req.endpoint in allowed or req.endpoint is None:
+        return
+    uid = session.get('user_id')
+    if not uid:
+        return
+    user = User.query.get(uid)
+    if not user or user.role != 'resident':
+        return
+    if not user.name or not user.phone:
+        return redirect(url_for('complete_profile'))
 
 
 @app.before_request
