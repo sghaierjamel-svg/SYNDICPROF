@@ -110,7 +110,23 @@
                             <small style="color:var(--muted);">— Pré-rempli avec le montant déclaré</small>
                         </label>
                         <input type="number" name="amount_confirmed" class="form-control"
+                               id="amountConfirmed"
                                step="0.001" value="{{ pr.amount_declared }}" required>
+                    </div>
+
+                    <!-- Calcul automatique des mois -->
+                    <div id="monthsPreview" class="mb-3 p-3 rounded"
+                         style="background:rgba(0,200,150,.08);border:1px solid rgba(0,200,150,.25);font-size:.85rem;">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <i class="bi bi-calculator" style="color:#00C896;"></i>
+                            <strong style="color:#00C896;">Mois qui seront crédités</strong>
+                        </div>
+                        <div style="color:var(--muted);font-size:.78rem;margin-bottom:.5rem;">
+                            Redevance : <strong style="color:var(--text);">{{ '{:.2f}'.format(apt.monthly_fee) }} DT / mois</strong>
+                            &nbsp;·&nbsp;
+                            Premier mois : <strong style="color:var(--text);">{{ pr.month_target }}</strong>
+                        </div>
+                        <div id="monthsCalcResult" style="color:var(--text);font-weight:500;"></div>
                     </div>
 
                     <div class="mb-3">
@@ -119,7 +135,7 @@
                             <small style="color:var(--muted);">— Seront enregistrés comme "Charges bancaires"</small>
                         </label>
                         <input type="number" name="bank_fees" class="form-control"
-                               step="0.001" value="0" min="0">
+                               id="bankFees" step="0.001" value="0" min="0">
                         <div class="mt-1" id="feesInfo" style="display:none;font-size:.8rem;color:#F59E0B;">
                             <i class="bi bi-info-circle"></i>
                             Une dépense "Charges bancaires" sera créée automatiquement et imputée à la comptabilité.
@@ -167,12 +183,53 @@
 
 {% block extra_js %}
 <script>
-const feesInput = document.querySelector('[name="bank_fees"]');
-const feesInfo  = document.getElementById('feesInfo');
-if (feesInput && feesInfo) {
-    feesInput.addEventListener('input', function () {
-        feesInfo.style.display = parseFloat(this.value) > 0 ? 'block' : 'none';
-    });
-}
+(function () {
+    const monthlyFee   = {{ apt.monthly_fee or 0 }};
+    const startMonth   = '{{ pr.month_target }}';
+    const amountInput  = document.getElementById('amountConfirmed');
+    const feesInput    = document.getElementById('bankFees');
+    const feesInfo     = document.getElementById('feesInfo');
+    const calcResult   = document.getElementById('monthsCalcResult');
+
+    function genMonths(startYM, n) {
+        const months = [];
+        let [y, m] = startYM.split('-').map(Number);
+        for (let i = 0; i < n; i++) {
+            months.push(`${String(y).padStart(4,'0')}-${String(m).padStart(2,'0')}`);
+            m++;
+            if (m > 12) { m = 1; y++; }
+        }
+        return months;
+    }
+
+    function formatMonth(ym) {
+        const [y, m] = ym.split('-').map(Number);
+        const names = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+        return `${names[m-1]} ${y}`;
+    }
+
+    function updateCalc() {
+        if (!calcResult || monthlyFee <= 0) return;
+        const val = parseFloat(amountInput.value);
+        if (!val || val <= 0) { calcResult.textContent = '—'; return; }
+        const nb = Math.max(1, Math.floor(val / monthlyFee));
+        const months = genMonths(startMonth, nb);
+        const amtPer = (val / nb).toFixed(2);
+        calcResult.innerHTML =
+            `<span style="color:#00C896;">${nb} mois</span> × ${amtPer} DT :<br>` +
+            months.map(m => `<span class="badge me-1 mt-1" style="background:rgba(0,200,150,.2);color:#00C896;">${formatMonth(m)}</span>`).join('');
+    }
+
+    if (amountInput) {
+        amountInput.addEventListener('input', updateCalc);
+        updateCalc(); // état initial
+    }
+
+    if (feesInput && feesInfo) {
+        feesInput.addEventListener('input', function () {
+            feesInfo.style.display = parseFloat(this.value) > 0 ? 'block' : 'none';
+        });
+    }
+})();
 </script>
 {% endblock %}

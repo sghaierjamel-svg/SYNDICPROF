@@ -129,29 +129,60 @@ def confirm_virement(token):
             return redirect(url_for('confirm_virement', token=token))
 
         admin_notes = request.form.get('admin_notes', '').strip() or None
+        apt_label   = f"{apt.block.name}-{apt.number}" if apt.block else apt.number
+        monthly_fee = apt.monthly_fee or 0
 
-        # 1. Enregistrer le paiement
-        apt_label = f"{apt.block.name}-{apt.number}" if apt.block else apt.number
-        pmt = Payment(
-            organization_id=org.id,
-            apartment_id=apt.id,
-            amount=amount_confirmed,
-            payment_date=date.today(),
-            month_paid=pr.month_target,
-            description=f"Virement bancaire{(' — Réf: ' + pr.bank_reference) if pr.bank_reference else ''}",
-        )
-        db.session.add(pmt)
+        # ── Calcul automatique du nombre de mois couverts ──────────────────
+        def _gen_months(start_ym, n):
+            """Génère n mois consécutifs à partir de start_ym (format YYYY-MM)."""
+            try:
+                y, m = int(start_ym[:4]), int(start_ym[5:7])
+            except (ValueError, IndexError):
+                return [start_ym]
+            result = []
+            for _ in range(n):
+                result.append(f"{y:04d}-{m:02d}")
+                m += 1
+                if m > 12:
+                    m, y = 1, y + 1
+            return result
 
-        # 2. Enregistrer les frais bancaires comme dépense (si > 0)
+        if monthly_fee > 0:
+            nb_months = max(1, int(amount_confirmed / monthly_fee))
+        else:
+            nb_months = 1
+
+        months_to_credit = _gen_months(pr.month_target, nb_months)
+        amount_per_month = round(amount_confirmed / nb_months, 3)
+
+        desc_base = f"Virement bancaire{(' — Réf: ' + pr.bank_reference) if pr.bank_reference else ''}"
+
+        # 1. Créer un Payment par mois (skip les déjà payés)
+        created_months = []
+        for mth in months_to_credit:
+            already = Payment.query.filter_by(
+                apartment_id=apt.id, month_paid=mth
+            ).first()
+            if not already:
+                db.session.add(Payment(
+                    organization_id=org.id,
+                    apartment_id=apt.id,
+                    amount=amount_per_month,
+                    payment_date=date.today(),
+                    month_paid=mth,
+                    description=f"{desc_base} — {mth}",
+                ))
+                created_months.append(mth)
+
+        # 2. Frais bancaires comme dépense (si > 0)
         if bank_fees > 0:
-            fee_expense = Expense(
+            db.session.add(Expense(
                 organization_id=org.id,
                 amount=bank_fees,
                 expense_date=date.today(),
                 category='Charges bancaires',
                 description=f"Frais virement Apt {apt_label} — mois {pr.month_target}",
-            )
-            db.session.add(fee_expense)
+            ))
 
         # 3. Mettre à jour la demande
         pr.status           = 'confirme'
@@ -161,7 +192,12 @@ def confirm_virement(token):
         pr.confirmed_at     = datetime.utcnow()
         db.session.commit()
 
-        flash(f'Paiement de {amount_confirmed:.2f} DT confirmé pour {apt_label} — {pr.month_target}.', 'success')
+        months_label = ', '.join(created_months) if created_months else pr.month_target
+        flash(
+            f'Virement de {amount_confirmed:.2f} DT confirmé pour {apt_label} — '
+            f'{len(created_months)} mois crédité(s) : {months_label}.',
+            'success'
+        )
         _notify_resident_virement(org, pr, confirme=True)
 
         # Push admin (confirmation propre)

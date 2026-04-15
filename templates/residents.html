@@ -202,7 +202,7 @@
     {# Colonne droite : actions + infos #}
     <div class="col-lg-4">
 
-        {# Payer maintenant #}
+        {# Payer maintenant — mois impayés #}
         {% if unpaid_count > 0 %}
         <div class="card mb-3" style="border:1px solid #ef4444;">
             <div class="card-header" style="background:rgba(239,68,68,.1);">
@@ -229,13 +229,34 @@
                     </button>
                 </form>
                 {% endif %}
-                <button type="button" class="btn btn-outline-secondary w-100"
-                        data-bs-toggle="modal" data-bs-target="#virementModal">
-                    <i class="bi bi-bank"></i> Déclarer un virement
-                </button>
             </div>
         </div>
         {% endif %}
+
+        {# Virement bancaire — toujours visible #}
+        <div class="card mb-3" style="border:1px solid rgba(0,200,150,.35);">
+            <div class="card-header" style="background:rgba(0,200,150,.08);">
+                <i class="bi bi-bank" style="color:#00C896;"></i>
+                <strong>Virement bancaire</strong>
+            </div>
+            <div class="card-body">
+                {% if unpaid_count == 0 %}
+                <p style="font-size:.84rem;color:var(--muted);margin-bottom:.8rem;">
+                    <i class="bi bi-calendar-plus" style="color:#00C896;"></i>
+                    Vous êtes à jour ! Vous pouvez régler vos charges <strong>à l'avance</strong>.<br>
+                    <span style="font-size:.78rem;">Le montant versé sera réparti automatiquement sur les mois suivants ({{ '{:.0f}'.format(apt.monthly_fee) }} DT / mois).</span>
+                </p>
+                {% else %}
+                <p style="font-size:.84rem;color:var(--muted);margin-bottom:.8rem;">
+                    Virement couvrant un ou plusieurs mois. L'administration validera et créditera vos mois automatiquement.
+                </p>
+                {% endif %}
+                <button type="button" class="btn btn-outline-secondary w-100"
+                        data-bs-toggle="modal" data-bs-target="#virementModal">
+                    <i class="bi bi-send"></i> Déclarer un virement
+                </button>
+            </div>
+        </div>
 
         {# Actions rapides #}
         <div class="card mb-3">
@@ -320,17 +341,27 @@
                 <div class="modal-body">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <p style="font-size:.85rem;color:var(--muted);">
-                        Soumettez votre décharge ici. L'administration confirmera sous 24h.
+                        Soumettez votre décharge ici. L'administration confirmera sous 24h et créditera vos mois automatiquement.
                     </p>
                     <div class="mb-3">
-                        <label class="form-label">Mois ciblé *</label>
-                        <input type="month" name="month_target" class="form-control" required>
+                        <label class="form-label">Premier mois du règlement *
+                            <small style="color:var(--muted);">— mois de départ (avance possible)</small>
+                        </label>
+                        <input type="month" name="month_target" class="form-control" required
+                               id="vmt_month_target">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Montant viré (DT) *</label>
+                        <label class="form-label">Montant total viré (DT) *</label>
                         <input type="number" name="amount_declared" class="form-control"
-                               step="0.001" placeholder="{{ '{:.0f}'.format(apt.monthly_fee) if apt else '0' }}"
+                               step="0.001" id="vmt_amount"
+                               placeholder="{{ '{:.0f}'.format(apt.monthly_fee) if apt else '0' }}"
                                min="1" required>
+                        {% if apt and apt.monthly_fee %}
+                        <div id="vmt_calc_info" class="mt-1" style="font-size:.8rem;color:#00C896;display:none;">
+                            <i class="bi bi-info-circle"></i>
+                            <span id="vmt_calc_text"></span>
+                        </div>
+                        {% endif %}
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Référence virement <small style="color:var(--muted);">(optionnel)</small></label>
@@ -433,6 +464,27 @@
     if (new URLSearchParams(window.location.search).get('open') === 'virement') {
         const el = document.getElementById('virementModal');
         if (el) { new bootstrap.Modal(el).show(); }
+    }
+
+    // Calcul dynamique nb mois dans le modal virement
+    const vmtAmount = document.getElementById('vmt_amount');
+    const vmtInfo   = document.getElementById('vmt_calc_info');
+    const vmtText   = document.getElementById('vmt_calc_text');
+    const monthlyFee = {{ apt.monthly_fee if apt and apt.monthly_fee else 0 }};
+    if (vmtAmount && vmtInfo && monthlyFee > 0) {
+        vmtAmount.addEventListener('input', function () {
+            const val = parseFloat(this.value);
+            if (!val || val <= 0) { vmtInfo.style.display = 'none'; return; }
+            const nb = Math.floor(val / monthlyFee);
+            if (nb >= 1) {
+                vmtText.textContent = `${val.toFixed(0)} DT ÷ ${monthlyFee.toFixed(0)} DT = ${nb} mois créditée${nb > 1 ? 's' : ''} à partir du mois sélectionné`;
+                vmtInfo.style.display = '';
+            } else {
+                vmtText.textContent = `Montant inférieur à la redevance (${monthlyFee.toFixed(0)} DT)`;
+                vmtInfo.style.color = '#f87171';
+                vmtInfo.style.display = '';
+            }
+        });
     }
 })();
 </script>
