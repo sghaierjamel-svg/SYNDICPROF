@@ -35,7 +35,7 @@ def virement_soumettre():
 
     if not month_target or not amount_declared:
         flash('Le mois et le montant sont obligatoires.', 'danger')
-        return redirect(url_for('residents'))
+        return redirect(url_for('residents_menu'))
 
     try:
         amount_declared = float(amount_declared)
@@ -43,7 +43,7 @@ def virement_soumettre():
             raise ValueError
     except ValueError:
         flash('Montant invalide.', 'danger')
-        return redirect(url_for('residents'))
+        return redirect(url_for('residents_menu'))
 
     # Photo de la décharge (optionnelle mais recommandée)
     photo_data = photo_mime = None
@@ -52,10 +52,10 @@ def virement_soumettre():
         data = photo.read()
         if len(data) > 5 * 1024 * 1024:
             flash('Photo trop lourde (max 5 Mo).', 'warning')
-            return redirect(url_for('residents'))
+            return redirect(url_for('residents_menu'))
         if photo.mimetype not in ('image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'):
             flash('Format non supporté. Utilisez JPEG, PNG, WEBP ou PDF.', 'warning')
-            return redirect(url_for('residents'))
+            return redirect(url_for('residents_menu'))
         photo_data = base64.b64encode(data).decode('utf-8')
         photo_mime = photo.mimetype
 
@@ -68,7 +68,7 @@ def virement_soumettre():
     ).first()
     if existing:
         flash('Une demande est déjà en attente pour ce mois.', 'warning')
-        return redirect(url_for('residents'))
+        return redirect(url_for('residents_menu'))
 
     pr = PaymentRequest(
         organization_id=org.id,
@@ -87,7 +87,7 @@ def virement_soumettre():
     flash('Votre demande de virement a été transmise. L\'administration va la valider sous peu.', 'success')
 
     _notify_admin_virement(org, apt, user, pr)
-    return redirect(url_for('residents'))
+    return redirect(url_for('residents_menu'))
 
 
 # ─── Admin — page de confirmation ────────────────────────────────────────────
