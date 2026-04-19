@@ -244,7 +244,7 @@
   </ul>
   <div class="nav-actions">
     <a href="{{ url_for('login') }}" class="btn-nav-outline">Se connecter</a>
-    <a href="{{ url_for('register') }}" class="btn-nav-fill">Essai gratuit 30j</a>
+    <a href="{{ url_for('register') }}" class="btn-nav-fill">Essai gratuit 3 mois</a>
   </div>
 </nav>
 
@@ -258,7 +258,7 @@
     <a href="{{ url_for('register') }}" class="btn-hero-primary"><i class="bi bi-rocket-takeoff me-2"></i>Démarrer gratuitement</a>
     <a href="{{ url_for('demo') }}" class="btn-hero-outline"><i class="bi bi-play-circle me-2"></i>Voir la démo</a>
   </div>
-  <div class="hero-note">Aucune carte bancaire requise · Accès immédiat · 30 jours gratuits</div>
+  <div class="hero-note">Aucune carte bancaire requise · Accès immédiat · 3 mois gratuits</div>
 </div>
 
 <!-- ── STATS BAR ── -->
@@ -266,7 +266,7 @@
   <div class="container">
     <div class="row justify-content-center g-4">
       <div class="col-6 col-md-3"><div class="stat-item"><span class="num">100%</span><span class="lbl">Web · aucune installation</span></div></div>
-      <div class="col-6 col-md-3"><div class="stat-item"><span class="num">30j</span><span class="lbl">Essai gratuit offert</span></div></div>
+      <div class="col-6 col-md-3"><div class="stat-item"><span class="num">3 mois</span><span class="lbl">Essai gratuit offert</span></div></div>
       <div class="col-6 col-md-3"><div class="stat-item"><span class="num">20+</span><span class="lbl">Modules intégrés</span></div></div>
       <div class="col-6 col-md-3"><div class="stat-item"><span class="num">24/7</span><span class="lbl">Accès depuis partout</span></div></div>
     </div>
@@ -375,7 +375,7 @@
       <p class="section-sub">Un processus guidé pour démarrer sans stress.</p>
     </div>
     <div class="row g-4">
-      <div class="col-md-3"><div class="step-card"><div class="step-num">1</div><h6>Créer votre compte</h6><p>Inscription en 2 minutes. Essai gratuit 30 jours activé immédiatement.</p></div></div>
+      <div class="col-md-3"><div class="step-card"><div class="step-num">1</div><h6>Créer votre compte</h6><p>Inscription en 2 minutes. Essai gratuit 3 mois activé immédiatement.</p></div></div>
       <div class="col-md-3"><div class="step-card"><div class="step-num">2</div><h6>Importer vos données</h6><p>Modèle Excel fourni — appartements et résidents importés en un clic.</p></div></div>
       <div class="col-md-3"><div class="step-card"><div class="step-num">3</div><h6>Configurer les paiements</h6><p>Connectez Konnect ou Flouci. Vos résidents paient en ligne dès J+1.</p></div></div>
       <div class="col-md-3"><div class="step-card"><div class="step-num">4</div><h6>C'est parti !</h6><p>Trésorerie, annonces, tickets, PDF — tout depuis votre téléphone.</p></div></div>
@@ -396,15 +396,17 @@
     <div class="row g-4 justify-content-center">
       <div class="col-md-4">
         <div class="price-card">
-          <div class="plan-name">Starter</div>
-          <div class="plan-price">30 <span>DT/mois</span></div>
-          <div class="plan-desc">Idéal pour les petites résidences</div>
+          <div class="plan-name">Essentiel</div>
+          <div class="plan-price">19 <span>DT/mois</span></div>
+          <div class="plan-desc">L'essentiel pour bien démarrer</div>
           <ul class="plan-features">
-            <li><i class="bi bi-check-lg"></i> Jusqu'à 20 appartements</li>
-            <li><i class="bi bi-check-lg"></i> Tous les modules inclus</li>
-            <li><i class="bi bi-check-lg"></i> Paiement Konnect / Flouci</li>
-            <li><i class="bi bi-check-lg"></i> Emails automatiques</li>
-            <li><i class="bi bi-check-lg"></i> Support par email</li>
+            <li><i class="bi bi-check-lg"></i> Appartements illimités</li>
+            <li><i class="bi bi-check-lg"></i> Gestion résidents &amp; appartements</li>
+            <li><i class="bi bi-check-lg"></i> Encaissements &amp; dépenses manuels</li>
+            <li><i class="bi bi-check-lg"></i> Tickets de support</li>
+            <li><i class="bi bi-check-lg"></i> Annonces &amp; communication</li>
+            <li><i class="bi bi-check-lg"></i> Import Excel &amp; code invitation</li>
+            <li><i class="bi bi-check-lg"></i> Reçus PDF automatiques</li>
           </ul>
           <a href="{{ url_for('register') }}" class="btn-plan btn-plan-outline">Commencer l'essai</a>
         </div>
@@ -413,39 +415,41 @@
         <div class="price-card featured">
           <div class="price-badge"><i class="bi bi-star-fill me-1"></i> Le plus populaire</div>
           <div class="plan-name">Pro</div>
-          <div class="plan-price">50 <span>DT/mois</span></div>
-          <div class="plan-desc">Pour les résidences de taille moyenne</div>
+          <div class="plan-price">49 <span>DT/mois</span></div>
+          <div class="plan-desc">La solution complète pour votre résidence</div>
           <ul class="plan-features">
-            <li><i class="bi bi-check-lg"></i> Jusqu'à 75 appartements</li>
-            <li><i class="bi bi-check-lg"></i> Tous les modules inclus</li>
-            <li><i class="bi bi-check-lg"></i> WhatsApp + IA intégrée</li>
-            <li><i class="bi bi-check-lg"></i> États financiers SCE</li>
-            <li><i class="bi bi-check-lg"></i> Multi-résidences</li>
-            <li><i class="bi bi-check-lg"></i> Support prioritaire</li>
+            <li><i class="bi bi-check-lg"></i> Tout le plan Essentiel</li>
+            <li><i class="bi bi-check-lg"></i> Paiement en ligne (Konnect / Flouci)</li>
+            <li><i class="bi bi-check-lg"></i> Notifications WhatsApp</li>
+            <li><i class="bi bi-check-lg"></i> Messagerie directe</li>
+            <li><i class="bi bi-check-lg"></i> Trésorerie &amp; comptabilité</li>
+            <li><i class="bi bi-check-lg"></i> Assemblées générales &amp; vote en ligne</li>
+            <li><i class="bi bi-check-lg"></i> Appels de fonds &amp; litiges</li>
           </ul>
           <a href="{{ url_for('register') }}" class="btn-plan btn-plan-fill">Commencer l'essai</a>
         </div>
       </div>
       <div class="col-md-4">
         <div class="price-card">
-          <div class="plan-name">Enterprise</div>
-          <div class="plan-price">75 <span>DT/mois</span></div>
-          <div class="plan-desc">Pour les grandes copropriétés</div>
+          <div class="plan-name">Business</div>
+          <div class="plan-price">89 <span>DT/mois</span></div>
+          <div class="plan-desc">Gestion intelligente &amp; automatisée</div>
           <ul class="plan-features">
-            <li><i class="bi bi-check-lg"></i> Appartements illimités</li>
-            <li><i class="bi bi-check-lg"></i> Tous les modules inclus</li>
-            <li><i class="bi bi-check-lg"></i> Caméras de surveillance</li>
-            <li><i class="bi bi-check-lg"></i> Registre d'accès avancé</li>
-            <li><i class="bi bi-check-lg"></i> Multi-résidences illimité</li>
-            <li><i class="bi bi-check-lg"></i> Support dédié &amp; formation</li>
+            <li><i class="bi bi-check-lg"></i> Tout le plan Pro</li>
+            <li><i class="bi bi-check-lg"></i> Assistant IA Claude intégré</li>
+            <li><i class="bi bi-check-lg"></i> Badges RFID &amp; contrôle d'accès</li>
+            <li><i class="bi bi-check-lg"></i> Gestion ascenseurs &amp; caméras</li>
+            <li><i class="bi bi-check-lg"></i> Relances automatiques</li>
+            <li><i class="bi bi-check-lg"></i> Rapports PDF automatisés</li>
+            <li><i class="bi bi-check-lg"></i> États financiers SCE</li>
           </ul>
-          <a href="mailto:contact@syndicpro.tn" class="btn-plan btn-plan-outline">Nous contacter</a>
+          <a href="{{ url_for('register') }}" class="btn-plan btn-plan-fill">Commencer l'essai</a>
         </div>
       </div>
     </div>
     <p class="text-center mt-4" style="color:var(--muted);font-size:.83rem;">
       <i class="bi bi-gift me-1" style="color:var(--green);"></i>
-      Tous les plans incluent <strong style="color:#F1F5F9;">30 jours d'essai gratuit</strong> — aucune carte bancaire requise.
+      Tous les plans incluent <strong style="color:#F1F5F9;">3 mois d'essai gratuit</strong> — aucune carte bancaire requise.
     </p>
   </div>
 </section>
@@ -456,7 +460,7 @@
     <div class="section-label">Démarrez aujourd'hui</div>
     <h2 class="section-title mt-3">Prêt à moderniser votre résidence ?</h2>
     <p style="color:#CBD5E1;max-width:500px;margin:0 auto 34px;line-height:1.7;">
-      Configuration en moins d'une heure, support inclus, 30 jours gratuits sans engagement.
+      Configuration en moins d'une heure, support inclus, 3 mois gratuits sans engagement.
     </p>
     <div class="d-flex flex-wrap gap-3 justify-content-center">
       <a href="{{ url_for('register') }}" class="btn-hero-primary"><i class="bi bi-rocket-takeoff me-2"></i>Démarrer gratuitement</a>

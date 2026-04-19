@@ -164,7 +164,7 @@ def register():
             plan='trial',
             status='active',
             start_date=datetime.utcnow(),
-            end_date=datetime.utcnow() + timedelta(days=30),
+            end_date=datetime.utcnow() + timedelta(days=90),
             monthly_price=0.0,
             max_apartments=999999
         )
@@ -180,10 +180,10 @@ def register():
         db.session.commit()
         try:
             from utils_email import send_welcome_admin
-            send_welcome_admin(org_name=org_name, email=email, days_trial=30)
+            send_welcome_admin(org_name=org_name, email=email, days_trial=90)
         except Exception as _e:
             print(f"[register] Email bienvenue non envoyé : {_e}")
-        flash(f'Organisation créée avec succès ! Essai gratuit de 30 jours activé.', 'success')
+        flash(f'Organisation créée avec succès ! Essai gratuit de 3 mois activé.', 'success')
         return redirect(url_for('login'))
     return render_template('register.html')
 

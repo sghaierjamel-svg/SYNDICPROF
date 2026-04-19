@@ -66,14 +66,19 @@ class Subscription(db.Model):
         delta = self.end_date - datetime.utcnow()
         return max(0, delta.days)
 
-    def calculate_price(self, apartment_count):
-        """Calcule le prix selon le nombre d'appartements"""
-        if apartment_count < 20:
-            return 30.0
-        elif apartment_count <= 75:
-            return 50.0
-        else:
-            return 75.0
+    PLANS = {
+        'essentiel': {'price': 19.0, 'label': 'Essentiel'},
+        'pro':       {'price': 49.0, 'label': 'Pro'},
+        'business':  {'price': 89.0, 'label': 'Business'},
+        'trial':     {'price': 0.0,  'label': 'Essai Gratuit'},
+    }
+
+    def calculate_price(self, apartment_count=None):
+        return self.PLANS.get(self.plan, self.PLANS['essentiel'])['price']
+
+    @property
+    def plan_label(self):
+        return self.PLANS.get(self.plan, {}).get('label', self.plan)
 
 
 class User(db.Model):

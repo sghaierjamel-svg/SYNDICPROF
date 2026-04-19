@@ -21,15 +21,19 @@
                     <div class="col-md-6">
                         <h5>{{ org.name }}</h5>
                         <p class="text-muted mb-3">{{ org.email }}</p>
-                        
+
                         <div class="mb-3">
                             <strong>Plan actuel:</strong><br>
                             {% if subscription.plan == 'trial' %}
-                                <span class="badge bg-info fs-6">Essai Gratuit</span>
-                            {% elif subscription.plan == 'starter' %}
-                                <span class="badge bg-success fs-6">Plan Starter</span>
-                            {% else %}
+                                <span class="badge bg-info fs-6">Essai Gratuit (3 mois)</span>
+                            {% elif subscription.plan == 'essentiel' %}
+                                <span class="badge bg-success fs-6">Plan Essentiel</span>
+                            {% elif subscription.plan == 'pro' %}
                                 <span class="badge bg-primary fs-6">Plan Pro</span>
+                            {% elif subscription.plan == 'business' %}
+                                <span class="badge fs-6" style="background:#7C3AED;">Plan Business</span>
+                            {% else %}
+                                <span class="badge bg-secondary fs-6">{{ subscription.plan_label }}</span>
                             {% endif %}
                         </div>
 
@@ -47,7 +51,7 @@
                         <div class="mb-3">
                             <strong>Nombre d'appartements:</strong><br>
                             <span class="fs-4 text-primary fw-bold">{{ apartments_count }}</span>
-                            <span class="text-muted">/ {{ subscription.max_apartments }} max</span>
+                            <span class="text-muted">/ illimité</span>
                         </div>
                     </div>
 
@@ -97,45 +101,70 @@
         <!-- Grille tarifaire -->
         <div class="card">
             <div class="card-header">
-                <i class="bi bi-cash-coin"></i> Tarification selon le nombre d'appartements
+                <i class="bi bi-cash-coin"></i> Nos Plans — Appartements illimités
             </div>
             <div class="card-body">
                 <div class="row text-center">
                     <div class="col-md-4 mb-3">
-                        <div class="p-4 border rounded {% if apartments_count < 20 %}bg-primary bg-opacity-10 border-primary{% else %}bg-light{% endif %}">
-                            <h3 class="text-primary fw-bold">30 DT</h3>
-                            <p class="mb-2">< 20 appartements</p>
-                            {% if apartments_count < 20 %}
-                                <span class="badge bg-primary">Votre plan recommandé</span>
+                        <div class="p-4 border rounded {% if subscription.plan == 'essentiel' %}bg-success bg-opacity-10 border-success{% endif %}">
+                            <h3 class="text-success fw-bold">19 DT</h3>
+                            <h6>Essentiel</h6>
+                            <p class="small text-muted mb-2">Gestion de base</p>
+                            <ul class="list-unstyled small text-start">
+                                <li><i class="bi bi-check text-success"></i> Résidents & appartements</li>
+                                <li><i class="bi bi-check text-success"></i> Encaissements manuels</li>
+                                <li><i class="bi bi-check text-success"></i> Tickets & annonces</li>
+                                <li><i class="bi bi-check text-success"></i> Import Excel</li>
+                                <li><i class="bi bi-check text-success"></i> Reçus PDF</li>
+                            </ul>
+                            {% if subscription.plan == 'essentiel' %}
+                                <span class="badge bg-success">Votre plan actuel</span>
                             {% endif %}
                         </div>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <div class="p-4 border rounded {% if apartments_count >= 20 and apartments_count <= 75 %}bg-success bg-opacity-10 border-success{% else %}bg-light{% endif %}">
-                            <h3 class="text-success fw-bold">50 DT</h3>
-                            <p class="mb-2">20 - 75 appartements</p>
-                            {% if apartments_count >= 20 and apartments_count <= 75 %}
-                                <span class="badge bg-success">Votre plan recommandé</span>
+                        <div class="p-4 border rounded {% if subscription.plan == 'pro' %}bg-primary bg-opacity-10 border-primary{% endif %}">
+                            <h3 class="text-primary fw-bold">49 DT</h3>
+                            <h6>Pro <span class="badge bg-primary">Populaire</span></h6>
+                            <p class="small text-muted mb-2">Gestion complète</p>
+                            <ul class="list-unstyled small text-start">
+                                <li><i class="bi bi-check text-primary"></i> Tout Essentiel +</li>
+                                <li><i class="bi bi-check text-primary"></i> Paiement en ligne</li>
+                                <li><i class="bi bi-check text-primary"></i> WhatsApp & messagerie</li>
+                                <li><i class="bi bi-check text-primary"></i> AG & vote en ligne</li>
+                                <li><i class="bi bi-check text-primary"></i> Appels de fonds & litiges</li>
+                            </ul>
+                            {% if subscription.plan == 'pro' %}
+                                <span class="badge bg-primary">Votre plan actuel</span>
                             {% endif %}
                         </div>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <div class="p-4 border rounded {% if apartments_count > 75 %}bg-warning bg-opacity-10 border-warning{% else %}bg-light{% endif %}">
-                            <h3 class="text-warning fw-bold">75 DT</h3>
-                            <p class="mb-2">> 75 appartements</p>
-                            {% if apartments_count > 75 %}
-                                <span class="badge bg-warning text-dark">Votre plan recommandé</span>
+                        <div class="p-4 border rounded {% if subscription.plan == 'business' %}border-warning{% endif %}" {% if subscription.plan == 'business' %}style="background:rgba(124,58,237,.1);"{% endif %}>
+                            <h3 class="fw-bold" style="color:#7C3AED;">89 DT</h3>
+                            <h6>Business</h6>
+                            <p class="small text-muted mb-2">Gestion intelligente</p>
+                            <ul class="list-unstyled small text-start">
+                                <li><i class="bi bi-check" style="color:#7C3AED;"></i> Tout Pro +</li>
+                                <li><i class="bi bi-check" style="color:#7C3AED;"></i> Assistant IA Claude</li>
+                                <li><i class="bi bi-check" style="color:#7C3AED;"></i> Badges RFID & IoT</li>
+                                <li><i class="bi bi-check" style="color:#7C3AED;"></i> Relances automatiques</li>
+                                <li><i class="bi bi-check" style="color:#7C3AED;"></i> États financiers SCE</li>
+                            </ul>
+                            {% if subscription.plan == 'business' %}
+                                <span class="badge" style="background:#7C3AED;">Votre plan actuel</span>
                             {% endif %}
                         </div>
                     </div>
                 </div>
 
+                {% if subscription.plan == 'trial' %}
                 <div class="alert alert-info mt-3">
-                    <strong>Prix recommandé pour vous:</strong> 
-                    <span class="fs-4 fw-bold text-primary">{{ '{:.0f}'.format(recommended_price) }} DT / mois</span>
-                    <br>
-                    <small>Basé sur vos {{ apartments_count }} appartements actuels</small>
+                    <i class="bi bi-gift"></i>
+                    <strong>Vous êtes en essai gratuit (3 mois).</strong>
+                    Toutes les fonctionnalités Business sont activées. Choisissez votre plan avant la fin de l'essai.
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -151,11 +180,11 @@
                     <a href="tel:+21624545853" class="btn btn-primary">
                         <i class="bi bi-telephone"></i> Nous Contacter
                     </a>
-                    <a href="mailto:contact@syndicpro.tn?subject=Renouvellement abonnement - {{ org.name }}" 
+                    <a href="mailto:contact@syndicpro.tn?subject=Abonnement - {{ org.name }}"
                        class="btn btn-success">
-                        <i class="bi bi-envelope"></i> Demander un Renouvellement
+                        <i class="bi bi-envelope"></i> Choisir un Plan
                     </a>
-                    <a href="https://wa.me/21624545853?text=Bonjour, je souhaite renouveler mon abonnement SyndicPro pour {{ org.name }}" 
+                    <a href="https://wa.me/21624545853?text=Bonjour, je souhaite souscrire à un plan SyndicPro pour {{ org.name }}"
                        class="btn btn-outline-success" target="_blank">
                         <i class="bi bi-whatsapp"></i> WhatsApp
                     </a>
@@ -163,37 +192,20 @@
             </div>
         </div>
 
-        <!-- Fonctionnalités -->
+        <!-- Avantages -->
         <div class="card">
             <div class="card-header">
-                <i class="bi bi-check-circle"></i> Fonctionnalités Incluses
+                <i class="bi bi-check-circle"></i> Inclus dans tous les plans
             </div>
             <div class="card-body">
                 <ul class="list-unstyled">
-                    <li class="mb-2">
-                        <i class="bi bi-check-circle-fill text-success"></i> Gestion des appartements
-                    </li>
-                    <li class="mb-2">
-                        <i class="bi bi-check-circle-fill text-success"></i> Encaissements & Dépenses
-                    </li>
-                    <li class="mb-2">
-                        <i class="bi bi-check-circle-fill text-success"></i> Tableaux trésorerie
-                    </li>
-                    <li class="mb-2">
-                        <i class="bi bi-check-circle-fill text-success"></i> Alertes impayés
-                    </li>
-                    <li class="mb-2">
-                        <i class="bi bi-check-circle-fill text-success"></i> Système de tickets
-                    </li>
-                    <li class="mb-2">
-                        <i class="bi bi-check-circle-fill text-success"></i> Export Excel
-                    </li>
-                    <li class="mb-2">
-                        <i class="bi bi-check-circle-fill text-success"></i> Multi-utilisateurs
-                    </li>
-                    <li class="mb-2">
-                        <i class="bi bi-check-circle-fill text-success"></i> Support technique
-                    </li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Appartements illimités</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Multi-utilisateurs</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Code invitation résidents</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Alertes impayés</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Export Excel</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Support technique</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> 3 mois d'essai gratuit</li>
                 </ul>
             </div>
         </div>
