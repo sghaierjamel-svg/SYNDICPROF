@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Démonstration — SyndicPro</title>
+    <title>Démonstration complète — SyndicPro</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,6 +15,7 @@
             --card-bg: #111827;
             --border: #1F2937;
             --green: #00C896;
+            --indigo: #6366F1;
             --text: #F9FAFB;
             --muted: #9CA3AF;
         }
@@ -60,8 +61,8 @@
         /* HERO */
         .demo-hero {
             text-align: center;
-            padding: 4rem 2rem 3rem;
-            max-width: 700px;
+            padding: 4rem 2rem 2rem;
+            max-width: 750px;
             margin: 0 auto;
         }
         .demo-badge {
@@ -76,15 +77,47 @@
             font-size: clamp(1.8rem, 4vw, 2.8rem);
             font-weight: 800; line-height: 1.2; margin-bottom: 1rem;
         }
-        .demo-hero h1 span { color: var(--green); }
+        .demo-hero h1 .accent { color: var(--green); }
         .demo-hero p {
             color: var(--muted); font-size: 1.05rem;
             line-height: 1.7; margin: 0 auto;
         }
 
-        /* STEPS */
-        .steps-section { max-width: 860px; margin: 0 auto; padding: 2rem 2rem 4rem; }
+        /* NAV TABS DEMO */
+        .demo-tabs {
+            max-width: 900px; margin: 2rem auto 0;
+            display: flex; flex-wrap: wrap; gap: 0.5rem;
+            justify-content: center; padding: 0 1rem;
+        }
+        .demo-tab {
+            background: var(--card-bg); border: 1px solid var(--border);
+            color: var(--muted); padding: 0.5rem 1rem; border-radius: 999px;
+            font-size: 0.82rem; font-weight: 500; cursor: pointer;
+            transition: all 0.2s; text-decoration: none;
+        }
+        .demo-tab:hover, .demo-tab.active {
+            border-color: var(--green); color: var(--green);
+            background: rgba(0,200,150,0.08);
+        }
 
+        /* SECTIONS */
+        .demo-section {
+            max-width: 900px; margin: 0 auto;
+            padding: 2rem 2rem 1rem;
+        }
+        .section-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.6rem; font-weight: 800;
+            margin-bottom: 0.5rem; text-align: center;
+        }
+        .section-title .accent { color: var(--green); }
+        .section-sub {
+            color: var(--muted); font-size: 0.95rem;
+            text-align: center; margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        /* STEP CARDS */
         .step-card {
             background: var(--card-bg);
             border: 1px solid var(--border);
@@ -97,30 +130,35 @@
             transition: border-color 0.2s;
         }
         .step-card:hover { border-color: rgba(0,200,150,0.4); }
-
         .step-num {
             flex-shrink: 0;
-            width: 52px; height: 52px;
+            width: 48px; height: 48px;
             background: rgba(0,200,150,0.12);
             border: 2px solid var(--green);
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             font-family: 'Syne', sans-serif;
-            font-size: 1.3rem; font-weight: 800;
+            font-size: 1.2rem; font-weight: 800;
             color: var(--green);
         }
+        .step-content { flex: 1; }
         .step-content h3 {
             font-family: 'Syne', sans-serif;
-            font-size: 1.15rem; font-weight: 700;
+            font-size: 1.1rem; font-weight: 700;
             margin-bottom: 0.4rem;
         }
         .step-content p {
-            color: var(--muted); font-size: 0.95rem;
+            color: var(--muted); font-size: 0.92rem;
             line-height: 1.65; margin: 0;
         }
-        .step-emoji { font-size: 1.5rem; margin-right: 0.4rem; }
+        .step-content p strong { color: var(--text); }
+        .step-connector {
+            display: flex; justify-content: center;
+            color: var(--border); font-size: 1.5rem;
+            margin: -0.5rem 0;
+        }
 
-        /* MOCKUP SCREENS */
+        /* MOCKUP */
         .mockup {
             background: #0D1320;
             border: 1px solid var(--border);
@@ -130,11 +168,9 @@
             font-size: 0.82rem;
         }
         .mockup-bar {
-            display: flex; gap: 6px; margin-bottom: 0.75rem;
+            display: flex; gap: 6px; margin-bottom: 0.75rem; align-items: center;
         }
-        .mockup-dot {
-            width: 10px; height: 10px; border-radius: 50%;
-        }
+        .mockup-dot { width: 10px; height: 10px; border-radius: 50%; }
         .mockup-row {
             display: flex; justify-content: space-between;
             align-items: center;
@@ -143,21 +179,11 @@
             font-size: 0.8rem;
         }
         .mockup-row:last-child { border-bottom: none; }
-        .tag-green {
-            background: rgba(0,200,150,0.15);
-            color: var(--green); font-size: 0.7rem;
-            padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 600;
-        }
-        .tag-red {
-            background: rgba(239,68,68,0.12);
-            color: #F87171; font-size: 0.7rem;
-            padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 600;
-        }
-        .tag-blue {
-            background: rgba(96,165,250,0.12);
-            color: #60A5FA; font-size: 0.7rem;
-            padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 600;
-        }
+        .tag-green { background: rgba(0,200,150,0.15); color: var(--green); font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 600; }
+        .tag-red { background: rgba(239,68,68,0.12); color: #F87171; font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 600; }
+        .tag-blue { background: rgba(96,165,250,0.12); color: #60A5FA; font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 600; }
+        .tag-yellow { background: rgba(251,191,36,0.12); color: #FCD34D; font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 600; }
+        .tag-indigo { background: rgba(99,102,241,0.12); color: #818CF8; font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 600; }
         .mockup-stat {
             text-align: center; flex: 1; padding: 0.5rem;
             border-right: 1px solid #1F2937;
@@ -165,42 +191,73 @@
         .mockup-stat:last-child { border-right: none; }
         .mockup-stat strong { display: block; color: var(--green); font-size: 1.1rem; }
         .mockup-stat span { color: var(--muted); font-size: 0.72rem; }
+        .mockup-btn {
+            background: var(--green); color: #000; text-align: center;
+            padding: 0.5rem; border-radius: 6px; font-weight: 700;
+            font-size: 0.82rem; margin-top: 0.5rem;
+        }
+        .mockup-btn-outline {
+            border: 1px solid var(--border); color: var(--muted); text-align: center;
+            padding: 0.4rem; border-radius: 6px; font-size: 0.78rem; margin-top: 0.4rem;
+        }
+        .progress-bar-demo { height: 4px; background: var(--border); border-radius: 4px; overflow: hidden; margin-top: 0.6rem; }
+        .progress-fill { height: 100%; background: var(--green); border-radius: 4px; }
 
-        /* FEATURES BONUS */
-        .bonus-section {
-            max-width: 860px; margin: 0 auto; padding: 0 2rem 4rem;
-        }
-        .bonus-title {
-            font-family: 'Syne', sans-serif;
-            font-size: 1.5rem; font-weight: 800;
-            text-align: center; margin-bottom: 1.5rem;
-        }
-        .bonus-grid {
+        /* FEATURE GRID */
+        .feature-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 1rem;
+            gap: 1rem; margin-bottom: 2rem;
         }
         @media (max-width: 768px) {
-            .bonus-grid { grid-template-columns: 1fr; }
+            .feature-grid { grid-template-columns: 1fr; }
             .step-card { flex-direction: column; }
         }
         @media (max-width: 992px) and (min-width: 769px) {
-            .bonus-grid { grid-template-columns: repeat(2, 1fr); }
+            .feature-grid { grid-template-columns: repeat(2, 1fr); }
         }
-        .bonus-card {
+        .feature-card {
             background: var(--card-bg);
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 1.25rem;
+            transition: border-color 0.2s;
         }
-        .bonus-card .icon { font-size: 1.6rem; margin-bottom: 0.6rem; }
-        .bonus-card h5 {
+        .feature-card:hover { border-color: rgba(0,200,150,0.3); }
+        .feature-card .icon { font-size: 1.6rem; margin-bottom: 0.6rem; }
+        .feature-card h5 {
             font-family: 'Syne', sans-serif;
             font-size: 0.95rem; font-weight: 700; margin-bottom: 0.35rem;
         }
-        .bonus-card p { color: var(--muted); font-size: 0.85rem; margin: 0; line-height: 1.55; }
+        .feature-card p { color: var(--muted); font-size: 0.83rem; margin: 0; line-height: 1.55; }
+        .feature-card .tag { display: inline-block; margin-top: 0.5rem; }
 
-        /* CTA FINAL */
+        /* SEPARATOR */
+        .section-sep {
+            max-width: 900px; margin: 1rem auto 0;
+            border: 0; border-top: 1px solid var(--border);
+        }
+
+        /* COMPARISON TABLE */
+        .compare-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            margin-bottom: 1.5rem;
+        }
+        .compare-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid rgba(31,41,55,0.5);
+            font-size: 0.88rem;
+        }
+        .compare-row:last-child { border-bottom: none; }
+        .compare-label { color: var(--muted); flex: 1; }
+        .compare-before { color: #F87171; text-align: center; width: 120px; font-weight: 600; font-size: 0.82rem; }
+        .compare-after { color: var(--green); text-align: center; width: 120px; font-weight: 600; font-size: 0.82rem; }
+
+        /* CTA */
         .cta-section {
             max-width: 700px; margin: 0 auto;
             padding: 3rem 2rem 5rem;
@@ -210,7 +267,7 @@
             font-family: 'Syne', sans-serif;
             font-size: 2rem; font-weight: 800; margin-bottom: 1rem;
         }
-        .cta-section h2 span { color: var(--green); }
+        .cta-section h2 .accent { color: var(--green); }
         .cta-section p { color: var(--muted); margin-bottom: 2rem; font-size: 1rem; }
         .btn-hero-primary {
             background: var(--green); color: #000;
@@ -232,20 +289,20 @@
         .lp-footer a { color: var(--muted); text-decoration: none; }
         .lp-footer a:hover { color: var(--text); }
 
-        /* PROGRESS BAR */
-        .progress-bar-demo {
-            height: 4px; background: var(--border);
-            border-radius: 4px; overflow: hidden; margin-top: 0.6rem;
+        /* CHAT MOCKUP */
+        .chat-mockup { margin-top: 0.75rem; }
+        .chat-bubble {
+            padding: 0.5rem 0.8rem; border-radius: 10px;
+            font-size: 0.78rem; margin-bottom: 0.4rem;
+            max-width: 80%; line-height: 1.5;
         }
-        .progress-fill {
-            height: 100%; background: var(--green); border-radius: 4px;
+        .chat-user {
+            background: var(--indigo); color: white;
+            margin-left: auto; border-bottom-right-radius: 3px;
         }
-
-        /* CONNECTOR */
-        .step-connector {
-            display: flex; justify-content: center;
-            color: var(--border); font-size: 1.5rem;
-            margin: -0.5rem 0;
+        .chat-ai {
+            background: #1F2937; color: var(--text);
+            border-bottom-left-radius: 3px;
         }
     </style>
 </head>
@@ -262,25 +319,36 @@
 
 <!-- HERO -->
 <div class="demo-hero">
-    <div class="demo-badge">🎓 Démo interactive — 5 minutes suffisent</div>
-    <h1>Comment fonctionne <span>SyndicPro</span> ?</h1>
-    <p>On vous explique tout, étape par étape.<br>Pas besoin d'être informaticien — si vous savez envoyer un SMS, vous pouvez utiliser SyndicPro.</p>
+    <div class="demo-badge">Visite guidée — Tout comprendre en 5 minutes</div>
+    <h1>Découvrez <span class="accent">tout</span> ce que SyndicPro peut faire</h1>
+    <p>De la gestion des charges au vote en assemblée, en passant par le paiement en ligne et l'assistant IA — voici comment SyndicPro transforme la gestion de votre résidence.</p>
 </div>
 
-<!-- STEPS -->
-<div class="steps-section">
+<!-- TABS NAVIGATION -->
+<div class="demo-tabs">
+    <a href="#demarrage" class="demo-tab active">Démarrage</a>
+    <a href="#paiements" class="demo-tab">Paiements</a>
+    <a href="#residents" class="demo-tab">Espace résident</a>
+    <a href="#communication" class="demo-tab">Communication</a>
+    <a href="#finances" class="demo-tab">Finances</a>
+    <a href="#assemblees" class="demo-tab">Assemblées</a>
+    <a href="#securite" class="demo-tab">Sécurité</a>
+    <a href="#ia" class="demo-tab">Assistant IA</a>
+</div>
 
-    <!-- STEP 1 -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 1 : DEMARRAGE -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<hr class="section-sep" id="demarrage">
+<div class="demo-section">
+    <h2 class="section-title">Démarrage <span class="accent">express</span></h2>
+    <p class="section-sub">Créez votre compte, ajoutez vos appartements, invitez vos résidents. En 10 minutes, votre résidence est opérationnelle.</p>
+
     <div class="step-card">
         <div class="step-num">1</div>
-        <div class="step-content" style="flex:1">
-            <h3><span class="step-emoji">🏢</span> Le gestionnaire crée son compte</h3>
-            <p>
-                En 2 minutes, le syndic (ou le gestionnaire de l'immeuble) crée son compte sur SyndicPro.
-                Il donne le nom de la résidence, son adresse, et c'est tout.
-                <strong style="color:var(--text);">Aucune installation, ça marche directement depuis le navigateur.</strong>
-            </p>
-            <!-- Mockup inscription -->
+        <div class="step-content">
+            <h3>Le gestionnaire crée son compte</h3>
+            <p>En 2 minutes : nom de la résidence, email, mot de passe. <strong>Aucune installation, tout fonctionne depuis le navigateur</strong> — ordinateur, tablette ou téléphone.</p>
             <div class="mockup">
                 <div class="mockup-bar">
                     <div class="mockup-dot" style="background:#EF4444;"></div>
@@ -289,128 +357,217 @@
                     <span style="color:var(--muted); font-size:0.75rem; margin-left:0.5rem;">syndicpro.tn/register</span>
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.5rem;">
-                    <div style="background:#1F2937; border-radius:6px; padding:0.5rem; color:var(--muted); font-size:0.78rem;">
-                        📧 &nbsp; admin@residence.tn
-                    </div>
-                    <div style="background:#1F2937; border-radius:6px; padding:0.5rem; color:var(--muted); font-size:0.78rem;">
-                        🏢 &nbsp; Résidence Les Pins
-                    </div>
+                    <div style="background:#1F2937; border-radius:6px; padding:0.5rem; color:var(--muted); font-size:0.78rem;">📧 admin@residence.tn</div>
+                    <div style="background:#1F2937; border-radius:6px; padding:0.5rem; color:var(--muted); font-size:0.78rem;">🏢 Résidence Les Jasmins</div>
                 </div>
-                <div style="background:var(--green); color:#000; text-align:center; padding:0.5rem; border-radius:6px; font-weight:700; font-size:0.82rem;">
-                    ✅ Compte créé — Bienvenue !
-                </div>
+                <div class="mockup-btn">Créer mon compte gratuitement</div>
             </div>
         </div>
     </div>
-
     <div class="step-connector">↓</div>
 
-    <!-- STEP 2 -->
     <div class="step-card">
         <div class="step-num">2</div>
-        <div class="step-content" style="flex:1">
-            <h3><span class="step-emoji">🚪</span> Il ajoute les appartements et les résidents</h3>
-            <p>
-                Le gestionnaire entre la liste des appartements (A01, A02, B01…) et crée un compte pour chaque résident.
-                Chaque résident reçoit automatiquement un email avec son mot de passe.
-                <strong style="color:var(--text);">Zéro paperasse, tout est numérique.</strong>
-            </p>
-            <!-- Mockup liste appartements -->
+        <div class="step-content">
+            <h3>Il ajoute les appartements par blocs</h3>
+            <p>Créez vos blocs (A, B, C…), ajoutez les appartements avec le montant de la redevance. <strong>Import Excel disponible</strong> pour les grandes résidences.</p>
             <div class="mockup">
                 <div class="mockup-bar">
                     <div class="mockup-dot" style="background:#EF4444;"></div>
                     <div class="mockup-dot" style="background:#F59E0B;"></div>
                     <div class="mockup-dot" style="background:#10B981;"></div>
-                    <span style="color:var(--muted); font-size:0.75rem; margin-left:0.5rem;">Mes appartements</span>
+                    <span style="color:var(--muted); font-size:0.75rem; margin-left:0.5rem;">Appartements</span>
                 </div>
-                <div class="mockup-row"><span>🏠 Appartement A01 — Étage 1</span><span class="tag-green">Occupé</span></div>
-                <div class="mockup-row"><span>🏠 Appartement A02 — Étage 1</span><span class="tag-green">Occupé</span></div>
-                <div class="mockup-row"><span>🏠 Appartement B01 — Étage 2</span><span class="tag-green">Occupé</span></div>
-                <div class="mockup-row"><span>🏠 Appartement B02 — Étage 2</span><span class="tag-blue">Libre</span></div>
+                <div class="mockup-row"><span>🏠 Bloc A — Apt 01 — 150 DT/mois</span><span class="tag-green">Occupé</span></div>
+                <div class="mockup-row"><span>🏠 Bloc A — Apt 02 — 150 DT/mois</span><span class="tag-green">Occupé</span></div>
+                <div class="mockup-row"><span>🏠 Bloc B — Apt 01 — 200 DT/mois</span><span class="tag-green">Occupé</span></div>
+                <div class="mockup-row"><span>🏠 Bloc B — Apt 02 — 200 DT/mois</span><span class="tag-blue">Libre</span></div>
             </div>
         </div>
     </div>
-
     <div class="step-connector">↓</div>
 
-    <!-- STEP 3 -->
     <div class="step-card">
         <div class="step-num">3</div>
-        <div class="step-content" style="flex:1">
-            <h3><span class="step-emoji">💸</span> Le gestionnaire enregistre les charges</h3>
-            <p>
-                Chaque mois, le gestionnaire note les charges dues par chaque appartement.
-                Il peut aussi enregistrer les dépenses de la résidence (gardien, électricité, travaux…).
-                <strong style="color:var(--text);">SyndicPro calcule automatiquement qui a payé et qui doit encore.</strong>
-            </p>
-            <!-- Mockup encaissements -->
+        <div class="step-content">
+            <h3>Les résidents s'inscrivent eux-mêmes</h3>
+            <p>Partagez le <strong>code d'invitation</strong> de votre résidence. Chaque résident s'inscrit, choisit son appartement, et accède à son espace. Vous pouvez aussi créer les comptes manuellement — le résident reçoit ses identifiants par email.</p>
             <div class="mockup">
                 <div class="mockup-bar">
                     <div class="mockup-dot" style="background:#EF4444;"></div>
                     <div class="mockup-dot" style="background:#F59E0B;"></div>
                     <div class="mockup-dot" style="background:#10B981;"></div>
-                    <span style="color:var(--muted); font-size:0.75rem; margin-left:0.5rem;">Encaissements — Avril 2026</span>
+                    <span style="color:var(--muted); font-size:0.75rem; margin-left:0.5rem;">Inscription résident</span>
                 </div>
-                <div class="mockup-row"><span>🏠 A01 — Mohamed Ben Ali</span><span class="tag-green">Payé ✓</span></div>
-                <div class="mockup-row"><span>🏠 A02 — Fatma Trabelsi</span><span class="tag-red">Impayé</span></div>
-                <div class="mockup-row"><span>🏠 B01 — Karim Mansouri</span><span class="tag-green">Payé ✓</span></div>
-                <div class="mockup-row" style="justify-content:flex-end; border:none; padding-top:0.75rem;">
-                    <span style="color:var(--muted); font-size:0.75rem;">Trésorerie du mois : </span>
-                    <strong style="color:var(--green); margin-left:0.5rem; font-size:0.95rem;">+1 200 TND</strong>
+                <div style="background:#1F2937; border-radius:6px; padding:0.6rem; color:var(--muted); font-size:0.78rem; margin-bottom:0.5rem; text-align:center; letter-spacing:3px; font-weight:700;">
+                    Code : <span style="color:var(--green);">A3F2 B91C</span>
                 </div>
+                <div style="color:var(--muted); font-size:0.75rem; text-align:center;">Le résident entre ce code, choisit son appartement, et crée son mot de passe</div>
             </div>
         </div>
     </div>
+</div>
 
-    <div class="step-connector">↓</div>
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 2 : PAIEMENTS -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<hr class="section-sep" id="paiements">
+<div class="demo-section">
+    <h2 class="section-title">3 façons de <span class="accent">payer</span></h2>
+    <p class="section-sub">Paiement en ligne par carte, virement bancaire avec photo de la décharge, ou encaissement manuel par le gestionnaire.</p>
 
-    <!-- STEP 4 -->
     <div class="step-card">
-        <div class="step-num">4</div>
-        <div class="step-content" style="flex:1">
-            <h3><span class="step-emoji">📱</span> Le résident paye depuis son téléphone</h3>
-            <p>
-                Le résident se connecte sur SyndicPro, voit ce qu'il doit payer, et clique sur
-                <strong style="color:var(--text);">"Payer en ligne"</strong>.
-                Il paie en quelques secondes avec sa carte Konnect — comme un achat sur internet.
-                Le gestionnaire est notifié automatiquement sur <strong style="color:var(--text);">WhatsApp</strong>.
-            </p>
-            <!-- Mockup espace résident -->
+        <div class="step-num"><i class="bi bi-credit-card" style="font-size:1.1rem;"></i></div>
+        <div class="step-content">
+            <h3>Paiement en ligne (Konnect / Flouci)</h3>
+            <p>Le résident clique sur <strong>"Payer en ligne"</strong>, saisit sa carte bancaire, et le paiement est enregistré automatiquement. Possibilité de <strong>payer plusieurs mois d'un coup</strong>. Le gestionnaire reçoit une notification WhatsApp instantanée.</p>
             <div class="mockup">
                 <div class="mockup-bar">
                     <div class="mockup-dot" style="background:#EF4444;"></div>
                     <div class="mockup-dot" style="background:#F59E0B;"></div>
                     <div class="mockup-dot" style="background:#10B981;"></div>
-                    <span style="color:var(--muted); font-size:0.75rem; margin-left:0.5rem;">Mon espace résident</span>
+                    <span style="color:var(--muted); font-size:0.75rem; margin-left:0.5rem;">Espace résident</span>
                 </div>
-                <div style="display:flex; margin-bottom:0.75rem;">
-                    <div class="mockup-stat"><strong>150 TND</strong><span>Charges dues</span></div>
+                <div style="display:flex; margin-bottom:0.5rem;">
+                    <div class="mockup-stat"><strong>150 DT</strong><span>Charges dues</span></div>
                     <div class="mockup-stat"><strong style="color:#60A5FA;">Avril</strong><span>Mois en cours</span></div>
-                    <div class="mockup-stat"><strong>0</strong><span>Tickets ouverts</span></div>
+                    <div class="mockup-stat"><strong style="color:var(--green);">0</strong><span>Impayés</span></div>
                 </div>
-                <div style="background:var(--green); color:#000; text-align:center; padding:0.6rem; border-radius:6px; font-weight:700; font-size:0.82rem; cursor:pointer;">
-                    💳 &nbsp; Payer en ligne — 150 TND
-                </div>
-                <div style="text-align:center; color:var(--muted); font-size:0.72rem; margin-top:0.4rem;">
-                    Paiement sécurisé via Konnect 🔒
-                </div>
+                <div class="mockup-btn">Payer en ligne — 150 DT</div>
+                <div style="text-align:center; color:var(--muted); font-size:0.7rem; margin-top:0.3rem;">Paiement sécurisé via Konnect / Flouci</div>
             </div>
         </div>
     </div>
 
-    <div class="step-connector">↓</div>
-
-    <!-- STEP 5 -->
     <div class="step-card">
-        <div class="step-num">5</div>
-        <div class="step-content" style="flex:1">
-            <h3><span class="step-emoji">📊</span> Le gestionnaire voit tout sur son tableau de bord</h3>
-            <p>
-                En un coup d'œil, le gestionnaire voit l'état de la résidence : qui a payé, combien il y a en caisse,
-                quelles dépenses ont été faites. Il peut télécharger des rapports PDF à tout moment.
-                <strong style="color:var(--text);">Tout est là, accessible depuis n'importe quel appareil.</strong>
-            </p>
-            <!-- Mockup dashboard -->
+        <div class="step-num"><i class="bi bi-bank" style="font-size:1.1rem;"></i></div>
+        <div class="step-content">
+            <h3>Virement bancaire</h3>
+            <p>Le résident déclare son virement depuis son espace : mois, montant, référence bancaire, et <strong>photo de la décharge</strong>. Le gestionnaire reçoit une alerte WhatsApp avec un <strong>lien de confirmation en 1 clic</strong>. Les frais bancaires sont déduits automatiquement et comptabilisés en charges.</p>
+            <div class="mockup">
+                <div class="mockup-bar">
+                    <div class="mockup-dot" style="background:#EF4444;"></div>
+                    <div class="mockup-dot" style="background:#F59E0B;"></div>
+                    <div class="mockup-dot" style="background:#10B981;"></div>
+                    <span style="color:var(--muted); font-size:0.75rem; margin-left:0.5rem;">Confirmation virement</span>
+                </div>
+                <div class="mockup-row"><span>Résident : Mohamed Ben Ali</span><span class="tag-yellow">En attente</span></div>
+                <div class="mockup-row"><span>Montant déclaré : 300 DT</span><span style="color:var(--muted);font-size:0.75rem;">2 mois</span></div>
+                <div class="mockup-row"><span>Réf : VIR-2026-04-1234</span><span class="tag-blue">Photo jointe</span></div>
+                <div class="mockup-btn">Confirmer le virement</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="step-card">
+        <div class="step-num"><i class="bi bi-cash-stack" style="font-size:1.1rem;"></i></div>
+        <div class="step-content">
+            <h3>Encaissement manuel</h3>
+            <p>Le gestionnaire enregistre les paiements en espèces ou par chèque. <strong>Reçu PDF généré automatiquement</strong> pour chaque paiement. Gestion du <strong>crédit</strong> si le résident paie plus que le montant dû.</p>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 3 : ESPACE RESIDENT -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<hr class="section-sep" id="residents">
+<div class="demo-section">
+    <h2 class="section-title">L'espace <span class="accent">résident</span></h2>
+    <p class="section-sub">Chaque résident a son propre espace. Il voit ses factures, paie en ligne, signale des problèmes, et communique avec le gestionnaire.</p>
+
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="icon">📋</div>
+            <h5>Mes factures</h5>
+            <p>Vue complète mois par mois : payé, impayé, montant, date. Historique complet depuis le début.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">💳</div>
+            <h5>Payer en 1 clic</h5>
+            <p>Paiement en ligne par carte ou déclaration de virement avec photo. Paiement groupé de plusieurs mois.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">🎫</div>
+            <h5>Signaler un problème</h5>
+            <p>Créer un ticket : fuite, ascenseur, bruit, éclairage. Le gestionnaire est notifié et répond directement.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">💬</div>
+            <h5>Messagerie directe</h5>
+            <p>Discuter en privé avec le gestionnaire. Historique complet des échanges. Notifications push.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">📢</div>
+            <h5>Annonces</h5>
+            <p>Consulter les annonces de la résidence : coupures, travaux, réunions. Annonces épinglées en priorité.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">🗳️</div>
+            <h5>Voter en AG</h5>
+            <p>Voter "Pour", "Contre" ou "Abstention" sur chaque point de l'assemblée depuis son téléphone.</p>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 4 : COMMUNICATION -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<hr class="section-sep" id="communication">
+<div class="demo-section">
+    <h2 class="section-title">Communication <span class="accent">automatique</span></h2>
+    <p class="section-sub">WhatsApp, email, notifications push — SyndicPro informe tout le monde au bon moment, sans effort.</p>
+
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="icon">📲</div>
+            <h5>Notifications WhatsApp</h5>
+            <p>Paiement reçu, nouveau ticket, virement en attente — le gestionnaire est notifié sur WhatsApp en temps réel.</p>
+            <span class="tag tag-green">Automatique</span>
+        </div>
+        <div class="feature-card">
+            <div class="icon">🔔</div>
+            <h5>Notifications push</h5>
+            <p>Le résident reçoit des notifications sur son téléphone : confirmation de paiement, réponse à un ticket, nouvelle annonce.</p>
+            <span class="tag tag-green">Automatique</span>
+        </div>
+        <div class="feature-card">
+            <div class="icon">📧</div>
+            <h5>Emails automatiques</h5>
+            <p>Bienvenue, identifiants de connexion, rappel d'abonnement — tous envoyés automatiquement.</p>
+            <span class="tag tag-green">Automatique</span>
+        </div>
+        <div class="feature-card">
+            <div class="icon">⚡</div>
+            <h5>Relances impayés</h5>
+            <p>En 1 clic, envoyez un message WhatsApp personnalisé à tous les résidents en retard. Fini les appels gênants.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">💬</div>
+            <h5>Messagerie intégrée</h5>
+            <p>Chaque appartement a son fil de discussion. L'admin et le résident échangent comme dans un chat.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">📢</div>
+            <h5>Annonces broadcast</h5>
+            <p>Publiez une annonce visible par tous les résidents. Epinglez les annonces importantes en haut de la page.</p>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 5 : FINANCES -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<hr class="section-sep" id="finances">
+<div class="demo-section">
+    <h2 class="section-title">Gestion <span class="accent">financière</span> complète</h2>
+    <p class="section-sub">Encaissements, dépenses, trésorerie, états financiers, appels de fonds — tout est tracé et exportable.</p>
+
+    <div class="step-card">
+        <div class="step-num"><i class="bi bi-graph-up" style="font-size:1.1rem;"></i></div>
+        <div class="step-content">
+            <h3>Tableau de bord en temps réel</h3>
+            <p>En un coup d'oeil : trésorerie, taux de recouvrement, impayés, tickets ouverts. <strong>Graphique encaissements vs dépenses</strong> sur 12 mois.</p>
             <div class="mockup">
                 <div class="mockup-bar">
                     <div class="mockup-dot" style="background:#EF4444;"></div>
@@ -418,79 +575,248 @@
                     <div class="mockup-dot" style="background:#10B981;"></div>
                     <span style="color:var(--muted); font-size:0.75rem; margin-left:0.5rem;">Tableau de bord</span>
                 </div>
-                <div style="display:flex; margin-bottom:0.75rem;">
-                    <div class="mockup-stat"><strong>3 450 TND</strong><span>Encaissé</span></div>
-                    <div class="mockup-stat"><strong style="color:#F87171;">2</strong><span>Impayés</span></div>
-                    <div class="mockup-stat"><strong style="color:#60A5FA;">1</strong><span>Ticket ouvert</span></div>
-                    <div class="mockup-stat"><strong>1 890 TND</strong><span>Trésorerie</span></div>
+                <div style="display:flex; margin-bottom:0.5rem;">
+                    <div class="mockup-stat"><strong>5 230 DT</strong><span>Trésorerie</span></div>
+                    <div class="mockup-stat"><strong>87%</strong><span>Recouvrement</span></div>
+                    <div class="mockup-stat"><strong style="color:#F87171;">3</strong><span>Impayés</span></div>
+                    <div class="mockup-stat"><strong style="color:#60A5FA;">2</strong><span>Tickets</span></div>
                 </div>
-                <div style="color:var(--muted); font-size:0.77rem; margin-bottom:0.4rem;">Taux de recouvrement ce mois</div>
+                <div style="color:var(--muted); font-size:0.75rem; margin-bottom:0.3rem;">Taux de recouvrement</div>
                 <div class="progress-bar-demo"><div class="progress-fill" style="width:87%;"></div></div>
-                <div style="text-align:right; color:var(--green); font-size:0.78rem; margin-top:0.3rem; font-weight:600;">87%</div>
+                <div style="text-align:right; color:var(--green); font-size:0.78rem; margin-top:0.2rem; font-weight:600;">87%</div>
             </div>
         </div>
     </div>
 
-</div>
-
-<!-- BONUS FEATURES -->
-<div class="bonus-section">
-    <div class="bonus-title">Et bien plus encore 🚀</div>
-    <div class="bonus-grid">
-        <div class="bonus-card">
-            <div class="icon">🤖</div>
-            <h5>Assistant IA intégré</h5>
-            <p>Posez vos questions à l'assistant Claude AI : "Qui sont les plus gros impayés ?" — il répond en quelques secondes.</p>
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="icon">💰</div>
+            <h5>Dépenses catégorisées</h5>
+            <p>Gardien, électricité, nettoyage, plomberie, travaux — chaque dépense est classée avec justificatif (photo/PDF).</p>
         </div>
-        <div class="bonus-card">
-            <div class="icon">📩</div>
-            <h5>Relances automatiques WhatsApp</h5>
-            <p>SyndicPro envoie automatiquement des messages WhatsApp aux résidents en retard. Fini les appels gênants.</p>
+        <div class="feature-card">
+            <div class="icon">📊</div>
+            <h5>Trésorerie mensuelle</h5>
+            <p>Vue mois par mois : encaissements, dépenses, solde. Tableau compact sur 12 mois glissants.</p>
         </div>
-        <div class="bonus-card">
-            <div class="icon">📄</div>
-            <h5>Rapports PDF en 1 clic</h5>
-            <p>Téléchargez un rapport complet de la résidence en PDF : encaissements, dépenses, trésorerie, bilan.</p>
+        <div class="feature-card">
+            <div class="icon">📑</div>
+            <h5>États financiers SCE</h5>
+            <p>Bilan conforme au Système Comptable des Entreprises tunisien. Export PDF pour l'assemblée générale.</p>
         </div>
-        <div class="bonus-card">
-            <div class="icon">🎫</div>
-            <h5>Tickets de support</h5>
-            <p>Les résidents signalent les problèmes (fuite, ascenseur…) directement depuis leur espace. Le gestionnaire répond et suit.</p>
+        <div class="feature-card">
+            <div class="icon">📥</div>
+            <h5>Export Excel</h5>
+            <p>4 feuilles : résidents, paiements, dépenses, trésorerie. Téléchargement en 1 clic.</p>
         </div>
-        <div class="bonus-card">
-            <div class="icon">🚪</div>
-            <h5>Registre d'accès</h5>
-            <p>Enregistrez toutes les entrées et sorties de la résidence (visiteurs, livraisons…) dans un journal numérique.</p>
+        <div class="feature-card">
+            <div class="icon">🏗️</div>
+            <h5>Appels de fonds</h5>
+            <p>Travaux exceptionnels : créez un appel, chaque appartement a son quota calculé automatiquement. Suivi des paiements et des dépenses du chantier.</p>
         </div>
-        <div class="bonus-card">
-            <div class="icon">📢</div>
-            <h5>Annonces aux résidents</h5>
-            <p>Publiez des annonces visibles par tous les résidents : coupure d'eau, réunion de copropriété, travaux…</p>
+        <div class="feature-card">
+            <div class="icon">⚖️</div>
+            <h5>Contentieux / Litiges</h5>
+            <p>Ouvrez un dossier contre un résident impayé. Génération automatique de la mise en demeure en PDF.</p>
         </div>
     </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 6 : ASSEMBLEES -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<hr class="section-sep" id="assemblees">
+<div class="demo-section">
+    <h2 class="section-title">Assemblées <span class="accent">générales</span> en ligne</h2>
+    <p class="section-sub">Organisez, votez et générez le PV — tout se fait depuis SyndicPro.</p>
+
+    <div class="step-card">
+        <div class="step-num"><i class="bi bi-people" style="font-size:1.1rem;"></i></div>
+        <div class="step-content">
+            <h3>De la convocation au PV, tout est automatisé</h3>
+            <p>
+                <strong>1.</strong> Créez une AG avec date, lieu et ordre du jour.<br>
+                <strong>2.</strong> Ajoutez les points à voter (budget, travaux, changement de syndic…).<br>
+                <strong>3.</strong> Les résidents votent depuis leur téléphone : Pour, Contre, ou Abstention.<br>
+                <strong>4.</strong> Le <strong>PV est généré automatiquement en PDF</strong> avec les résultats de chaque vote.
+            </p>
+            <div class="mockup">
+                <div class="mockup-bar">
+                    <div class="mockup-dot" style="background:#EF4444;"></div>
+                    <div class="mockup-dot" style="background:#F59E0B;"></div>
+                    <div class="mockup-dot" style="background:#10B981;"></div>
+                    <span style="color:var(--muted); font-size:0.75rem; margin-left:0.5rem;">AG Annuelle — 15 avril 2026</span>
+                </div>
+                <div class="mockup-row"><span>1. Approbation du bilan financier 2025</span><span class="tag-green">Adopté (12 pour, 2 contre)</span></div>
+                <div class="mockup-row"><span>2. Budget prévisionnel 2026-2027</span><span class="tag-green">Adopté (11 pour, 3 abstentions)</span></div>
+                <div class="mockup-row"><span>3. Travaux ascenseur — devis 8 500 DT</span><span class="tag-yellow">Vote en cours</span></div>
+                <div class="mockup-btn-outline">Télécharger le PV en PDF</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 7 : SECURITE / IOT -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<hr class="section-sep" id="securite">
+<div class="demo-section">
+    <h2 class="section-title">Sécurité et <span class="accent">contrôle d'accès</span></h2>
+    <p class="section-sub">Badges RFID, registre des visiteurs, caméras de surveillance, ascenseurs — gérez la sécurité de votre résidence.</p>
+
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="icon">🪪</div>
+            <h5>Badges RFID</h5>
+            <p>Attribuez des badges aux résidents. Activez, bloquez ou révoquez un badge en 1 clic. Journal d'accès complet.</p>
+            <span class="tag tag-indigo">IoT</span>
+        </div>
+        <div class="feature-card">
+            <div class="icon">🚪</div>
+            <h5>Registre d'accès</h5>
+            <p>Enregistrez les visiteurs, livreurs, prestataires. Heure d'entrée, heure de sortie, motif de visite.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">📹</div>
+            <h5>Caméras de surveillance</h5>
+            <p>Configurez vos caméras IP (entrée, parking, hall). Accès aux flux en direct depuis le panneau admin.</p>
+            <span class="tag tag-indigo">IoT</span>
+        </div>
+        <div class="feature-card">
+            <div class="icon">🛗</div>
+            <h5>Gestion des ascenseurs</h5>
+            <p>Fiche technique, contrat de maintenance, historique des incidents. Alertes automatiques en cas de panne.</p>
+            <span class="tag tag-indigo">IoT</span>
+        </div>
+        <div class="feature-card">
+            <div class="icon">🔧</div>
+            <h5>Annuaire prestataires</h5>
+            <p>Plombier, électricien, nettoyage, jardinage — votre carnet d'adresses de prestataires de confiance, toujours accessible.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">📱</div>
+            <h5>Application mobile (PWA)</h5>
+            <p>Installez SyndicPro comme une application sur votre téléphone. Fonctionne même hors connexion pour les fonctions de base.</p>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- SECTION 8 : ASSISTANT IA -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<hr class="section-sep" id="ia">
+<div class="demo-section">
+    <h2 class="section-title">Assistant <span class="accent">IA</span> intégré</h2>
+    <p class="section-sub">Posez vos questions en français ou en arabe. L'assistant analyse vos données et répond en quelques secondes.</p>
+
+    <div class="step-card">
+        <div class="step-num"><i class="bi bi-robot" style="font-size:1.1rem;"></i></div>
+        <div class="step-content">
+            <h3>Votre assistant intelligent qui connaît votre résidence</h3>
+            <p>L'IA analyse vos encaissements, dépenses, impayés et vous donne des réponses précises. <strong>Pas de données personnelles partagées</strong> — tout est anonymisé et sécurisé.</p>
+            <div class="mockup">
+                <div class="mockup-bar">
+                    <div class="mockup-dot" style="background:#EF4444;"></div>
+                    <div class="mockup-dot" style="background:#F59E0B;"></div>
+                    <div class="mockup-dot" style="background:#10B981;"></div>
+                    <span style="color:var(--muted); font-size:0.75rem; margin-left:0.5rem;">Assistant IA</span>
+                </div>
+                <div class="chat-mockup">
+                    <div class="chat-bubble chat-user" style="display:block; margin-left:auto;">Quel est le taux de recouvrement ce mois ?</div>
+                    <div class="chat-bubble chat-ai">Le taux de recouvrement pour avril 2026 est de <strong>87%</strong>. Sur 16 appartements, 14 ont payé. Les 2 impayés concernent le Bloc B (total : 400 DT en retard).</div>
+                    <div class="chat-bubble chat-user" style="display:block; margin-left:auto;">Quelle est la dépense la plus importante ce trimestre ?</div>
+                    <div class="chat-bubble chat-ai">La dépense la plus importante ce trimestre est la <strong>réparation ascenseur : 2 800 DT</strong> (mars 2026). Les 3 principales catégories : Salaires (1 350 DT), Maintenance (2 800 DT), Electricité (550 DT).</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- AVANT / APRES -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<hr class="section-sep">
+<div class="demo-section">
+    <h2 class="section-title">Avant vs <span class="accent">Après</span> SyndicPro</h2>
+    <div class="compare-card">
+        <div class="compare-row" style="border-bottom:2px solid var(--border);">
+            <div class="compare-label" style="font-weight:700; color:var(--text);"></div>
+            <div class="compare-before">Sans SyndicPro</div>
+            <div class="compare-after">Avec SyndicPro</div>
+        </div>
+        <div class="compare-row">
+            <div class="compare-label">Suivi des paiements</div>
+            <div class="compare-before">Cahier / Excel</div>
+            <div class="compare-after">Automatique</div>
+        </div>
+        <div class="compare-row">
+            <div class="compare-label">Relance impayés</div>
+            <div class="compare-before">Appels téléphoniques</div>
+            <div class="compare-after">WhatsApp auto</div>
+        </div>
+        <div class="compare-row">
+            <div class="compare-label">Paiement des charges</div>
+            <div class="compare-before">Espèces / chèque</div>
+            <div class="compare-after">En ligne 30 sec</div>
+        </div>
+        <div class="compare-row">
+            <div class="compare-label">Transparence financière</div>
+            <div class="compare-before">Aucune</div>
+            <div class="compare-after">Temps réel</div>
+        </div>
+        <div class="compare-row">
+            <div class="compare-label">Rapports / bilans</div>
+            <div class="compare-before">Des heures</div>
+            <div class="compare-after">PDF en 1 clic</div>
+        </div>
+        <div class="compare-row">
+            <div class="compare-label">Assemblées générales</div>
+            <div class="compare-before">Papier + présence</div>
+            <div class="compare-after">Vote en ligne + PV auto</div>
+        </div>
+        <div class="compare-row">
+            <div class="compare-label">Signalement problèmes</div>
+            <div class="compare-before">Bouche-à-oreille</div>
+            <div class="compare-after">Tickets tracés</div>
+        </div>
+        <div class="compare-row">
+            <div class="compare-label">Temps de gestion / mois</div>
+            <div class="compare-before">+20 heures</div>
+            <div class="compare-after">2-3 heures</div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
 <!-- CTA FINAL -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
 <div class="cta-section">
-    <h2>Prêt à simplifier votre<br><span>résidence ?</span></h2>
-    <p>30 jours d'essai gratuit. Aucune carte bancaire requise.<br>Vous êtes opérationnel en moins de 5 minutes.</p>
+    <h2>Prêt à transformer votre<br><span class="accent">résidence ?</span></h2>
+    <p>30 jours d'essai gratuit. Aucune carte bancaire requise.<br>Vous êtes opérationnel en moins de 10 minutes.</p>
     <a href="{{ url_for('register') }}" class="btn-hero-primary">Démarrer gratuitement →</a>
-    <div style="margin-top:1.2rem;">
-        <a href="{{ url_for('index') }}" style="color:var(--muted); font-size:0.9rem; text-decoration:none;">
-            ← Retour à l'accueil
-        </a>
+    <div style="margin-top:1.5rem; display:flex; justify-content:center; gap:2rem; flex-wrap:wrap;">
+        <a href="{{ url_for('index') }}" style="color:var(--muted); font-size:0.9rem; text-decoration:none;">← Retour à l'accueil</a>
+        <a href="{{ url_for('login') }}" style="color:var(--muted); font-size:0.9rem; text-decoration:none;">Se connecter →</a>
     </div>
 </div>
 
 <!-- FOOTER -->
 <footer class="lp-footer">
-    <span>© 2026 SyndicPro — Fait en Tunisie 🇹🇳</span>
+    <span>© 2026 SyndicPro — Fait en Tunisie</span>
     <div style="display:flex; gap:1.5rem;">
         <a href="mailto:contact@syndicpro.tn">contact@syndicpro.tn</a>
         <a href="{{ url_for('login') }}">Connexion</a>
     </div>
 </footer>
 
+<script>
+document.querySelectorAll('.demo-tab').forEach(tab => {
+    tab.addEventListener('click', function(e) {
+        document.querySelectorAll('.demo-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+    });
+});
+</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
