@@ -1,0 +1,61 @@
+{% extends 'blog/_base.html' %}
+
+{% block title %}Blog SyndicPro — Conseils Gestion de Syndic en Tunisie{% endblock %}
+{% block meta_desc %}Guides pratiques, conseils juridiques et astuces pour mieux gérer votre syndic de copropriété en Tunisie. Ressources gratuites par SyndicPro.{% endblock %}
+{% block canonical %}https://www.syndicpro.tn/blog{% endblock %}
+{% block og_url %}https://www.syndicpro.tn/blog{% endblock %}
+{% block og_desc %}Guides pratiques, conseils juridiques et astuces pour mieux gérer votre syndic de copropriété en Tunisie.{% endblock %}
+
+{% block jsonld %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Blog",
+  "name": "Blog SyndicPro",
+  "description": "Conseils et guides pour la gestion de syndic de copropriété en Tunisie",
+  "url": "https://www.syndicpro.tn/blog",
+  "publisher": { "@type": "Organization", "name": "SyndicPro", "url": "https://www.syndicpro.tn" }
+}
+</script>
+{% endblock %}
+
+{% block body %}
+<div style="max-width:900px;margin:0 auto;padding:60px 20px 80px;">
+  <div class="text-center mb-5">
+    <span class="blog-tag"><i class="bi bi-journal-richtext me-1"></i> Blog &amp; Ressources</span>
+    <h1 style="font-size:clamp(1.6rem,4vw,2.6rem);font-weight:800;margin-bottom:.8rem;">
+      Conseils pour les syndics de copropriété en Tunisie
+    </h1>
+    <p style="color:var(--muted);max-width:560px;margin:0 auto;font-size:.95rem;line-height:1.7;">
+      Guides pratiques, obligations légales, astuces de gestion — tout ce qu'un syndic tunisien doit savoir.
+    </p>
+  </div>
+
+  <div class="row g-4">
+    {% for a in articles %}
+    <div class="col-md-6">
+      <a href="/blog/{{ a.slug }}" style="text-decoration:none;display:block;height:100%;">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.6rem;height:100%;transition:.2s;" onmouseover="this.style.borderColor='#3B82F6'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:.75rem;color:var(--muted);margin-bottom:.7rem;">
+            <i class="bi bi-calendar3 me-1"></i>{{ a.date }}
+          </div>
+          <h2 style="font-size:1.05rem;font-weight:700;color:var(--text);line-height:1.4;margin-bottom:.7rem;">{{ a.title }}</h2>
+          <p style="color:var(--muted);font-size:.88rem;line-height:1.6;margin:0;">{{ a.excerpt }}</p>
+          <div style="margin-top:1.2rem;color:var(--blue);font-size:.85rem;font-weight:600;">
+            Lire l'article <i class="bi bi-arrow-right ms-1"></i>
+          </div>
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div style="margin-top:4rem;background:linear-gradient(135deg,#1E3A8A,#1D4ED8);border-radius:16px;padding:2.4rem;text-align:center;">
+    <h3 style="font-weight:800;margin-bottom:.6rem;">Passez à la pratique</h3>
+    <p style="color:#CBD5E1;margin-bottom:1.4rem;max-width:480px;margin-left:auto;margin-right:auto;">
+      SyndicPro centralise toute la gestion de votre copropriété en un seul endroit. Essai gratuit 3 mois.
+    </p>
+    <a href="/register" class="btn-cta">Démarrer gratuitement <i class="bi bi-arrow-right ms-1"></i></a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,165 @@
+{% extends 'blog/_base.html' %}
+
+{% block title %}Comment Calculer les Charges de Copropriété en Tunisie ? Guide Pratique{% endblock %}
+{% block meta_desc %}Méthode complète pour calculer les charges de copropriété en Tunisie : quotes-parts, répartition des charges communes, fonds de réserve et appels de fonds. Guide pratique pour syndics.{% endblock %}
+{% block canonical %}https://www.syndicpro.tn/blog/calcul-charges-copropriete{% endblock %}
+{% block og_type %}article{% endblock %}
+{% block og_url %}https://www.syndicpro.tn/blog/calcul-charges-copropriete{% endblock %}
+{% block og_desc %}Méthode de calcul des charges de copropriété en Tunisie : quotes-parts, répartition, fonds de réserve. Guide pratique pour le syndic tunisien.{% endblock %}
+
+{% block jsonld %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Comment Calculer les Charges de Copropriété en Tunisie ?",
+  "description": "Méthode de calcul des charges de copropriété : quotes-parts, répartition, fonds de travaux en Tunisie.",
+  "datePublished": "{{ article.date }}",
+  "author": { "@type": "Organization", "name": "SyndicPro" },
+  "publisher": { "@type": "Organization", "name": "SyndicPro", "url": "https://www.syndicpro.tn" },
+  "url": "https://www.syndicpro.tn/blog/calcul-charges-copropriete"
+}
+</script>
+{% endblock %}
+
+{% block body %}
+<div class="blog-hero">
+  <div class="container">
+    <span class="blog-tag"><i class="bi bi-calculator me-1"></i> Finances &amp; Comptabilité</span>
+    <h1>Comment calculer les charges<br><span style="color:#60A5FA;">de copropriété en Tunisie ?</span></h1>
+    <div class="blog-meta"><i class="bi bi-calendar3 me-1"></i> {{ article.date }} · <i class="bi bi-clock me-1"></i> 7 min de lecture</div>
+    <p style="color:var(--muted);max-width:620px;margin:0 auto;font-size:.95rem;line-height:1.7;">
+      Méthode de calcul des quotes-parts, répartition des charges communes, fonds de réserve et appels de fonds — guide pratique pour le syndic tunisien.
+    </p>
+  </div>
+</div>
+
+<div class="blog-body">
+
+  <h2>Qu'est-ce que les charges de copropriété ?</h2>
+  <p>
+    Les charges de copropriété sont les dépenses nécessaires au <strong>fonctionnement, à l'entretien et à la conservation</strong> de l'immeuble et de ses parties communes. Elles sont réparties entre tous les copropriétaires proportionnellement à leur quote-part dans les parties communes, sauf décision contraire votée en assemblée générale.
+  </p>
+
+  <h2>Les deux catégories de charges</h2>
+
+  <h3>1. Les charges générales</h3>
+  <p>Elles concernent l'entretien et la conservation de l'ensemble de l'immeuble :</p>
+  <ul>
+    <li>Nettoyage et entretien des parties communes (hall, couloirs, cage d'escalier)</li>
+    <li>Éclairage des parties communes</li>
+    <li>Assurance de l'immeuble</li>
+    <li>Honoraires du syndic</li>
+    <li>Frais administratifs (courrier, fournitures)</li>
+  </ul>
+  <p>Ces charges sont réparties au <strong>prorata des tantièmes</strong> (quotes-parts) de chaque copropriétaire.</p>
+
+  <h3>2. Les charges spéciales</h3>
+  <p>Elles concernent des équipements ou services qui ne bénéficient pas à tous de la même façon :</p>
+  <ul>
+    <li>Entretien de l'ascenseur (généralement exonérés les appartements du rez-de-chaussée)</li>
+    <li>Entretien du parking (uniquement les détenteurs de places)</li>
+    <li>Entretien des espaces verts d'une entrée spécifique</li>
+  </ul>
+
+  <h2>Comment sont définis les tantièmes (quotes-parts) ?</h2>
+  <p>
+    Les tantièmes sont définis dans le <strong>règlement de copropriété</strong> au moment de la construction ou de la division de l'immeuble. Ils sont généralement calculés en fonction de :
+  </p>
+  <ul>
+    <li>La <strong>superficie</strong> de chaque appartement (m²)</li>
+    <li>L'étage (un appartement en étage élevé avec ascenseur a plus de tantièmes)</li>
+    <li>L'orientation et la luminosité</li>
+    <li>La présence d'un balcon, d'un jardin privatif</li>
+  </ul>
+
+  <div class="tip">
+    <strong>Exemple concret :</strong> Un immeuble de 10 appartements totalise 1 000 tantièmes. Votre appartement de 120 m² a 150 tantièmes. Vous payez donc 15% des charges générales.
+  </div>
+
+  <h2>La méthode de calcul de la charge mensuelle</h2>
+
+  <h3>Étape 1 : Établir le budget annuel prévisionnel</h3>
+  <p>Estimez toutes les dépenses de l'année :</p>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:1rem;margin:1rem 0;font-family:monospace;font-size:.85rem;">
+    Nettoyage (prestataire) ............. 4 800 DT<br>
+    Électricité parties communes ........ 1 200 DT<br>
+    Assurance immeuble .................. 900 DT<br>
+    Entretien ascenseur ................. 1 500 DT<br>
+    Honoraires syndic ................... 1 200 DT<br>
+    Divers / imprévus (5%) .............. 480 DT<br>
+    <strong>TOTAL BUDGET ANNUEL .............. 10 080 DT</strong>
+  </div>
+
+  <h3>Étape 2 : Ajouter la provision pour travaux (fonds de réserve)</h3>
+  <p>
+    Il est fortement recommandé de constituer un fonds de réserve pour les travaux futurs (ravalement, réfection de toiture, remplacement ascenseur). La pratique tunisienne conseille de provisionner <strong>entre 10% et 20% du budget annuel</strong>.
+  </p>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:1rem;margin:1rem 0;font-family:monospace;font-size:.85rem;">
+    Budget annuel ........................ 10 080 DT<br>
+    Fonds de réserve (15%) .............. 1 512 DT<br>
+    <strong>TOTAL À APPELER .................. 11 592 DT</strong>
+  </div>
+
+  <h3>Étape 3 : Calculer la charge de chaque copropriétaire</h3>
+  <p>
+    <strong>Formule :</strong> Charge annuelle = (Tantièmes de l'appartement / Total tantièmes) × Budget total
+  </p>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:1rem;margin:1rem 0;font-family:monospace;font-size:.85rem;">
+    Appartement avec 150 tantièmes sur 1 000 total :<br>
+    Charge annuelle = (150 / 1000) × 11 592 = <strong>1 738,8 DT/an</strong><br>
+    Charge mensuelle = 1 738,8 / 12 = <strong>144,9 DT/mois</strong>
+  </div>
+
+  <h2>La charge forfaitaire : une alternative simple</h2>
+  <p>
+    Dans de nombreuses petites copropriétés tunisiennes, l'assemblée générale vote une <strong>charge forfaitaire mensuelle identique</strong> pour tous les appartements, indépendamment des tantièmes. Cette approche est plus simple mais moins équitable.
+  </p>
+  <p>
+    Elle convient bien aux immeubles où tous les appartements sont de taille similaire.
+  </p>
+
+  <div class="tip">
+    <strong>Conseil :</strong> Faites voter en AG la méthode de répartition choisie et inscrivez-la dans le règlement de copropriété. En cas de désaccord ultérieur, la décision de l'AG fait foi.
+  </div>
+
+  <h2>Gérer les impayés de charges</h2>
+  <p>
+    Les impayés sont le premier problème des syndics tunisiens. Voici une procédure efficace :
+  </p>
+  <ol>
+    <li><strong>Mois 1 :</strong> Rappel amiable (SMS, WhatsApp, email)</li>
+    <li><strong>Mois 2 :</strong> Mise en demeure par courrier avec accusé de réception</li>
+    <li><strong>Mois 3 :</strong> Inscription au registre des litiges + information en AG</li>
+    <li><strong>Mois 4+ :</strong> Saisine du tribunal de première instance</li>
+  </ol>
+  <p>
+    Un logiciel comme SyndicPro identifie automatiquement les impayés et envoie les rappels WhatsApp sans intervention manuelle.
+  </p>
+
+  <h2>Les erreurs de calcul les plus courantes</h2>
+  <ul>
+    <li>Oublier d'inclure la TVA sur les honoraires du prestataire d'entretien</li>
+    <li>Ne pas actualiser les tantièmes après une division ou un agrandissement d'appartement</li>
+    <li>Mélanger le fonds de réserve et le budget de fonctionnement</li>
+    <li>Ne pas tenir compte des crédits accumulés par certains copropriétaires en avance de paiement</li>
+  </ul>
+
+  <div class="cta-box">
+    <h3>Calculez et gérez vos charges automatiquement</h3>
+    <p>SyndicPro calcule les quotes-parts de chaque appartement, génère les appels de charges, suit les encaissements et envoie les rappels automatiquement. Plus d'erreurs de calcul.</p>
+    <a href="/register" class="btn-cta">Commencer gratuitement <i class="bi bi-arrow-right ms-1"></i></a>
+  </div>
+
+  <div class="related">
+    <h5>Articles connexes</h5>
+    {% for a in all_articles if a.slug != article.slug %}
+    <a href="/blog/{{ a.slug }}" class="related-link">
+      <i class="bi bi-arrow-right-circle"></i>
+      <span>{{ a.title }}</span>
+    </a>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}

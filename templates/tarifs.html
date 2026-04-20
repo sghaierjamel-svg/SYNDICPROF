@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tarifs SyndicPro — Logiciel de Syndic en Tunisie | Dès 29 DT/mois</title>
+<meta name="description" content="Découvrez les tarifs de SyndicPro, le logiciel de gestion de syndic de copropriété pour la Tunisie. Plans Starter, Pro et Business. Essai gratuit 3 mois sans carte bancaire.">
+<meta name="keywords" content="tarif logiciel syndic Tunisie, prix SyndicPro, abonnement syndic copropriété, logiciel syndic gratuit Tunisie">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://www.syndicpro.tn/tarifs">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Tarifs SyndicPro — Logiciel de Syndic en Tunisie">
+<meta property="og:description" content="Plans Starter, Pro et Business pour gérer votre résidence en Tunisie. Essai gratuit 3 mois.">
+<meta property="og:url" content="https://www.syndicpro.tn/tarifs">
+<meta property="og:image" content="https://www.syndicpro.tn/static/img/logo.png">
+<meta property="og:site_name" content="SyndicPro">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Tarifs SyndicPro",
+  "description": "Plans tarifaires du logiciel de gestion de syndic SyndicPro pour la Tunisie.",
+  "url": "https://www.syndicpro.tn/tarifs",
+  "offers": [
+    {"@type": "Offer", "name": "Starter", "price": "29", "priceCurrency": "TND", "description": "Jusqu'à 30 appartements"},
+    {"@type": "Offer", "name": "Pro", "price": "59", "priceCurrency": "TND", "description": "Jusqu'à 100 appartements"},
+    {"@type": "Offer", "name": "Business", "price": "99", "priceCurrency": "TND", "description": "Appartements illimités"}
+  ]
+}
+</script>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+  :root { --bg:#0F172A; --card:#1E293B; --border:#334155; --blue:#3B82F6; --green:#10B981; --gold:#F59E0B; --text:#F1F5F9; --muted:#94A3B8; }
+  * { box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; margin:0; }
+  a { color:var(--blue); }
+  .lp-nav { position:sticky;top:0;z-index:999;background:rgba(15,23,42,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:.9rem 2rem;display:flex;align-items:center;justify-content:space-between;gap:1rem; }
+  .lp-logo { font-size:1.35rem;font-weight:800;color:var(--text);text-decoration:none; }
+  .lp-logo span { color:#60A5FA; }
+  .nav-links { display:flex;gap:1.5rem;list-style:none;margin:0;padding:0; }
+  .nav-links a { color:var(--muted);text-decoration:none;font-size:.9rem; }
+  .nav-links a:hover { color:var(--text); }
+  .nav-actions { display:flex;gap:.6rem;align-items:center; }
+  .btn-nav-outline { border:1px solid rgba(255,255,255,.2);color:var(--text);background:transparent;padding:.45rem 1.1rem;border-radius:8px;font-size:.88rem;text-decoration:none; }
+  .btn-nav-fill { background:linear-gradient(135deg,#1D4ED8,#3B82F6);color:#fff;padding:.45rem 1.1rem;border-radius:8px;font-size:.88rem;font-weight:600;text-decoration:none;border:none; }
+
+  .hero-section { padding:72px 20px 52px; text-align:center; }
+  .hero-section h1 { font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800;margin-bottom:.8rem; }
+  .hero-section .lead { color:var(--muted);max-width:540px;margin:0 auto 1.6rem;font-size:.95rem;line-height:1.7; }
+  .badge-free { display:inline-block;background:rgba(16,185,129,.12);color:#10B981;border:1px solid rgba(16,185,129,.3);padding:.35rem 1rem;border-radius:20px;font-size:.82rem;font-weight:600;margin-bottom:1rem; }
+
+  .plan-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:1.4rem;max-width:1000px;margin:0 auto 4rem; }
+  .plan-card { background:var(--card);border:1px solid var(--border);border-radius:16px;padding:2rem;position:relative;transition:.2s; }
+  .plan-card.popular { border-color:var(--blue);box-shadow:0 0 0 1px var(--blue); }
+  .plan-badge { position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#1D4ED8,#3B82F6);color:#fff;font-size:.72rem;font-weight:700;padding:.25rem .9rem;border-radius:20px;text-transform:uppercase;letter-spacing:.05em; }
+  .plan-name { font-size:.8rem;text-transform:uppercase;color:var(--muted);letter-spacing:.08em;margin-bottom:.5rem; }
+  .plan-price { font-size:2.4rem;font-weight:800;line-height:1; }
+  .plan-price span { font-size:.9rem;font-weight:400;color:var(--muted); }
+  .plan-desc { color:var(--muted);font-size:.82rem;margin:10px 0 22px;line-height:1.5; }
+  .plan-features { list-style:none;padding:0;margin:0 0 26px; }
+  .plan-features li { padding:7px 0;font-size:.86rem;color:#CBD5E1;display:flex;align-items:center;gap:9px;border-bottom:1px solid rgba(255,255,255,.04); }
+  .plan-features li:last-child { border-bottom:none; }
+  .plan-features li i { color:var(--green);flex-shrink:0; }
+  .plan-features li .no { color:#4B5563; }
+  .plan-features li .no i { color:#4B5563; }
+  .btn-plan { display:block;width:100%;padding:12px;border-radius:10px;font-weight:700;font-size:.92rem;text-align:center;text-decoration:none;transition:.2s;border:none;cursor:pointer; }
+  .btn-outline { background:transparent;border:1px solid var(--border);color:var(--text); }
+  .btn-outline:hover { border-color:var(--blue);color:var(--blue); }
+  .btn-fill { background:linear-gradient(135deg,#1D4ED8,#3B82F6);color:#fff;box-shadow:0 4px 18px rgba(29,78,216,.3); }
+  .btn-fill:hover { transform:translateY(-1px);color:#fff; }
+
+  .faq-section { max-width:720px;margin:0 auto 4rem;padding:0 20px; }
+  .faq-section h2 { text-align:center;font-size:1.5rem;font-weight:700;margin-bottom:2rem; }
+  .faq-item { border:1px solid var(--border);border-radius:10px;margin-bottom:.8rem;overflow:hidden; }
+  .faq-q { padding:1rem 1.2rem;font-weight:600;font-size:.9rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center; }
+  .faq-q:hover { background:rgba(255,255,255,.03); }
+  .faq-a { padding:0 1.2rem 1rem;color:var(--muted);font-size:.88rem;line-height:1.7; }
+
+  .compare-section { max-width:860px;margin:0 auto 4rem;padding:0 20px; }
+  .compare-section h2 { text-align:center;font-size:1.5rem;font-weight:700;margin-bottom:1.5rem; }
+  .compare-table { width:100%;border-collapse:collapse;font-size:.85rem; }
+  .compare-table th { padding:.8rem 1rem;background:#1E3A8A;color:#93C5FD;text-align:center; }
+  .compare-table th:first-child { text-align:left; }
+  .compare-table td { padding:.65rem 1rem;border-bottom:1px solid var(--border);color:#CBD5E1;text-align:center; }
+  .compare-table td:first-child { text-align:left;color:var(--text); }
+  .compare-table .yes { color:var(--green);font-weight:600; }
+  .compare-table .no { color:#4B5563; }
+
+  footer { background:#080E1A;border-top:1px solid var(--border);padding:36px 20px;text-align:center;color:var(--muted);font-size:.83rem; }
+  footer a { color:#60A5FA;text-decoration:none; }
+  @media(max-width:640px) { .nav-links{display:none} .lp-nav{padding:.8rem 1rem} }
+</style>
+</head>
+<body>
+
+<nav class="lp-nav">
+  <a href="/" class="lp-logo">Syndic<span>Pro</span></a>
+  <ul class="nav-links">
+    <li><a href="/">Accueil</a></li>
+    <li><a href="/tarifs" style="color:var(--text);">Tarifs</a></li>
+    <li><a href="/blog">Blog</a></li>
+    <li><a href="/demo">Démo</a></li>
+    <li><a href="mailto:contact@syndicpro.tn">Contact</a></li>
+  </ul>
+  <div class="nav-actions">
+    <a href="/login" class="btn-nav-outline">Se connecter</a>
+    <a href="/register" class="btn-nav-fill">Essai gratuit</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero-section">
+  <span class="badge-free"><i class="bi bi-gift me-1"></i> 3 mois d'essai gratuit — aucune carte bancaire</span>
+  <h1>Des tarifs clairs et honnêtes<br>pour chaque résidence</h1>
+  <p class="lead">SyndicPro s'adapte à la taille de votre copropriété. Commencez gratuitement, évoluez quand vous êtes prêt.</p>
+</div>
+
+<!-- PLANS -->
+<div class="container mb-5">
+  <div class="plan-grid">
+
+    <!-- Starter -->
+    <div class="plan-card">
+      <div class="plan-name">Starter</div>
+      <div class="plan-price">29 <span>DT/mois</span></div>
+      <div class="plan-desc">Idéal pour les petites résidences jusqu'à 30 appartements</div>
+      <ul class="plan-features">
+        <li><i class="bi bi-check-circle-fill"></i> Jusqu'à 30 appartements</li>
+        <li><i class="bi bi-check-circle-fill"></i> Gestion des encaissements</li>
+        <li><i class="bi bi-check-circle-fill"></i> Gestion des dépenses</li>
+        <li><i class="bi bi-check-circle-fill"></i> Espace résident</li>
+        <li><i class="bi bi-check-circle-fill"></i> Tickets de maintenance</li>
+        <li><i class="bi bi-check-circle-fill"></i> Annonces et messagerie</li>
+        <li><i class="bi bi-check-circle-fill"></i> Rapports PDF</li>
+        <li class="no"><i class="bi bi-x-circle"></i> <span>Paiements en ligne Konnect</span></li>
+        <li class="no"><i class="bi bi-x-circle"></i> <span>Notifications WhatsApp</span></li>
+        <li class="no"><i class="bi bi-x-circle"></i> <span>Assistant AI</span></li>
+      </ul>
+      <a href="/register" class="btn-plan btn-outline">Commencer gratuitement</a>
+    </div>
+
+    <!-- Pro (recommandé) -->
+    <div class="plan-card popular">
+      <div class="plan-badge">⭐ Recommandé</div>
+      <div class="plan-name">Pro</div>
+      <div class="plan-price">59 <span>DT/mois</span></div>
+      <div class="plan-desc">La solution complète pour les résidences de taille moyenne jusqu'à 100 appartements</div>
+      <ul class="plan-features">
+        <li><i class="bi bi-check-circle-fill"></i> Jusqu'à 100 appartements</li>
+        <li><i class="bi bi-check-circle-fill"></i> Tout le plan Starter</li>
+        <li><i class="bi bi-check-circle-fill"></i> Paiements en ligne Konnect / Flouci</li>
+        <li><i class="bi bi-check-circle-fill"></i> Notifications WhatsApp</li>
+        <li><i class="bi bi-check-circle-fill"></i> Assemblées générales numériques</li>
+        <li><i class="bi bi-check-circle-fill"></i> Gestion litiges &amp; impayés</li>
+        <li><i class="bi bi-check-circle-fill"></i> Appels de fonds (travaux)</li>
+        <li><i class="bi bi-check-circle-fill"></i> États financiers (bilan, résultat)</li>
+        <li><i class="bi bi-check-circle-fill"></i> Registre accès (badges, ascenseurs)</li>
+        <li class="no"><i class="bi bi-x-circle"></i> <span>Assistant AI</span></li>
+      </ul>
+      <a href="/register" class="btn-plan btn-fill">Commencer gratuitement</a>
+    </div>
+
+    <!-- Business -->
+    <div class="plan-card">
+      <div class="plan-name">Business</div>
+      <div class="plan-price">99 <span>DT/mois</span></div>
+      <div class="plan-desc">Pour les syndics professionnels gérant plusieurs grandes résidences</div>
+      <ul class="plan-features">
+        <li><i class="bi bi-check-circle-fill"></i> Appartements illimités</li>
+        <li><i class="bi bi-check-circle-fill"></i> Tout le plan Pro</li>
+        <li><i class="bi bi-check-circle-fill"></i> Assistant AI intégré (Claude)</li>
+        <li><i class="bi bi-check-circle-fill"></i> Rapports automatisés mensuels</li>
+        <li><i class="bi bi-check-circle-fill"></i> Relances automatiques WhatsApp</li>
+        <li><i class="bi bi-check-circle-fill"></i> Export comptable Excel avancé</li>
+        <li><i class="bi bi-check-circle-fill"></i> Support prioritaire</li>
+        <li><i class="bi bi-check-circle-fill"></i> Onboarding personnalisé</li>
+        <li><i class="bi bi-check-circle-fill"></i> Multi-résidences (même compte)</li>
+        <li><i class="bi bi-check-circle-fill"></i> Accès API badges RFID</li>
+      </ul>
+      <a href="/register" class="btn-plan btn-outline">Commencer gratuitement</a>
+    </div>
+
+  </div>
+
+  <!-- Essai gratuit note -->
+  <p class="text-center" style="color:var(--muted);font-size:.85rem;">
+    <i class="bi bi-shield-check me-1" style="color:var(--green);"></i>
+    Tous les plans incluent un <strong style="color:var(--text);">essai gratuit de 3 mois</strong>. Aucune carte bancaire requise. Annulation à tout moment.
+  </p>
+</div>
+
+<!-- TABLEAU COMPARATIF -->
+<div class="compare-section">
+  <h2>Comparaison détaillée des plans</h2>
+  <div style="overflow-x:auto;">
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th style="min-width:200px">Fonctionnalité</th>
+        <th style="min-width:100px">Starter<br><small style="font-weight:400;opacity:.7">29 DT</small></th>
+        <th style="min-width:100px;background:#1D4ED8;">Pro<br><small style="font-weight:400;opacity:.7">59 DT</small></th>
+        <th style="min-width:100px">Business<br><small style="font-weight:400;opacity:.7">99 DT</small></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Nombre d'appartements</td><td>30</td><td style="color:#93C5FD;font-weight:600;">100</td><td>Illimité</td></tr>
+      <tr><td>Tableau de bord admin</td><td class="yes">✅</td><td class="yes">✅</td><td class="yes">✅</td></tr>
+      <tr><td>Espace résident</td><td class="yes">✅</td><td class="yes">✅</td><td class="yes">✅</td></tr>
+      <tr><td>Encaissements &amp; dépenses</td><td class="yes">✅</td><td class="yes">✅</td><td class="yes">✅</td></tr>
+      <tr><td>Tickets de maintenance</td><td class="yes">✅</td><td class="yes">✅</td><td class="yes">✅</td></tr>
+      <tr><td>Messagerie résident</td><td class="yes">✅</td><td class="yes">✅</td><td class="yes">✅</td></tr>
+      <tr><td>Annonces copropriétaires</td><td class="yes">✅</td><td class="yes">✅</td><td class="yes">✅</td></tr>
+      <tr><td>Rapports PDF</td><td class="yes">✅</td><td class="yes">✅</td><td class="yes">✅</td></tr>
+      <tr><td>Paiements Konnect / Flouci</td><td class="no">—</td><td class="yes">✅</td><td class="yes">✅</td></tr>
+      <tr><td>Notifications WhatsApp</td><td class="no">—</td><td class="yes">✅</td><td class="yes">✅</td></tr>
+      <tr><td>Assemblées générales numériques</td><td class="no">—</td><td class="yes">✅</td><td class="yes">✅</td></tr>
+      <tr><td>Gestion litiges &amp; impayés</td><td class="no">—</td><td class="yes">✅</td><td class="yes">✅</td></tr>
+      <tr><td>Appels de fonds (travaux)</td><td class="no">—</td><td class="yes">✅</td><td class="yes">✅</td></tr>
+      <tr><td>États financiers (bilan SCE)</td><td class="no">—</td><td class="yes">✅</td><td class="yes">✅</td></tr>
+      <tr><td>Ascenseurs &amp; badges</td><td class="no">—</td><td class="yes">✅</td><td class="yes">✅</td></tr>
+      <tr><td>Assistant AI (Claude)</td><td class="no">—</td><td class="no">—</td><td class="yes">✅</td></tr>
+      <tr><td>Relances WhatsApp automatiques</td><td class="no">—</td><td class="no">—</td><td class="yes">✅</td></tr>
+      <tr><td>Support prioritaire</td><td class="no">—</td><td class="no">—</td><td class="yes">✅</td></tr>
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<!-- FAQ -->
+<div class="faq-section">
+  <h2>Questions fréquentes</h2>
+
+  {% for q, a in [
+    ("L'essai gratuit est vraiment gratuit ?",
+     "Oui, complètement. 3 mois d'accès complet, sans carte bancaire, sans engagement. À la fin de la période, vous choisissez le plan qui vous convient ou vous arrêtez — sans frais cachés."),
+    ("Que se passe-t-il si je dépasse le nombre d'appartements ?",
+     "Vous recevrez une notification vous invitant à passer au plan supérieur. Vos données sont toujours accessibles, aucune perte possible."),
+    ("Puis-je importer mes données depuis Excel ?",
+     "Oui. SyndicPro propose un module d'import Excel pour les appartements, les résidents et l'historique des paiements. Notre équipe peut vous accompagner lors de la migration."),
+    ("Le paiement se fait comment ?",
+     "Par virement Konnect ou paiement en ligne. Vous recevez une facture mensuelle par email. Des plans annuels avec remise sont disponibles sur demande."),
+    ("Mes données sont-elles sécurisées ?",
+     "Oui. SyndicPro utilise une base de données hébergée en Europe (Supabase), avec chiffrement des données, backups quotidiens et isolation stricte entre les copropriétés. Vos données ne sont jamais partagées."),
+    ("Puis-je gérer plusieurs résidences avec un seul compte ?",
+     "Oui, avec le plan Business. Vous pouvez gérer plusieurs résidences depuis un seul accès superadmin. Le plan Starter et Pro sont limités à une résidence par compte."),
+  ] %}
+  <div class="faq-item">
+    <div class="faq-q" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display=='none'?'block':'none'">
+      {{ q }} <i class="bi bi-chevron-down"></i>
+    </div>
+    <div class="faq-a" style="display:none">{{ a }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- CTA FINAL -->
+<div style="background:linear-gradient(135deg,#0F172A 0%,#1E3A8A 55%,#0F172A 100%);text-align:center;padding:80px 20px;">
+  <div class="container">
+    <h2 style="font-size:clamp(1.4rem,3vw,2rem);font-weight:800;margin-bottom:.8rem;">Prêt à moderniser votre résidence ?</h2>
+    <p style="color:#CBD5E1;max-width:500px;margin:0 auto 2rem;line-height:1.7;">
+      Rejoignez les syndics tunisiens qui ont déjà adopté SyndicPro. Configuration en moins d'une heure, support inclus.
+    </p>
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+      <a href="/register" style="background:linear-gradient(135deg,#1D4ED8,#3B82F6);color:#fff;font-weight:700;padding:.7rem 2rem;border-radius:10px;text-decoration:none;font-size:.95rem;">
+        <i class="bi bi-rocket-takeoff me-2"></i>Démarrer gratuitement
+      </a>
+      <a href="/demo" style="border:1px solid rgba(255,255,255,.2);color:var(--text);background:transparent;padding:.7rem 2rem;border-radius:10px;text-decoration:none;font-size:.95rem;">
+        <i class="bi bi-play-circle me-2"></i>Voir la démo
+      </a>
+    </div>
+    <p style="margin-top:1.4rem;color:#475569;font-size:.8rem;">
+      <i class="bi bi-envelope me-1"></i>
+      <a href="mailto:contact@syndicpro.tn" style="color:#60A5FA;">contact@syndicpro.tn</a>
+    </p>
+  </div>
+</div>
+
+<footer>
+  <strong style="color:#F1F5F9;">SyndicPro</strong> — Gestion de syndic intelligente, made in Tunisia 🇹🇳<br>
+  <span class="mt-1 d-inline-block">
+    <a href="https://www.syndicpro.tn">www.syndicpro.tn</a> ·
+    <a href="mailto:contact@syndicpro.tn">contact@syndicpro.tn</a>
+  </span>
+  <div class="mt-2" style="display:flex;gap:1.2rem;justify-content:center;flex-wrap:wrap;">
+    <a href="/">Accueil</a> <a href="/blog">Blog</a>
+    <a href="/demo">Démo</a> <a href="/register">Inscription gratuite</a>
+  </div>
+  <p style="color:#334155;font-size:.75rem;margin:12px 0 0;">© 2026 SyndicPro. Tous droits réservés.</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
