@@ -1,4 +1,4 @@
-from flask import render_template, Response
+from flask import render_template, Response, request
 from core import app
 from datetime import datetime
 
@@ -53,6 +53,13 @@ def sitemap_xml():
 
 
 # ─── Page /tarifs ──────────────────────────────────────────────────────────────
+
+@app.route('/bienvenue')
+def bienvenue():
+    org_name = request.args.get('org', 'votre résidence')
+    email    = request.args.get('email', '')
+    return render_template('bienvenue.html', org_name=org_name, email=email)
+
 
 @app.route('/tarifs')
 def tarifs():

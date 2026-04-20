@@ -183,8 +183,7 @@ def register():
             send_welcome_admin(org_name=org_name, email=email, days_trial=90)
         except Exception as _e:
             print(f"[register] Email bienvenue non envoyé : {_e}")
-        flash(f'Organisation créée avec succès ! Essai gratuit de 3 mois activé.', 'success')
-        return redirect(url_for('login'))
+        return redirect(url_for('bienvenue', org=org_name, email=email))
     return render_template('register.html')
 
 
