@@ -31,6 +31,13 @@ import routes.lifts
 import routes.payment_requests
 import routes.messaging
 import routes.badges
+import routes.analytics
+
+
+@app.after_request
+def _track_page_view(response):
+    from utils_analytics import track_visit
+    return track_visit(response)
 
 
 @app.before_request

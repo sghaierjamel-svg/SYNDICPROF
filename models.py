@@ -579,6 +579,26 @@ class BadgeAccessLog(db.Model):
     badge = db.relationship('Badge', backref='access_logs', lazy=True)
 
 
+class SiteVisit(db.Model):
+    """Suivi des visites du site public (analytics)."""
+    __tablename__ = 'site_visit'
+    id          = db.Column(db.Integer, primary_key=True)
+    ts          = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    path        = db.Column(db.String(500))
+    ip_hash     = db.Column(db.String(16))
+    session_key = db.Column(db.String(32), index=True)
+    user_id     = db.Column(db.Integer, nullable=True)
+    referrer    = db.Column(db.String(500))
+    referrer_domain = db.Column(db.String(150))
+    device_type = db.Column(db.String(10))    # desktop / mobile / tablet
+    browser     = db.Column(db.String(30))
+    os_name     = db.Column(db.String(30))
+    utm_source   = db.Column(db.String(80))
+    utm_medium   = db.Column(db.String(80))
+    utm_campaign = db.Column(db.String(100))
+    status_code  = db.Column(db.SmallInteger)
+
+
 def init_db():
     """Initialise la base de données multi-tenant"""
     db_dir = os.path.join(BASE_DIR, 'database')
@@ -1367,6 +1387,62 @@ def init_db():
                 print("RLS activé sur toutes les tables — accès anonyme bloqué.")
     except Exception as e:
         print(f"Migration RLS : {e}")
+
+    # Migration : table site_visit (analytics)
+    try:
+        with db.engine.connect() as conn:
+            if 'postgresql' in str(db.engine.url):
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS site_visit (
+                        id SERIAL PRIMARY KEY,
+                        ts TIMESTAMP DEFAULT NOW(),
+                        path VARCHAR(500),
+                        ip_hash VARCHAR(16),
+                        session_key VARCHAR(32),
+                        user_id INTEGER,
+                        referrer VARCHAR(500),
+                        referrer_domain VARCHAR(150),
+                        device_type VARCHAR(10),
+                        browser VARCHAR(30),
+                        os_name VARCHAR(30),
+                        utm_source VARCHAR(80),
+                        utm_medium VARCHAR(80),
+                        utm_campaign VARCHAR(100),
+                        status_code SMALLINT
+                    )
+                """))
+                conn.execute(db.text(
+                    "CREATE INDEX IF NOT EXISTS ix_site_visit_ts ON site_visit (ts)"
+                ))
+                conn.execute(db.text(
+                    "CREATE INDEX IF NOT EXISTS ix_site_visit_session_key ON site_visit (session_key)"
+                ))
+                conn.commit()
+                print("Table site_visit créée/vérifiée (PostgreSQL).")
+            else:
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS site_visit (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        ts DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        path VARCHAR(500),
+                        ip_hash VARCHAR(16),
+                        session_key VARCHAR(32),
+                        user_id INTEGER,
+                        referrer VARCHAR(500),
+                        referrer_domain VARCHAR(150),
+                        device_type VARCHAR(10),
+                        browser VARCHAR(30),
+                        os_name VARCHAR(30),
+                        utm_source VARCHAR(80),
+                        utm_medium VARCHAR(80),
+                        utm_campaign VARCHAR(100),
+                        status_code INTEGER
+                    )
+                """))
+                conn.commit()
+                print("Table site_visit créée/vérifiée (SQLite).")
+    except Exception as e:
+        print(f"Migration site_visit : {e}")
 
     if not User.query.filter_by(email='superadmin@syndicpro.tn').first():
         # CRIT-003 : SUPERADMIN_PASSWORD obligatoire et >= 16 caractères

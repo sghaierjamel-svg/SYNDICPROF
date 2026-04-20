@@ -335,6 +335,11 @@
             <i class="bi bi-speedometer2"></i> Dashboard
         </a>
 
+        <a class="sidebar-link {% if request.endpoint == 'superadmin_analytics' %}active{% endif %}"
+           href="{{ url_for('superadmin_analytics') }}">
+            <i class="bi bi-bar-chart-line"></i> Analytiques
+        </a>
+
         <a class="sidebar-link" href="{{ url_for('superadmin_export_csv') }}" title="Exporter tous les clients CSV">
             <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
         </a>

@@ -1,0 +1,255 @@
+{% extends 'superadmin/base.html' %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+  .kpi-card   { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 1.4rem 1.6rem; }
+  .kpi-value  { font-size: 2rem; font-weight: 700; color: var(--green); }
+  .kpi-label  { font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .section    { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 1.4rem; margin-bottom: 1.4rem; }
+  .section h6 { font-size: .8rem; text-transform: uppercase; color: var(--muted); letter-spacing: .08em; margin-bottom: 1rem; }
+  .tbl td, .tbl th { padding: .4rem .7rem; font-size: .85rem; border-color: var(--border) !important; }
+  .tbl th     { color: var(--muted); font-weight: 500; }
+  .bar-row    { display: flex; align-items: center; gap: .6rem; margin-bottom: .5rem; font-size: .82rem; }
+  .bar-fill   { height: 8px; border-radius: 4px; background: var(--green); min-width: 4px; }
+  .bar-label  { min-width: 110px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-count  { color: var(--muted); min-width: 40px; text-align: right; }
+  .funnel-row { display: flex; align-items: center; gap: 1rem; padding: .7rem 0; border-bottom: 1px solid var(--border); }
+  .funnel-val { font-size: 1.5rem; font-weight: 700; min-width: 70px; }
+  .funnel-lbl { color: var(--muted); font-size: .85rem; }
+  .period-btn { background: var(--border); border: none; border-radius: 8px; padding: .35rem .9rem; color: var(--muted); font-size: .82rem; cursor: pointer; }
+  .period-btn.active { background: var(--green); color: #000; font-weight: 600; }
+  canvas      { max-height: 240px; }
+</style>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <h4 class="mb-0" style="color:var(--green)"><i class="bi bi-bar-chart-line me-2"></i>Analytiques du site</h4>
+  <div class="d-flex gap-2">
+    {% for p, lbl in [(7,'7j'), (30,'30j'), (90,'90j'), (365,'1 an')] %}
+    <a href="{{ url_for('superadmin_analytics', period=p) }}"
+       class="period-btn {% if period == p %}active{% endif %}">{{ lbl }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- KPI row -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-4">
+    <div class="kpi-card">
+      <div class="kpi-label">Pages vues</div>
+      <div class="kpi-value">{{ total_pages_vues | int }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4">
+    <div class="kpi-card">
+      <div class="kpi-label">Visiteurs uniques</div>
+      <div class="kpi-value">{{ visiteurs_uniques }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4">
+    <div class="kpi-card">
+      <div class="kpi-label">Nouvelles sessions</div>
+      <div class="kpi-value">{{ nouvelles_sessions }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4">
+    <div class="kpi-card">
+      <div class="kpi-label">Inscriptions réelles</div>
+      <div class="kpi-value">{{ funnel[2][1] }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4">
+    <div class="kpi-card">
+      <div class="kpi-label">Taux de conversion</div>
+      <div class="kpi-value">{{ conv_rate }}%</div>
+      <div style="font-size:.75rem;color:var(--muted)">(visites /register → inscription)</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4">
+    <div class="kpi-card">
+      <div class="kpi-label">Pages / visiteur</div>
+      <div class="kpi-value">
+        {% if visiteurs_uniques > 0 %}{{ (total_pages_vues / visiteurs_uniques) | round(1) }}{% else %}—{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Graphique visites par jour + heures de pointe -->
+<div class="row g-3 mb-3">
+  <div class="col-md-8">
+    <div class="section">
+      <h6>Visites par jour</h6>
+      <canvas id="chartDays"></canvas>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="section">
+      <h6>Heures de pointe (UTC)</h6>
+      <canvas id="chartHours"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Pages + Sources -->
+<div class="row g-3 mb-3">
+  <div class="col-md-6">
+    <div class="section" style="min-height:300px">
+      <h6>Pages les plus visitées</h6>
+      {% set total_pv = total_pages_vues if total_pages_vues > 0 else 1 %}
+      {% for row in top_pages %}
+      <div class="bar-row">
+        <span class="bar-label" title="{{ row.path }}">{{ row.path }}</span>
+        <div class="bar-fill" style="width:{{ [(row.cnt / total_pv * 220)|int, 4]|max }}px"></div>
+        <span class="bar-count">{{ row.cnt }}</span>
+      </div>
+      {% else %}
+      <p class="text-muted small">Aucune donnée sur cette période.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="section" style="min-height:300px">
+      <h6>Sources de trafic</h6>
+      {% set total_src = (top_referrers | sum(attribute='cnt')) + direct_count %}
+      {% set total_src = total_src if total_src > 0 else 1 %}
+
+      <div class="bar-row">
+        <span class="bar-label">Direct / inconnu</span>
+        <div class="bar-fill" style="width:{{ [(direct_count / total_src * 220)|int, 4]|max }}px;background:#60A5FA"></div>
+        <span class="bar-count">{{ direct_count }}</span>
+      </div>
+      {% for row in top_referrers %}
+      <div class="bar-row">
+        <span class="bar-label" title="{{ row.referrer_domain }}">{{ row.referrer_domain }}</span>
+        <div class="bar-fill" style="width:{{ [(row.cnt / total_src * 220)|int, 4]|max }}px"></div>
+        <span class="bar-count">{{ row.cnt }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Appareils + Navigateurs + OS -->
+<div class="row g-3 mb-3">
+  <div class="col-md-4">
+    <div class="section">
+      <h6>Appareils</h6>
+      <canvas id="chartDevices"></canvas>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="section">
+      <h6>Navigateurs</h6>
+      <canvas id="chartBrowsers"></canvas>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="section">
+      <h6>Systèmes d'exploitation</h6>
+      <canvas id="chartOS"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Entonnoir de conversion + UTM -->
+<div class="row g-3 mb-3">
+  <div class="col-md-5">
+    <div class="section">
+      <h6>Entonnoir de conversion</h6>
+      {% for lbl, val in funnel %}
+      <div class="funnel-row">
+        <span class="funnel-val" style="color:var(--green)">{{ val }}</span>
+        <span class="funnel-lbl">{{ lbl }}</span>
+      </div>
+      {% endfor %}
+      <div class="mt-3" style="font-size:.82rem;color:var(--muted)">
+        Taux de conversion : <strong style="color:var(--green)">{{ conv_rate }}%</strong>
+        (visiteurs page inscription → inscription réelle)
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-7">
+    <div class="section">
+      <h6>Campagnes UTM</h6>
+      {% if utm_rows %}
+      <table class="table table-dark tbl mb-0">
+        <thead><tr><th>Source</th><th>Médium</th><th>Campagne</th><th class="text-end">Visites</th></tr></thead>
+        <tbody>
+        {% for row in utm_rows %}
+        <tr>
+          <td>{{ row.utm_source or '—' }}</td>
+          <td>{{ row.utm_medium or '—' }}</td>
+          <td>{{ row.utm_campaign or '—' }}</td>
+          <td class="text-end">{{ row.cnt }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="text-muted small mb-0">
+        Aucune campagne UTM détectée.<br>
+        Ajoutez <code>?utm_source=google&utm_medium=cpc&utm_campaign=nom</code> à vos liens pour suivre vos campagnes.
+      </p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+const PALETTE = ['#00C896','#60A5FA','#F59E0B','#F87171','#A78BFA','#34D399','#FB923C','#E879F9'];
+
+// Visites par jour
+new Chart(document.getElementById('chartDays'), {
+  type: 'bar',
+  data: {
+    labels: {{ chart_labels | tojson }},
+    datasets: [{ label: 'Pages vues', data: {{ chart_data | tojson }},
+      backgroundColor: 'rgba(0,200,150,0.5)', borderColor: '#00C896', borderWidth: 1, borderRadius: 4 }]
+  },
+  options: { plugins: { legend: { display: false } },
+    scales: { x: { ticks: { color:'#9CA3AF', maxTicksLimit: 15 }, grid: { color:'#1F2937' } },
+              y: { ticks: { color:'#9CA3AF' }, grid: { color:'#1F2937' } } } }
+});
+
+// Heures de pointe
+new Chart(document.getElementById('chartHours'), {
+  type: 'bar',
+  data: {
+    labels: {{ hour_labels | tojson }},
+    datasets: [{ data: {{ hour_data | tojson }},
+      backgroundColor: 'rgba(96,165,250,0.5)', borderColor: '#60A5FA', borderWidth: 1, borderRadius: 2 }]
+  },
+  options: { plugins: { legend: { display: false } },
+    scales: { x: { ticks: { color:'#9CA3AF', font: { size: 9 } }, grid: { color:'#1F2937' } },
+              y: { ticks: { color:'#9CA3AF' }, grid: { color:'#1F2937' } } } }
+});
+
+// Appareils
+new Chart(document.getElementById('chartDevices'), {
+  type: 'doughnut',
+  data: { labels: {{ device_labels | tojson }},
+          datasets: [{ data: {{ device_data | tojson }}, backgroundColor: PALETTE, borderWidth: 0 }] },
+  options: { plugins: { legend: { labels: { color:'#9CA3AF', boxWidth: 12 } } } }
+});
+
+// Navigateurs
+new Chart(document.getElementById('chartBrowsers'), {
+  type: 'doughnut',
+  data: { labels: {{ browser_labels | tojson }},
+          datasets: [{ data: {{ browser_data | tojson }}, backgroundColor: PALETTE, borderWidth: 0 }] },
+  options: { plugins: { legend: { labels: { color:'#9CA3AF', boxWidth: 12 } } } }
+});
+
+// OS
+new Chart(document.getElementById('chartOS'), {
+  type: 'doughnut',
+  data: { labels: {{ os_labels | tojson }},
+          datasets: [{ data: {{ os_data | tojson }}, backgroundColor: PALETTE, borderWidth: 0 }] },
+  options: { plugins: { legend: { labels: { color:'#9CA3AF', boxWidth: 12 } } } }
+});
+</script>
+{% endblock %}
