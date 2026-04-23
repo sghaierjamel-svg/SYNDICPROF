@@ -20,21 +20,30 @@ def superadmin_dashboard():
     this_month_start = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     last_month_start = (this_month_start - timedelta(days=1)).replace(day=1)
 
+    # ── Exclusion orgs de test (Les Jasmins) — appliquée à tous les KPIs ────
+    test_org_ids = set()
+    for o in organizations:
+        name_l = (o.name or '').lower()
+        slug_l = (o.slug or '').lower()
+        if 'jasmin' in name_l or 'jasmin' in slug_l:
+            test_org_ids.add(o.id)
+    real_orgs = [o for o in organizations if o.id not in test_org_ids]
+
     # ── KPIs globaux ──────────────────────────────────────────────────────────
-    total_orgs  = len(organizations)
-    active_orgs = sum(1 for o in organizations if o.is_active)
+    total_orgs  = len(real_orgs)
+    active_orgs = sum(1 for o in real_orgs if o.is_active)
 
     # MRR = somme des prix mensuels des abonnements actifs non expirés
     mrr = sum(
         o.subscription.monthly_price
-        for o in organizations
+        for o in real_orgs
         if o.subscription and o.subscription.status == 'active' and not o.subscription.is_expired()
     )
     arr = mrr * 12
 
     # Nouvelles orgs ce mois / mois dernier
-    new_this_month = sum(1 for o in organizations if o.created_at >= this_month_start)
-    new_last_month = sum(1 for o in organizations if last_month_start <= o.created_at < this_month_start)
+    new_this_month = sum(1 for o in real_orgs if o.created_at >= this_month_start)
+    new_last_month = sum(1 for o in real_orgs if last_month_start <= o.created_at < this_month_start)
 
     # Total appartements & résidents sur toute la plateforme
     total_apartments = db.session.query(func.count(Apartment.id)).scalar() or 0
@@ -42,14 +51,14 @@ def superadmin_dashboard():
 
     # Abonnements qui expirent dans <= 7 jours (alerte)
     expiring_soon = [
-        o for o in organizations
+        o for o in real_orgs
         if o.subscription and o.subscription.end_date and o.is_active
         and 0 < o.subscription.days_remaining() <= 7
     ]
 
     # Abonnements déjà expirés mais org encore active
     expired_active = [
-        o for o in organizations
+        o for o in real_orgs
         if o.is_active and o.subscription and o.subscription.is_expired()
     ]
 
@@ -60,7 +69,7 @@ def superadmin_dashboard():
     last_login_map = {org_id: last_login for org_id, last_login in rows}
 
     inactive_30d = [
-        o for o in organizations
+        o for o in real_orgs
         if o.is_active and (
             last_login_map.get(o.id) is None or
             last_login_map.get(o.id) < today - timedelta(days=30)
@@ -69,33 +78,119 @@ def superadmin_dashboard():
 
     # Churn ce mois (abonnements expirés ce mois)
     churn_this_month = sum(
-        1 for o in organizations
+        1 for o in real_orgs
         if o.subscription and o.subscription.end_date and
         o.subscription.end_date >= this_month_start and
         o.subscription.is_expired()
     )
 
     # Taux de conversion trial → payant
-    trial_orgs = sum(1 for o in organizations if o.subscription and o.subscription.plan == 'trial')
+    trial_orgs = sum(1 for o in real_orgs if o.subscription and o.subscription.plan == 'trial')
     paying_orgs = total_orgs - trial_orgs
 
-    # Historique MRR par mois (6 derniers mois) — approximation basée sur created_at des subscriptions
+    # ── Historique MRR + Churn par mois (12 derniers mois) ───────────────────
     mrr_history = []
-    for i in range(5, -1, -1):
+    churn_history = []
+    for i in range(11, -1, -1):
         month_dt = (today.replace(day=1) - timedelta(days=i * 30)).replace(day=1)
+        month_end = month_dt + timedelta(days=32)
+        month_end = month_end.replace(day=1)
         label = month_dt.strftime('%b %Y')
         month_mrr = sum(
             o.subscription.monthly_price
-            for o in organizations
+            for o in real_orgs
             if o.subscription and o.subscription.monthly_price > 0
             and o.subscription.start_date <= month_dt + timedelta(days=31)
             and (not o.subscription.end_date or o.subscription.end_date >= month_dt)
         )
+        month_churn = sum(
+            1 for o in real_orgs
+            if o.subscription and o.subscription.end_date
+            and month_dt <= o.subscription.end_date < month_end
+            and o.subscription.is_expired()
+        )
         mrr_history.append({'label': label, 'mrr': round(month_mrr, 2)})
+        churn_history.append({'label': label, 'churn': month_churn})
+
+    # ── LTV estimé par plan ──────────────────────────────────────────────────
+    ltv_by_plan = {}
+    for o in real_orgs:
+        sub = o.subscription
+        if not sub or not sub.monthly_price or sub.monthly_price <= 0:
+            continue
+        plan = sub.plan or 'inconnu'
+        if sub.end_date:
+            duration_months = max((sub.end_date - sub.start_date).days / 30, 1)
+        else:
+            duration_months = max((today - sub.start_date).days / 30, 1)
+        ltv = sub.monthly_price * duration_months
+        if plan not in ltv_by_plan:
+            ltv_by_plan[plan] = {'total': 0, 'count': 0}
+        ltv_by_plan[plan]['total'] += ltv
+        ltv_by_plan[plan]['count'] += 1
+    ltv_per_plan = {
+        plan: round(v['total'] / v['count'], 0)
+        for plan, v in ltv_by_plan.items()
+    }
+    avg_ltv = round(
+        sum(ltv_per_plan.values()) / len(ltv_per_plan), 0
+    ) if ltv_per_plan else 0
+
+    # ── Volume plateforme (paiements résidents enregistrés) ──────────────────
+    total_platform_volume = db.session.query(func.sum(Payment.amount))\
+        .filter(Payment.organization_id.notin_(test_org_ids) if test_org_ids else db.true())\
+        .scalar() or 0.0
+
+    volume_this_month = db.session.query(func.sum(Payment.amount))\
+        .filter(
+            Payment.payment_date >= this_month_start,
+            Payment.organization_id.notin_(test_org_ids) if test_org_ids else db.true()
+        ).scalar() or 0.0
+
+    volume_last_month = db.session.query(func.sum(Payment.amount))\
+        .filter(
+            Payment.payment_date >= last_month_start,
+            Payment.payment_date < this_month_start,
+            Payment.organization_id.notin_(test_org_ids) if test_org_ids else db.true()
+        ).scalar() or 0.0
+
+    total_transactions = db.session.query(func.count(Payment.id))\
+        .filter(Payment.organization_id.notin_(test_org_ids) if test_org_ids else db.true())\
+        .scalar() or 0
+
+    # ── Score d'engagement par organisation ──────────────────────────────────
+    engagement_scores = {}
+    for o in real_orgs:
+        if not o.is_active:
+            engagement_scores[o.id] = 0
+            continue
+        score = 0
+        last_login = last_login_map.get(o.id)
+        if last_login:
+            days_ago = (today - last_login).days
+            if days_ago <= 7:
+                score += 40
+            elif days_ago <= 14:
+                score += 25
+            elif days_ago <= 30:
+                score += 10
+        pmts = Payment.query.filter(
+            Payment.organization_id == o.id,
+            Payment.payment_date >= this_month_start
+        ).count()
+        if pmts > 0:
+            score += 30
+        if pmts > 5:
+            score += 10
+        if Ticket.query.filter_by(organization_id=o.id).count() > 0:
+            score += 10
+        if Expense.query.filter_by(organization_id=o.id).count() > 0:
+            score += 10
+        engagement_scores[o.id] = min(score, 100)
 
     return render_template(
         'superadmin/dashboard.html',
-        organizations=organizations,
+        organizations=real_orgs,
         total_orgs=total_orgs,
         active_orgs=active_orgs,
         mrr=mrr, arr=arr,
@@ -111,6 +206,14 @@ def superadmin_dashboard():
         paying_orgs=paying_orgs,
         last_login_map=last_login_map,
         mrr_history=mrr_history,
+        churn_history=churn_history,
+        ltv_per_plan=ltv_per_plan,
+        avg_ltv=avg_ltv,
+        total_platform_volume=total_platform_volume,
+        volume_this_month=volume_this_month,
+        volume_last_month=volume_last_month,
+        total_transactions=total_transactions,
+        engagement_scores=engagement_scores,
     )
 
 

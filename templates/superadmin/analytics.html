@@ -74,6 +74,26 @@
       </div>
     </div>
   </div>
+  <div class="col-6 col-md-4">
+    <div class="kpi-card">
+      <div class="kpi-label">Taux de rebond</div>
+      <div class="kpi-value" style="color:{% if bounce_rate > 70 %}#F87171{% elif bounce_rate > 50 %}#F59E0B{% else %}var(--green){% endif %}">
+        {{ bounce_rate }}%
+      </div>
+      <div style="font-size:.75rem;color:var(--muted)">(sessions 1 seule page)</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4">
+    <div class="kpi-card">
+      <div class="kpi-label">Durée moy. session</div>
+      <div class="kpi-value">{{ avg_duration }}</div>
+      <div style="font-size:.75rem;color:var(--muted)">(sessions multi-pages)</div>
+    </div>
+  </div>
+</div>
+<div class="mb-3" style="font-size:.75rem;color:var(--muted);">
+  <i class="bi bi-shield-check me-1" style="color:var(--green)"></i>
+  Vos connexions (superadmin + compte de test Les Jasmins) sont exclues de ces statistiques.
 </div>
 
 <!-- Graphique visites par jour + heures de pointe -->

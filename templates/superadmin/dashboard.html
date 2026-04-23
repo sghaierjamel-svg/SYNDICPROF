@@ -58,7 +58,7 @@
 </div>
 
 <!-- ── KPIs LIGNE 2 : santé ────────────────────────────────────────── -->
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-3">
     <div class="col-6 col-md-3">
         <div class="stat-card" style="border-color:{% if expiring_soon %}rgba(245,158,11,0.4){% else %}var(--border){% endif %};">
             <div class="icon" style="color:#F59E0B;"><i class="bi bi-clock-history"></i></div>
@@ -90,6 +90,52 @@
             <p>Clients payants</p>
             <div style="font-size:.72rem;color:var(--muted);margin-top:.3rem;">
                 {{ trial_orgs }} en essai · {{ churn_this_month }} churn ce mois
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── KPIs LIGNE 3 : business intelligence ───────────────────────── -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="icon" style="color:#F59E0B;"><i class="bi bi-wallet2"></i></div>
+            <h3 style="color:#F59E0B;">{{ '{:.0f}'.format(avg_ltv) }} DT</h3>
+            <p>LTV moyen</p>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:.3rem;">
+                {% for plan, ltv in ltv_per_plan.items() %}{{ plan }}: {{ '{:.0f}'.format(ltv) }} DT{% if not loop.last %} · {% endif %}{% endfor %}
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="icon" style="color:#60A5FA;"><i class="bi bi-cash-coin"></i></div>
+            <h3 style="color:#60A5FA;">{{ '{:.0f}'.format(volume_this_month) }} DT</h3>
+            <p>Volume plateforme (mois)</p>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:.3rem;">
+                vs {{ '{:.0f}'.format(volume_last_month) }} DT le mois dernier
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="icon" style="color:#A78BFA;"><i class="bi bi-receipt"></i></div>
+            <h3 style="color:#A78BFA;">{{ total_transactions }}</h3>
+            <p>Transactions totales</p>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:.3rem;">
+                {{ '{:.0f}'.format(total_platform_volume) }} DT circulé
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="icon" style="color:#34D399;"><i class="bi bi-shield-check"></i></div>
+            <h3 style="color:#34D399;" title="Connexions superadmin et Les Jasmins exclues">
+                <i class="bi bi-eye-slash" style="font-size:1rem;"></i> Filtrées
+            </h3>
+            <p>Métriques nettoyées</p>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:.3rem;">
+                Superadmin + Les Jasmins exclus
             </div>
         </div>
     </div>
@@ -145,17 +191,29 @@
 </div>
 {% endif %}
 
-<!-- ── GRAPHIQUE MRR ────────────────────────────────────────────────── -->
+<!-- ── GRAPHIQUES MRR + CHURN ────────────────────────────────────────── -->
 <div class="row g-3 mb-4">
-    <div class="col-lg-7">
+    <div class="col-lg-8">
         <div class="card">
-            <div class="card-header"><i class="bi bi-bar-chart-line"></i> Évolution MRR — 6 derniers mois</div>
+            <div class="card-header"><i class="bi bi-bar-chart-line"></i> Évolution MRR — 12 derniers mois</div>
             <div class="card-body">
-                <canvas id="mrrChart" height="120"></canvas>
+                <canvas id="mrrChart" height="100"></canvas>
             </div>
         </div>
     </div>
-    <div class="col-lg-5">
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header"><i class="bi bi-graph-down-arrow" style="color:#F87171;"></i> Churn mensuel</div>
+            <div class="card-body">
+                <canvas id="churnChart" height="160"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── RÉPARTITION PLANS ─────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-4">
         <div class="card h-100">
             <div class="card-header"><i class="bi bi-pie-chart"></i> Répartition des plans</div>
             <div class="card-body">
@@ -173,6 +231,32 @@
                     </div>
                     {% endfor %}
                 </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-header"><i class="bi bi-activity"></i> LTV estimé par plan</div>
+            <div class="card-body">
+                {% if ltv_per_plan %}
+                <div class="row g-3">
+                    {% for plan, ltv in ltv_per_plan.items() %}
+                    <div class="col-6 col-md-4">
+                        <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:1rem;text-align:center;">
+                            <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">{{ plan }}</div>
+                            <div style="font-size:1.6rem;font-weight:700;color:#F59E0B;">{{ '{:.0f}'.format(ltv) }} DT</div>
+                            <div style="font-size:.72rem;color:var(--muted);">LTV moyen</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="mt-3 pt-3" style="border-top:1px solid var(--border);font-size:.82rem;color:var(--muted);">
+                    LTV global moyen : <strong style="color:#F59E0B;">{{ '{:.0f}'.format(avg_ltv) }} DT</strong>
+                    &nbsp;·&nbsp; Volume total plateforme : <strong style="color:#60A5FA;">{{ '{:.0f}'.format(total_platform_volume) }} DT</strong>
+                </div>
+                {% else %}
+                <p style="color:var(--muted);font-size:.85rem;">Pas encore assez de données pour calculer le LTV.</p>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -196,8 +280,8 @@
                         <th>Statut</th>
                         <th class="d-none d-lg-table-cell">Expiration</th>
                         <th class="d-none d-lg-table-cell">Prix</th>
+                        <th class="d-none d-xl-table-cell">Engagement</th>
                         <th class="d-none d-xl-table-cell">Dernière connexion</th>
-                        <th class="d-none d-xl-table-cell">Notes</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -256,6 +340,25 @@
                                 <strong style="color:#00C896;">{{ '{:.0f}'.format(org.subscription.monthly_price) }} DT</strong>
                             {% else %}—{% endif %}
                         </td>
+                        <td class="d-none d-xl-table-cell">
+                            {% set score = engagement_scores.get(org.id, 0) %}
+                            {% if score >= 70 %}
+                                {% set score_color = '#34D399' %}
+                                {% set score_label = 'Engagé' %}
+                            {% elif score >= 40 %}
+                                {% set score_color = '#F59E0B' %}
+                                {% set score_label = 'Moyen' %}
+                            {% else %}
+                                {% set score_color = '#F87171' %}
+                                {% set score_label = 'À risque' %}
+                            {% endif %}
+                            <div style="display:flex;align-items:center;gap:.4rem;">
+                                <div style="width:50px;height:6px;border-radius:3px;background:var(--border);">
+                                    <div style="width:{{ score }}%;height:100%;border-radius:3px;background:{{ score_color }};"></div>
+                                </div>
+                                <span style="font-size:.75rem;color:{{ score_color }};">{{ score_label }}</span>
+                            </div>
+                        </td>
                         <td class="d-none d-xl-table-cell" style="font-size:.78rem;">
                             {% if last_login %}
                                 <span style="color:{% if days_since_login > 30 %}#F59E0B{% else %}var(--muted){% endif %};">
@@ -264,12 +367,6 @@
                                 </span>
                             {% else %}
                                 <span style="color:#6B7280;">Jamais</span>
-                            {% endif %}
-                        </td>
-                        <td class="d-none d-xl-table-cell" style="font-size:.75rem;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);">
-                            {% if org.superadmin_notes %}
-                                <i class="bi bi-sticky" style="color:#F59E0B;"></i>
-                                {{ org.superadmin_notes[:40] }}{% if org.superadmin_notes|length > 40 %}…{% endif %}
                             {% endif %}
                         </td>
                         <td onclick="event.stopPropagation()">
@@ -301,7 +398,7 @@ document.getElementById('searchOrgs').addEventListener('input', function() {
     });
 });
 
-// Graphique MRR
+// Graphique MRR 12 mois
 const mrrCtx = document.getElementById('mrrChart').getContext('2d');
 new Chart(mrrCtx, {
     type: 'bar',
@@ -320,8 +417,33 @@ new Chart(mrrCtx, {
         responsive: true,
         plugins: { legend: { display: false } },
         scales: {
-            x: { ticks: { color: '#9CA3AF' }, grid: { color: '#1F2937' } },
+            x: { ticks: { color: '#9CA3AF', font: { size: 10 } }, grid: { color: '#1F2937' } },
             y: { ticks: { color: '#9CA3AF', callback: v => v + ' DT' }, grid: { color: '#1F2937' } }
+        }
+    }
+});
+
+// Graphique Churn
+const churnCtx = document.getElementById('churnChart').getContext('2d');
+new Chart(churnCtx, {
+    type: 'bar',
+    data: {
+        labels: [{% for c in churn_history %}"{{ c.label }}"{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Churn',
+            data: [{% for c in churn_history %}{{ c.churn }}{% if not loop.last %},{% endif %}{% endfor %}],
+            backgroundColor: 'rgba(248,113,113,0.3)',
+            borderColor: '#F87171',
+            borderWidth: 2,
+            borderRadius: 4,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { ticks: { color: '#9CA3AF', font: { size: 9 }, maxTicksLimit: 6 }, grid: { color: '#1F2937' } },
+            y: { ticks: { color: '#9CA3AF', stepSize: 1 }, grid: { color: '#1F2937' } }
         }
     }
 });

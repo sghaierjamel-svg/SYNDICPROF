@@ -6,6 +6,32 @@ import hashlib
 import secrets
 from urllib.parse import urlparse
 
+# Orgs exclues des analytics (comptes de test — insensible à la casse, recherche partielle)
+_EXCLUDED_ORG_KEYWORDS = ('jasmin',)
+
+
+def _is_excluded_user(user_id):
+    """Retourne True si cet utilisateur ne doit pas être comptabilisé dans les analytics."""
+    if not user_id:
+        return False
+    try:
+        from models import User, Organization
+        user = User.query.get(user_id)
+        if not user:
+            return False
+        if user.role == 'superadmin':
+            return True
+        if user.organization_id:
+            org = Organization.query.get(user.organization_id)
+            if org:
+                name_lower = (org.name or '').lower()
+                slug_lower = (org.slug or '').lower()
+                if any(kw in name_lower or kw in slug_lower for kw in _EXCLUDED_ORG_KEYWORDS):
+                    return True
+    except Exception:
+        pass
+    return False
+
 
 # ─── Parsing User-Agent (sans bibliothèque externe) ───────────────────────────
 
@@ -140,6 +166,10 @@ def track_visit(response):
 
         # Utilisateur connecté
         user_id = flask_session.get('user_id')
+
+        # Exclure superadmin et comptes de test
+        if _is_excluded_user(user_id):
+            return response
 
         visit = SiteVisit(
             path=path[:500],

@@ -1,16 +1,34 @@
 from flask import render_template, request
 from core import app, db
-from models import SiteVisit, Organization
+from models import SiteVisit, Organization, User
 from utils import login_required, superadmin_required
-from datetime import datetime, timedelta, date
-from sqlalchemy import func, cast, Date
+from datetime import datetime, timedelta
+from sqlalchemy import func
+
+
+def _get_excluded_user_ids():
+    """Retourne la liste des user_ids à exclure des analytics (superadmin + orgs de test)."""
+    excluded = []
+    # Superadmins
+    for u in User.query.filter_by(role='superadmin').all():
+        excluded.append(u.id)
+    # Orgs de test (contenant 'jasmin' dans le nom ou le slug)
+    test_orgs = Organization.query.filter(
+        db.or_(
+            func.lower(Organization.name).contains('jasmin'),
+            func.lower(Organization.slug).contains('jasmin'),
+        )
+    ).all()
+    for org in test_orgs:
+        for u in User.query.filter_by(organization_id=org.id).all():
+            excluded.append(u.id)
+    return excluded
 
 
 @app.route('/superadmin/analytics')
 @login_required
 @superadmin_required
 def superadmin_analytics():
-    # Période sélectionnée
     period = request.args.get('period', '30')
     try:
         days = int(period)
@@ -21,24 +39,38 @@ def superadmin_analytics():
 
     since = datetime.utcnow() - timedelta(days=days)
 
-    base_q = SiteVisit.query.filter(SiteVisit.ts >= since)
+    # ── Exclusion superadmin + comptes de test ───────────────────────────────
+    excluded_ids = _get_excluded_user_ids()
 
-    # ── Chiffres globaux ────────────────────────────────────────────────────
+    def _exclude(q):
+        if excluded_ids:
+            return q.filter(
+                db.or_(
+                    SiteVisit.user_id.is_(None),
+                    SiteVisit.user_id.notin_(excluded_ids),
+                )
+            )
+        return q
+
+    base_q = _exclude(SiteVisit.query.filter(SiteVisit.ts >= since))
+
+    # ── Chiffres globaux ─────────────────────────────────────────────────────
     total_pages_vues = base_q.count()
 
     visiteurs_uniques = (
         db.session.query(func.count(func.distinct(SiteVisit.session_key)))
         .filter(SiteVisit.ts >= since, SiteVisit.session_key != '')
+        .filter(db.or_(SiteVisit.user_id.is_(None), SiteVisit.user_id.notin_(excluded_ids)) if excluded_ids else db.true())
         .scalar() or 0
     )
 
-    # Nouvelles sessions = session_keys dont la PREMIÈRE visite est dans la période
     subq_first = (
         db.session.query(
             SiteVisit.session_key,
             func.min(SiteVisit.ts).label('first_ts')
         )
         .filter(SiteVisit.session_key != '')
+        .filter(db.or_(SiteVisit.user_id.is_(None), SiteVisit.user_id.notin_(excluded_ids)) if excluded_ids else db.true())
         .group_by(SiteVisit.session_key)
         .subquery()
     )
@@ -48,7 +80,48 @@ def superadmin_analytics():
         .scalar() or 0
     )
 
-    # ── Visites par jour (30 derniers jours max pour le graphique) ──────────
+    # ── Bounce rate (sessions avec 1 seule page vue) ─────────────────────────
+    sessions_with_counts = (
+        db.session.query(
+            SiteVisit.session_key,
+            func.count(SiteVisit.id).label('page_count')
+        )
+        .filter(SiteVisit.ts >= since, SiteVisit.session_key != '')
+        .filter(db.or_(SiteVisit.user_id.is_(None), SiteVisit.user_id.notin_(excluded_ids)) if excluded_ids else db.true())
+        .group_by(SiteVisit.session_key)
+        .subquery()
+    )
+    total_sessions = db.session.query(func.count()).select_from(sessions_with_counts).scalar() or 0
+    bounce_sessions = (
+        db.session.query(func.count())
+        .select_from(sessions_with_counts)
+        .filter(sessions_with_counts.c.page_count == 1)
+        .scalar() or 0
+    )
+    bounce_rate = round(bounce_sessions / total_sessions * 100, 1) if total_sessions else 0
+
+    # ── Durée de session estimée (moy. en secondes entre 1ère et dernière vue) ─
+    session_times = (
+        db.session.query(
+            SiteVisit.session_key,
+            func.min(SiteVisit.ts).label('first'),
+            func.max(SiteVisit.ts).label('last'),
+            func.count(SiteVisit.id).label('cnt')
+        )
+        .filter(SiteVisit.ts >= since, SiteVisit.session_key != '')
+        .filter(db.or_(SiteVisit.user_id.is_(None), SiteVisit.user_id.notin_(excluded_ids)) if excluded_ids else db.true())
+        .group_by(SiteVisit.session_key)
+        .having(func.count(SiteVisit.id) > 1)
+        .all()
+    )
+    if session_times:
+        total_secs = sum((r.last - r.first).total_seconds() for r in session_times)
+        avg_duration_secs = int(total_secs / len(session_times))
+        avg_duration = f"{avg_duration_secs // 60}m {avg_duration_secs % 60}s"
+    else:
+        avg_duration = "—"
+
+    # ── Visites par jour ─────────────────────────────────────────────────────
     chart_days = min(days, 90)
     chart_since = datetime.utcnow() - timedelta(days=chart_days)
 
@@ -58,14 +131,15 @@ def superadmin_analytics():
         day_expr = func.date(SiteVisit.ts)
 
     visits_by_day_rows = (
-        db.session.query(day_expr.label('day'), func.count().label('cnt'))
-        .filter(SiteVisit.ts >= chart_since)
+        _exclude(
+            db.session.query(day_expr.label('day'), func.count().label('cnt'))
+            .filter(SiteVisit.ts >= chart_since)
+        )
         .group_by('day')
         .order_by('day')
         .all()
     )
 
-    # Remplir les jours manquants avec 0
     day_map = {}
     for row in visits_by_day_rows:
         d = row.day
@@ -82,8 +156,10 @@ def superadmin_analytics():
 
     # ── Pages les plus visitées ──────────────────────────────────────────────
     top_pages = (
-        db.session.query(SiteVisit.path, func.count().label('cnt'))
-        .filter(SiteVisit.ts >= since)
+        _exclude(
+            db.session.query(SiteVisit.path, func.count().label('cnt'))
+            .filter(SiteVisit.ts >= since)
+        )
         .group_by(SiteVisit.path)
         .order_by(func.count().desc())
         .limit(15)
@@ -92,27 +168,32 @@ def superadmin_analytics():
 
     # ── Sources de trafic ────────────────────────────────────────────────────
     top_referrers = (
-        db.session.query(SiteVisit.referrer_domain, func.count().label('cnt'))
-        .filter(SiteVisit.ts >= since, SiteVisit.referrer_domain.isnot(None))
+        _exclude(
+            db.session.query(SiteVisit.referrer_domain, func.count().label('cnt'))
+            .filter(SiteVisit.ts >= since, SiteVisit.referrer_domain.isnot(None))
+        )
         .group_by(SiteVisit.referrer_domain)
         .order_by(func.count().desc())
         .limit(10)
         .all()
     )
 
-    # Trafic direct (pas de référent)
     direct_count = (
-        db.session.query(func.count())
-        .filter(SiteVisit.ts >= since,
-                SiteVisit.referrer_domain.is_(None),
-                SiteVisit.referrer == '')
+        _exclude(
+            db.session.query(func.count())
+            .filter(SiteVisit.ts >= since,
+                    SiteVisit.referrer_domain.is_(None),
+                    SiteVisit.referrer == '')
+        )
         .scalar() or 0
     )
 
     # ── Appareils ────────────────────────────────────────────────────────────
     devices = (
-        db.session.query(SiteVisit.device_type, func.count().label('cnt'))
-        .filter(SiteVisit.ts >= since)
+        _exclude(
+            db.session.query(SiteVisit.device_type, func.count().label('cnt'))
+            .filter(SiteVisit.ts >= since)
+        )
         .group_by(SiteVisit.device_type)
         .all()
     )
@@ -121,8 +202,10 @@ def superadmin_analytics():
 
     # ── Navigateurs ──────────────────────────────────────────────────────────
     browsers = (
-        db.session.query(SiteVisit.browser, func.count().label('cnt'))
-        .filter(SiteVisit.ts >= since)
+        _exclude(
+            db.session.query(SiteVisit.browser, func.count().label('cnt'))
+            .filter(SiteVisit.ts >= since)
+        )
         .group_by(SiteVisit.browser)
         .order_by(func.count().desc())
         .all()
@@ -132,8 +215,10 @@ def superadmin_analytics():
 
     # ── Systèmes d'exploitation ───────────────────────────────────────────────
     os_rows = (
-        db.session.query(SiteVisit.os_name, func.count().label('cnt'))
-        .filter(SiteVisit.ts >= since)
+        _exclude(
+            db.session.query(SiteVisit.os_name, func.count().label('cnt'))
+            .filter(SiteVisit.ts >= since)
+        )
         .group_by(SiteVisit.os_name)
         .order_by(func.count().desc())
         .all()
@@ -142,53 +227,65 @@ def superadmin_analytics():
     os_data   = [r.cnt for r in os_rows]
 
     # ── Entonnoir de conversion ───────────────────────────────────────────────
-    # Visiteurs uniques sur la page d'accueil
     visitors_index = (
         db.session.query(func.count(func.distinct(SiteVisit.session_key)))
         .filter(SiteVisit.ts >= since, SiteVisit.path == '/', SiteVisit.session_key != '')
+        .filter(db.or_(SiteVisit.user_id.is_(None), SiteVisit.user_id.notin_(excluded_ids)) if excluded_ids else db.true())
         .scalar() or 0
     )
-    # Visiteurs uniques sur /register
     visitors_register = (
         db.session.query(func.count(func.distinct(SiteVisit.session_key)))
         .filter(SiteVisit.ts >= since, SiteVisit.path == '/register', SiteVisit.session_key != '')
+        .filter(db.or_(SiteVisit.user_id.is_(None), SiteVisit.user_id.notin_(excluded_ids)) if excluded_ids else db.true())
         .scalar() or 0
     )
-    # Inscriptions réelles dans la période
-    new_orgs = Organization.query.filter(Organization.created_at >= since).count()
+    # Exclure les orgs de test des inscriptions réelles
+    test_org_ids = [o.id for o in Organization.query.filter(
+        db.or_(
+            func.lower(Organization.name).contains('jasmin'),
+            func.lower(Organization.slug).contains('jasmin'),
+        )
+    ).all()]
+    new_orgs_q = Organization.query.filter(Organization.created_at >= since)
+    if test_org_ids:
+        new_orgs_q = new_orgs_q.filter(Organization.id.notin_(test_org_ids))
+    new_orgs = new_orgs_q.count()
 
     funnel = [
         ('Visiteurs uniques', visiteurs_uniques),
         ('Ont vu /register', visitors_register),
         ('Inscriptions réelles', new_orgs),
     ]
-
     conv_rate = round(new_orgs / visitors_register * 100, 1) if visitors_register else 0
 
     # ── Campagnes UTM ────────────────────────────────────────────────────────
     utm_rows = (
-        db.session.query(
-            SiteVisit.utm_source,
-            SiteVisit.utm_medium,
-            SiteVisit.utm_campaign,
-            func.count().label('cnt')
+        _exclude(
+            db.session.query(
+                SiteVisit.utm_source,
+                SiteVisit.utm_medium,
+                SiteVisit.utm_campaign,
+                func.count().label('cnt')
+            )
+            .filter(SiteVisit.ts >= since, SiteVisit.utm_source.isnot(None))
         )
-        .filter(SiteVisit.ts >= since, SiteVisit.utm_source.isnot(None))
         .group_by(SiteVisit.utm_source, SiteVisit.utm_medium, SiteVisit.utm_campaign)
         .order_by(func.count().desc())
         .limit(10)
         .all()
     )
 
-    # ── Heures de pointe (0-23h) ─────────────────────────────────────────────
+    # ── Heures de pointe ─────────────────────────────────────────────────────
     if 'postgresql' in str(db.engine.url):
         hour_expr = func.extract('hour', SiteVisit.ts)
     else:
         hour_expr = func.strftime('%H', SiteVisit.ts)
 
     hours_rows = (
-        db.session.query(hour_expr.label('h'), func.count().label('cnt'))
-        .filter(SiteVisit.ts >= since)
+        _exclude(
+            db.session.query(hour_expr.label('h'), func.count().label('cnt'))
+            .filter(SiteVisit.ts >= since)
+        )
         .group_by('h')
         .order_by('h')
         .all()
@@ -203,6 +300,8 @@ def superadmin_analytics():
         total_pages_vues=total_pages_vues,
         visiteurs_uniques=visiteurs_uniques,
         nouvelles_sessions=nouvelles_sessions,
+        bounce_rate=bounce_rate,
+        avg_duration=avg_duration,
         chart_labels=chart_labels,
         chart_data=chart_data,
         top_pages=top_pages,
