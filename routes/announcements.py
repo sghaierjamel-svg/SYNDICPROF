@@ -5,6 +5,11 @@ from utils import current_user, current_organization, login_required, admin_requ
 from utils_whatsapp import notify_announcement, notify_announcement_read
 
 
+@app.route('/announcements')
+def announcements_redirect():
+    return redirect(url_for('announcements'), 301)
+
+
 @app.route('/annonces', methods=['GET', 'POST'])
 @login_required
 @admin_required
