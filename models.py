@@ -67,9 +67,9 @@ class Subscription(db.Model):
         return max(0, delta.days)
 
     PLANS = {
-        'essentiel': {'price': 19.0, 'label': 'Essentiel'},
-        'pro':       {'price': 49.0, 'label': 'Pro'},
-        'business':  {'price': 89.0, 'label': 'Business'},
+        'essentiel': {'price': 29.0, 'label': 'Essentiel'},
+        'pro':       {'price': 59.0, 'label': 'Pro'},
+        'business':  {'price': 99.0, 'label': 'Business'},
         'trial':     {'price': 0.0,  'label': 'Essai Gratuit'},
     }
 
