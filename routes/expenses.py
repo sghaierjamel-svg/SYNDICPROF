@@ -6,13 +6,13 @@ from models import Expense, Intervenant
 from utils import (current_user, current_organization, login_required,
                    admin_required, subscription_required)
 from datetime import datetime, date
+from storage_helper import upload_file as _storage_upload, delete_file as _storage_delete
 
 MAX_FACTURE_BYTES = 5 * 1024 * 1024   # 5 Mo
 ALLOWED_MIMES = {'image/jpeg', 'image/png', 'image/webp', 'application/pdf'}
 
 
 def _iv_label(iv):
-    """Construit le libellé affiché pour un intervenant."""
     name = ''
     if iv.nom_societe:
         name = iv.nom_societe
@@ -22,21 +22,24 @@ def _iv_label(iv):
     return f"{iv.categorie} - {name}" if name else iv.categorie
 
 
-def _handle_facture(request_files, existing_data=None, existing_mime=None, existing_nom=None):
-    """Lit le fichier facture du formulaire. Retourne (data_b64, mime, nom) ou None si aucun fichier."""
+def _handle_facture(request_files, existing_data=None, existing_mime=None, existing_nom=None, existing_url=None):
+    """Lit le fichier facture du formulaire.
+    Retourne (data_b64_or_None, mime, nom, url_or_None)."""
     f = request_files.get('facture')
     if not f or f.filename == '':
-        # Pas de nouveau fichier — on garde l'existant
-        return existing_data, existing_mime, existing_nom
+        return existing_data, existing_mime, existing_nom, existing_url
     mime = f.mimetype
     if mime not in ALLOWED_MIMES:
         flash('Format non accepté. Utilisez une image (JPG, PNG) ou un PDF.', 'warning')
-        return existing_data, existing_mime, existing_nom
+        return existing_data, existing_mime, existing_nom, existing_url
     raw = f.read()
     if len(raw) > MAX_FACTURE_BYTES:
         flash('Fichier trop lourd (max 5 Mo).', 'warning')
-        return existing_data, existing_mime, existing_nom
-    return base64.b64encode(raw).decode('utf-8'), mime, f.filename
+        return existing_data, existing_mime, existing_nom, existing_url
+    url = _storage_upload(raw, mime, folder='factures')
+    if url:
+        return None, mime, f.filename, url
+    return base64.b64encode(raw).decode('utf-8'), mime, f.filename, None
 
 
 @app.route('/expenses', methods=['GET', 'POST'])
@@ -72,7 +75,7 @@ def expenses():
                 category = raw_cat
 
             # Facture
-            facture_data, facture_mime, facture_nom = _handle_facture(request.files)
+            facture_data, facture_mime, facture_nom, facture_url = _handle_facture(request.files)
 
             e = Expense(
                 organization_id=org.id,
@@ -84,6 +87,7 @@ def expenses():
                 facture_data=facture_data,
                 facture_mime=facture_mime,
                 facture_nom=facture_nom,
+                facture_url=facture_url,
             )
             db.session.add(e)
             db.session.commit()
@@ -132,12 +136,14 @@ def edit_expense(expense_id):
 
         # Facture : nouveau fichier ou suppression
         if request.form.get('supprimer_facture') == '1':
+            _storage_delete(e.facture_url)
             e.facture_data = None
             e.facture_mime = None
             e.facture_nom  = None
+            e.facture_url  = None
         else:
-            e.facture_data, e.facture_mime, e.facture_nom = _handle_facture(
-                request.files, e.facture_data, e.facture_mime, e.facture_nom)
+            e.facture_data, e.facture_mime, e.facture_nom, e.facture_url = _handle_facture(
+                request.files, e.facture_data, e.facture_mime, e.facture_nom, e.facture_url)
 
         db.session.commit()
         flash('Dépense modifiée', 'success')
@@ -155,8 +161,11 @@ def edit_expense(expense_id):
 @subscription_required
 def expense_facture(expense_id):
     """Affiche ou télécharge la facture jointe à une dépense."""
+    from flask import redirect as _redirect
     org = current_organization()
     e = Expense.query.filter_by(id=expense_id, organization_id=org.id).first_or_404()
+    if e.facture_url:
+        return _redirect(e.facture_url)
     if not e.facture_data:
         abort(404)
     raw = base64.b64decode(e.facture_data)

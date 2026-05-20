@@ -5,6 +5,7 @@ from models import Litige, AutreLitige, LitigeDocument, Apartment, Intervenant
 from utils import (current_user, current_organization, login_required,
                    admin_required, subscription_required, get_unpaid_months_count)
 from datetime import datetime, date
+from storage_helper import upload_file as _storage_upload, delete_file as _storage_delete
 
 SEUIL_ALERTE = 3   # mois impayés avant de proposer un litige
 MAX_DOC_BYTES = 10 * 1024 * 1024   # 10 Mo
@@ -17,17 +18,20 @@ STATUS_LABELS = {
 }
 
 
-def _read_file(file_storage):
-    """Lit un fichier uploadé, retourne (b64, mime, nom) ou lève ValueError."""
+def _read_file(file_storage, folder='litiges'):
+    """Lit un fichier uploadé. Retourne (b64_or_None, mime, nom, url_or_None)."""
     if not file_storage or file_storage.filename == '':
-        return None, None, None
+        return None, None, None, None
     mime = file_storage.mimetype
     if mime not in ALLOWED_MIMES:
         raise ValueError('Format non accepté (JPG, PNG, PDF uniquement).')
     raw = file_storage.read()
     if len(raw) > MAX_DOC_BYTES:
         raise ValueError('Fichier trop lourd (max 10 Mo).')
-    return base64.b64encode(raw).decode(), mime, file_storage.filename
+    url = _storage_upload(raw, mime, folder=folder)
+    if url:
+        return None, mime, file_storage.filename, url
+    return base64.b64encode(raw).decode(), mime, file_storage.filename, None
 
 
 def _default_letter(org, apt, unpaid_count, amount_due):
@@ -178,9 +182,9 @@ def litige_detail(litige_id):
 
         elif action == 'upload_accuse':
             try:
-                d, m, n = _read_file(request.files.get('accuse_file'))
-                if d:
-                    l.accuse_data, l.accuse_mime, l.accuse_nom = d, m, n
+                d, m, n, u = _read_file(request.files.get('accuse_file'), folder='litiges')
+                if m:
+                    l.accuse_data, l.accuse_mime, l.accuse_nom, l.accuse_url = d, m, n, u
                     db.session.commit()
                     flash('Accusé de réception enregistré.', 'success')
             except ValueError as e:
@@ -188,9 +192,9 @@ def litige_detail(litige_id):
 
         elif action == 'upload_decharge':
             try:
-                d, m, n = _read_file(request.files.get('decharge_file'))
-                if d:
-                    l.decharge_data, l.decharge_mime, l.decharge_nom = d, m, n
+                d, m, n, u = _read_file(request.files.get('decharge_file'), folder='litiges')
+                if m:
+                    l.decharge_data, l.decharge_mime, l.decharge_nom, l.decharge_url = d, m, n, u
                     db.session.commit()
                     flash('Décharge enregistrée.', 'success')
             except ValueError as e:
@@ -220,8 +224,11 @@ def litige_detail(litige_id):
 @admin_required
 @subscription_required
 def litige_accuse(litige_id):
+    from flask import redirect as _redirect
     org = current_organization()
     l = Litige.query.filter_by(id=litige_id, organization_id=org.id).first_or_404()
+    if l.accuse_url:
+        return _redirect(l.accuse_url)
     if not l.accuse_data:
         abort(404)
     buf = io.BytesIO(base64.b64decode(l.accuse_data))
@@ -236,8 +243,11 @@ def litige_accuse(litige_id):
 @admin_required
 @subscription_required
 def litige_decharge(litige_id):
+    from flask import redirect as _redirect
     org = current_organization()
     l = Litige.query.filter_by(id=litige_id, organization_id=org.id).first_or_404()
+    if l.decharge_url:
+        return _redirect(l.decharge_url)
     if not l.decharge_data:
         abort(404)
     buf = io.BytesIO(base64.b64decode(l.decharge_data))
@@ -299,10 +309,10 @@ def autre_litige_dossier(al_id):
 
         if action == 'upload':
             try:
-                d, m, n = _read_file(request.files.get('document'))
+                d, m, n, u = _read_file(request.files.get('document'), folder='litiges_docs')
                 nom_custom = request.form.get('doc_nom', '').strip() or n
-                if d:
-                    doc = LitigeDocument(litige_id=al.id, nom=nom_custom[:200], data=d, mime=m)
+                if m:
+                    doc = LitigeDocument(litige_id=al.id, nom=nom_custom[:200], data=d, mime=m, url=u)
                     db.session.add(doc)
                     db.session.commit()
                     flash(f'Document « {nom_custom} » ajouté.', 'success')
@@ -336,9 +346,14 @@ def autre_litige_dossier(al_id):
 @admin_required
 @subscription_required
 def autre_litige_doc(al_id, doc_id):
+    from flask import redirect as _redirect
     org = current_organization()
     al  = AutreLitige.query.filter_by(id=al_id, organization_id=org.id).first_or_404()
     doc = LitigeDocument.query.filter_by(id=doc_id, litige_id=al.id).first_or_404()
+    if doc.url:
+        return _redirect(doc.url)
+    if not doc.data:
+        abort(404)
     buf = io.BytesIO(base64.b64decode(doc.data))
     buf.seek(0)
     return send_file(buf, mimetype=doc.mime,

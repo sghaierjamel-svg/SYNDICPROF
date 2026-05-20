@@ -28,7 +28,7 @@
                     {% if pr.bank_reference %} | Réf : {{ pr.bank_reference }}{% endif %}
                 </div>
             </div>
-            {% if pr.photo_data %}
+            {% if pr.photo_url or pr.photo_data %}
             <a href="{{ url_for('virement_photo', pr_id=pr.id) }}" target="_blank"
                class="btn btn-sm btn-outline-secondary">
                 <i class="bi bi-image"></i>

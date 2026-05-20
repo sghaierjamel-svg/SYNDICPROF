@@ -182,7 +182,7 @@
     <div class="card mb-4">
         <div class="card-header"><i class="bi bi-envelope-check"></i> Accusé de réception (AR)</div>
         <div class="card-body">
-            {% if l.accuse_data %}
+            {% if l.accuse_url or l.accuse_data %}
             <div class="mb-3 p-2 rounded" style="background:rgba(0,200,150,0.08);border:1px solid rgba(0,200,150,0.15);">
                 <div class="d-flex align-items-center gap-2">
                     {% if l.accuse_mime == 'application/pdf' %}
@@ -223,7 +223,7 @@
     <div class="card mb-4">
         <div class="card-header"><i class="bi bi-file-earmark-check"></i> Décharge / Règlement</div>
         <div class="card-body">
-            {% if l.decharge_data %}
+            {% if l.decharge_url or l.decharge_data %}
             <div class="mb-3 p-2 rounded" style="background:rgba(0,200,150,0.08);border:1px solid rgba(0,200,150,0.15);">
                 <div class="d-flex align-items-center gap-2">
                     {% if l.decharge_mime == 'application/pdf' %}

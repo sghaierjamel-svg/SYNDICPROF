@@ -153,7 +153,7 @@
                                     {{ e.description or '' }}
                                 </td>
                                 <td>
-                                    {% if e.facture_data %}
+                                    {% if e.facture_url or e.facture_data %}
                                         {% if e.facture_mime == 'application/pdf' %}
                                         <a href="{{ url_for('expense_facture', expense_id=e.id) }}"
                                            target="_blank" title="{{ e.facture_nom or 'Facture' }}"

@@ -13,6 +13,7 @@ from utils import current_user, current_organization, login_required, subscripti
 from datetime import datetime, date
 import secrets
 import base64
+from storage_helper import upload_file as _storage_upload
 
 
 # ─── Résident — soumettre un virement ────────────────────────────────────────
@@ -46,7 +47,7 @@ def virement_soumettre():
         return redirect(url_for('residents_menu'))
 
     # Photo de la décharge (optionnelle mais recommandée)
-    photo_data = photo_mime = None
+    photo_data = photo_mime = photo_url = None
     photo = request.files.get('photo_decharge')
     if photo and photo.filename:
         data = photo.read()
@@ -56,8 +57,10 @@ def virement_soumettre():
         if photo.mimetype not in ('image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'):
             flash('Format non supporté. Utilisez JPEG, PNG, WEBP ou PDF.', 'warning')
             return redirect(url_for('residents_menu'))
-        photo_data = base64.b64encode(data).decode('utf-8')
         photo_mime = photo.mimetype
+        photo_url = _storage_upload(data, photo.mimetype, folder='virements')
+        if not photo_url:
+            photo_data = base64.b64encode(data).decode('utf-8')
 
     # Idempotence : pas 2 demandes en attente pour le même mois
     existing = PaymentRequest.query.filter_by(
@@ -79,6 +82,7 @@ def virement_soumettre():
         bank_reference=bank_reference or None,
         photo_data=photo_data,
         photo_mime=photo_mime,
+        photo_url=photo_url,
         confirm_token=secrets.token_hex(32),
     )
     db.session.add(pr)
@@ -250,10 +254,12 @@ def virements_liste():
 @app.route('/payments/virement/<int:pr_id>/photo')
 @login_required
 def virement_photo(pr_id):
-    from flask import Response
+    from flask import Response, redirect as _redirect
     user = current_user()
     org  = current_organization()
     pr = PaymentRequest.query.filter_by(id=pr_id, organization_id=org.id).first_or_404()
+    if pr.photo_url:
+        return _redirect(pr.photo_url)
     if not pr.photo_data:
         abort(404)
     raw = base64.b64decode(pr.photo_data)

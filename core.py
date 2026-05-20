@@ -70,8 +70,8 @@ def add_security_headers(response):
         "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
         "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net fonts.googleapis.com; "
         "font-src 'self' fonts.gstatic.com cdn.jsdelivr.net; "
-        "img-src 'self' data: blob:; "
-        "connect-src 'self'; "
+        "img-src 'self' data: blob: https://yzbxmhevalvjsfvqvllr.supabase.co; "
+        "connect-src 'self' https://yzbxmhevalvjsfvqvllr.supabase.co; "
         "frame-ancestors 'none';"
     )
     return response

@@ -6,6 +6,7 @@ from utils import (current_user, current_organization, login_required,
 from datetime import datetime
 from utils_whatsapp import notify_ticket_created, notify_ticket_response
 import base64
+from storage_helper import upload_file as _storage_upload
 
 
 @app.route('/tickets', methods=['GET', 'POST'])
@@ -44,8 +45,12 @@ def tickets():
             if len(data) > 3 * 1024 * 1024:
                 flash('La photo ne doit pas dépasser 3 Mo.', 'warning')
                 return redirect(url_for('tickets'))
-            ticket.photo_data = base64.b64encode(data).decode('utf-8')
             ticket.photo_mime = photo.mimetype
+            url = _storage_upload(data, photo.mimetype, folder='tickets')
+            if url:
+                ticket.photo_url = url
+            else:
+                ticket.photo_data = base64.b64encode(data).decode('utf-8')
         db.session.add(ticket)
         db.session.commit()
         flash('Ticket créé avec succès', 'success')

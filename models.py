@@ -158,9 +158,10 @@ class AppelFonds(db.Model):
     date_echeance   = db.Column(db.Date, nullable=True)
     status          = db.Column(db.String(20), default='ouvert')   # ouvert / clos
     # Devis du projet (fichier joint)
-    devis_data      = db.Column(db.Text)       # base64
+    devis_data      = db.Column(db.Text)       # base64 (legacy)
     devis_mime      = db.Column(db.String(30))
     devis_nom       = db.Column(db.String(200))
+    devis_url       = db.Column(db.Text)
     created_at      = db.Column(db.DateTime, default=datetime.utcnow)
     quotas    = db.relationship('AppelFondsQuota',    backref='appel', cascade='all, delete-orphan', lazy=True)
     paiements = db.relationship('AppelFondsPaiement', backref='appel', cascade='all, delete-orphan', lazy=True)
@@ -202,9 +203,10 @@ class AppelFondsDepense(db.Model):
     libelle         = db.Column(db.String(200), nullable=False)
     notes           = db.Column(db.Text)
     # Facture / devis joint
-    facture_data    = db.Column(db.Text)       # base64
+    facture_data    = db.Column(db.Text)       # base64 (legacy)
     facture_mime    = db.Column(db.String(30))
     facture_nom     = db.Column(db.String(200))
+    facture_url     = db.Column(db.Text)
     created_at      = db.Column(db.DateTime, default=datetime.utcnow)
 
 
@@ -216,9 +218,10 @@ class Expense(db.Model):
     category = db.Column(db.String(120))
     description = db.Column(db.String(300))
     intervenant_id = db.Column(db.Integer, db.ForeignKey('intervenant.id'), nullable=True)
-    facture_data = db.Column(db.Text, nullable=True)   # base64
+    facture_data = db.Column(db.Text, nullable=True)   # base64 (legacy)
     facture_mime = db.Column(db.String(30), nullable=True)
     facture_nom  = db.Column(db.String(200), nullable=True)
+    facture_url  = db.Column(db.Text, nullable=True)
     intervenant  = db.relationship('Intervenant', backref='expenses', lazy=True)
 
 
@@ -234,8 +237,9 @@ class Ticket(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     admin_response = db.Column(db.Text)
-    photo_data = db.Column(db.Text, nullable=True)   # base64 encodé
-    photo_mime = db.Column(db.String(30), nullable=True)  # image/jpeg etc.
+    photo_data = db.Column(db.Text, nullable=True)   # base64 (legacy)
+    photo_mime = db.Column(db.String(30), nullable=True)
+    photo_url  = db.Column(db.Text, nullable=True)
     user = db.relationship('User', backref='tickets')
 
 
@@ -408,12 +412,14 @@ class Litige(db.Model):
     huissier_id     = db.Column(db.Integer, db.ForeignKey('intervenant.id'), nullable=True)
     letter_content  = db.Column(db.Text, nullable=True)
     letter_sent_at  = db.Column(db.DateTime, nullable=True)
-    accuse_data     = db.Column(db.Text, nullable=True)   # base64
+    accuse_data     = db.Column(db.Text, nullable=True)   # base64 (legacy)
     accuse_mime     = db.Column(db.String(30), nullable=True)
     accuse_nom      = db.Column(db.String(200), nullable=True)
-    decharge_data   = db.Column(db.Text, nullable=True)   # base64
+    accuse_url      = db.Column(db.Text, nullable=True)
+    decharge_data   = db.Column(db.Text, nullable=True)   # base64 (legacy)
     decharge_mime   = db.Column(db.String(30), nullable=True)
     decharge_nom    = db.Column(db.String(200), nullable=True)
+    decharge_url    = db.Column(db.Text, nullable=True)
     notes           = db.Column(db.Text, nullable=True)
     apartment       = db.relationship('Apartment', backref='litiges', lazy=True)
     huissier        = db.relationship('Intervenant', backref='litiges_geres', lazy=True)
@@ -438,8 +444,9 @@ class LitigeDocument(db.Model):
     id          = db.Column(db.Integer, primary_key=True)
     litige_id   = db.Column(db.Integer, db.ForeignKey('autre_litige.id'), nullable=False)
     nom         = db.Column(db.String(200), nullable=False)
-    data        = db.Column(db.Text, nullable=False)   # base64
+    data        = db.Column(db.Text)                   # base64 (legacy)
     mime        = db.Column(db.String(30), nullable=False)
+    url         = db.Column(db.Text)
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
@@ -521,8 +528,9 @@ class PaymentRequest(db.Model):
     amount_declared = db.Column(db.Float, nullable=False)        # montant déclaré par le résident
     bank_reference  = db.Column(db.String(200))                  # référence virement
     # Photo de la décharge / reçu bancaire
-    photo_data      = db.Column(db.Text)                         # base64
+    photo_data      = db.Column(db.Text)                         # base64 (legacy)
     photo_mime      = db.Column(db.String(30))
+    photo_url       = db.Column(db.Text)
     # Token sécurisé pour lien de confirmation admin
     confirm_token   = db.Column(db.String(64), unique=True, nullable=False)
     # Statut : en_attente / confirme / rejete
@@ -1443,6 +1451,29 @@ def init_db():
                 print("Table site_visit créée/vérifiée (SQLite).")
     except Exception as e:
         print(f"Migration site_visit : {e}")
+
+    # Migration : colonnes *_url pour Supabase Storage
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                storage_cols = [
+                    ("appel_fonds",         "devis_url",     "TEXT"),
+                    ("appel_fonds_depense",  "facture_url",   "TEXT"),
+                    ("expense",              "facture_url",   "TEXT"),
+                    ("ticket",               "photo_url",     "TEXT"),
+                    ("litige",               "accuse_url",    "TEXT"),
+                    ("litige",               "decharge_url",  "TEXT"),
+                    ("litige_document",      "url",           "TEXT"),
+                    ("payment_request",      "photo_url",     "TEXT"),
+                ]
+                for table, col, col_type in storage_cols:
+                    conn.execute(db.text(
+                        f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {col_type}"
+                    ))
+                conn.commit()
+                print("Migration Storage URLs : colonnes *_url vérifiées.")
+    except Exception as e:
+        print(f"Migration Storage URLs : {e}")
 
     if not User.query.filter_by(email='superadmin@syndicpro.tn').first():
         # CRIT-003 : SUPERADMIN_PASSWORD obligatoire et >= 16 caractères

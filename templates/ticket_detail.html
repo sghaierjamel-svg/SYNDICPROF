@@ -66,14 +66,22 @@
                 </div>
 
                 <!-- Photo jointe -->
-                {% if ticket.photo_data %}
+                {% if ticket.photo_url or ticket.photo_data %}
                 <div class="mb-4">
                     <h6><i class="bi bi-image"></i> Photo jointe</h6>
+                    {% if ticket.photo_url %}
+                    <a href="{{ ticket.photo_url }}" target="_blank">
+                        <img src="{{ ticket.photo_url }}"
+                             alt="Photo du ticket"
+                             style="max-width:100%;max-height:400px;border-radius:8px;border:1px solid var(--border);cursor:zoom-in;">
+                    </a>
+                    {% else %}
                     <a href="data:{{ ticket.photo_mime }};base64,{{ ticket.photo_data }}" target="_blank">
                         <img src="data:{{ ticket.photo_mime }};base64,{{ ticket.photo_data }}"
                              alt="Photo du ticket"
                              style="max-width:100%;max-height:400px;border-radius:8px;border:1px solid var(--border);cursor:zoom-in;">
                     </a>
+                    {% endif %}
                 </div>
                 {% endif %}
 

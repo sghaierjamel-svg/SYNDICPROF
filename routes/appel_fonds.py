@@ -4,20 +4,25 @@ from core import app, db
 from models import AppelFonds, AppelFondsQuota, AppelFondsPaiement, AppelFondsDepense, Apartment
 from utils import current_user, current_organization, login_required, admin_required, subscription_required
 from datetime import datetime, date
+from storage_helper import upload_file as _storage_upload
 
 MAX_FILE_BYTES = 10 * 1024 * 1024
 ALLOWED_MIMES  = {'image/jpeg', 'image/png', 'image/webp', 'application/pdf'}
 
 
-def _read_file(fs):
+def _read_file(fs, folder='appels_fonds'):
+    """Lit un fichier uploadé. Retourne (b64_or_None, mime, nom, url_or_None)."""
     if not fs or fs.filename == '':
-        return None, None, None
+        return None, None, None, None
     if fs.mimetype not in ALLOWED_MIMES:
         raise ValueError('Format non accepté (JPG, PNG, PDF uniquement).')
     raw = fs.read()
     if len(raw) > MAX_FILE_BYTES:
         raise ValueError('Fichier trop lourd (max 10 Mo).')
-    return base64.b64encode(raw).decode(), fs.mimetype, fs.filename
+    url = _storage_upload(raw, fs.mimetype, folder=folder)
+    if url:
+        return None, fs.mimetype, fs.filename, url
+    return base64.b64encode(raw).decode(), fs.mimetype, fs.filename, None
 
 
 def _appel_stats(appel):
@@ -133,9 +138,9 @@ def appel_fonds_detail(af_id):
 
         elif action == 'upload_devis':
             try:
-                d, m, n = _read_file(request.files.get('devis_file'))
-                if d:
-                    af.devis_data, af.devis_mime, af.devis_nom = d, m, n
+                d, m, n, u = _read_file(request.files.get('devis_file'), folder='appels_fonds')
+                if m:
+                    af.devis_data, af.devis_mime, af.devis_nom, af.devis_url = d, m, n, u
                     db.session.commit()
                     flash('Devis enregistré.', 'success')
             except ValueError as e:
@@ -193,9 +198,9 @@ def appel_fonds_detail(af_id):
                 )
                 # Fichier joint (facture)
                 try:
-                    d, m, n = _read_file(request.files.get('facture_file'))
-                    if d:
-                        dep.facture_data, dep.facture_mime, dep.facture_nom = d, m, n
+                    d, m, n, u = _read_file(request.files.get('facture_file'), folder='appels_fonds')
+                    if m:
+                        dep.facture_data, dep.facture_mime, dep.facture_nom, dep.facture_url = d, m, n, u
                 except ValueError as e:
                     flash(str(e), 'warning')
                 db.session.add(dep)
@@ -234,8 +239,11 @@ def appel_fonds_detail(af_id):
 @login_required
 @subscription_required
 def appel_fonds_devis(af_id):
+    from flask import redirect as _redirect
     org = current_organization()
     af  = AppelFonds.query.filter_by(id=af_id, organization_id=org.id).first_or_404()
+    if af.devis_url:
+        return _redirect(af.devis_url)
     if not af.devis_data:
         abort(404)
     buf = io.BytesIO(base64.b64decode(af.devis_data))
@@ -251,9 +259,12 @@ def appel_fonds_devis(af_id):
 @login_required
 @subscription_required
 def appel_fonds_facture(af_id, dep_id):
+    from flask import redirect as _redirect
     org = current_organization()
     af  = AppelFonds.query.filter_by(id=af_id, organization_id=org.id).first_or_404()
     dep = AppelFondsDepense.query.filter_by(id=dep_id, appel_id=af_id).first_or_404()
+    if dep.facture_url:
+        return _redirect(dep.facture_url)
     if not dep.facture_data:
         abort(404)
     buf = io.BytesIO(base64.b64decode(dep.facture_data))

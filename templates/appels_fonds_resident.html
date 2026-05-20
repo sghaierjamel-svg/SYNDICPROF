@@ -35,7 +35,7 @@
                 </small>
                 {% endif %}
             </div>
-            {% if af.devis_data %}
+            {% if af.devis_url or af.devis_data %}
             <a href="{{ url_for('appel_fonds_devis', af_id=af.id) }}" target="_blank"
                class="btn btn-sm btn-outline-primary">
                 <i class="bi bi-file-earmark-text"></i> Voir le devis

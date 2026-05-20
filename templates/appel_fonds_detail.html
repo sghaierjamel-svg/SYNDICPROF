@@ -280,7 +280,7 @@
                     {{ dep.date.strftime('%d/%m/%Y') }}
                     {% if dep.notes %} · {{ dep.notes[:60] }}{% endif %}
                 </div>
-                {% if dep.facture_data %}
+                {% if dep.facture_url or dep.facture_data %}
                 <a href="{{ url_for('appel_fonds_facture', af_id=af.id, dep_id=dep.id) }}"
                    target="_blank" style="color:#60A5FA;font-size:.75rem;">
                     <i class="bi bi-paperclip"></i> {{ dep.facture_nom or 'Facture' }}
@@ -361,7 +361,7 @@
     <div class="card mb-4">
         <div class="card-header"><i class="bi bi-file-earmark-text"></i> Devis du projet</div>
         <div class="card-body">
-            {% if af.devis_data %}
+            {% if af.devis_url or af.devis_data %}
             <div class="mb-3 p-2 rounded" style="background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.2);">
                 <div class="d-flex align-items-center gap-2">
                     {% if af.devis_mime == 'application/pdf' %}
