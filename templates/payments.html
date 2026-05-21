@@ -82,7 +82,7 @@
     <div class="pay-card active" data-target="sec-enc" onclick="openSection('sec-enc', this)">
         <i class="bi bi-house-door" style="color:#00C896;"></i>
         <div class="card-label">Encaissements</div>
-        <div class="card-badge">{{ payments|length }}</div>
+        <div class="card-badge">{{ payments_pagination.total }}</div>
     </div>
     <div class="pay-card" data-target="sec-div" onclick="openSection('sec-div', this)">
         <i class="bi bi-collection" style="color:#818CF8;"></i>
