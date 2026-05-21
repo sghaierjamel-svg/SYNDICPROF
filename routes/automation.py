@@ -161,16 +161,16 @@ def pdf_report():
     row("Appartements total :", len(apartments))
     row("Payés ce mois :", f"{len(paid_ids)} / {len(apartments)}")
     row("Impayés ce mois :", len(apartments) - len(paid_ids))
-    row("Encaissements du mois :", f"{encaisse_mois:.2f} DT")
-    row("Dépenses du mois :", f"{depenses_mois:.2f} DT")
-    row("Solde du mois :", f"{encaisse_mois - depenses_mois:.2f} DT", bold=True)
+    row("Encaissements du mois :", f"{encaisse_mois:.3f} DT")
+    row("Dépenses du mois :", f"{depenses_mois:.3f} DT")
+    row("Solde du mois :", f"{encaisse_mois - depenses_mois:.3f} DT", bold=True)
     pdf.ln(4)
 
     # Trésorerie cumulée
     section("  Trésorerie cumulée")
-    row("Total encaissé (historique) :", f"{total_encaisse:.2f} DT")
-    row("Total dépenses (historique) :", f"{total_depenses:.2f} DT")
-    row("Solde général :", f"{total_encaisse - total_depenses:.2f} DT", bold=True)
+    row("Total encaissé (historique) :", f"{total_encaisse:.3f} DT")
+    row("Total dépenses (historique) :", f"{total_depenses:.3f} DT")
+    row("Solde général :", f"{total_encaisse - total_depenses:.3f} DT", bold=True)
     pdf.ln(4)
 
     # Encaissements du mois
@@ -191,7 +191,7 @@ def pdf_report():
             pdf.set_text_color(50, 50, 50)
             apt_label = f"{p.apartment.block.name}-{p.apartment.number}"
             pdf.cell(55, 6, apt_label)
-            pdf.cell(35, 6, f"{p.amount:.2f} DT")
+            pdf.cell(35, 6, f"{p.amount:.3f} DT")
             pdf.cell(40, 6, p.payment_date.strftime('%d/%m/%Y'))
             pdf.cell(0, 6, p.month_paid, ln=True)
         pdf.ln(4)
@@ -233,7 +233,7 @@ def pdf_report():
             pdf.set_font('Helvetica', '', 9)
             pdf.set_text_color(50, 50, 50)
             pdf.cell(55, 6, e.expense_date.strftime('%d/%m/%Y'))
-            pdf.cell(35, 6, f"{e.amount:.2f} DT")
+            pdf.cell(35, 6, f"{e.amount:.3f} DT")
             pdf.cell(50, 6, (e.category or '')[:20])
             pdf.cell(0, 6, (e.description or '')[:30], ln=True)
 

@@ -41,7 +41,7 @@ Tu ne dois JAMAIS reveler de donnees personnelles (noms, emails, telephones) des
 ## Donnees actuelles
 
 Appartements : {len(apartments)} | Payes ce mois : {len(paid_ids)}/{len(apartments)} | Impayes : {len(unpaid_apts)}
-Total encaisse : {total_encaisse:.2f} DT | Total depenses : {total_depenses:.2f} DT | Solde : {total_encaisse - total_depenses:.2f} DT
+Total encaisse : {total_encaisse:.3f} DT | Total depenses : {total_depenses:.3f} DT | Solde : {total_encaisse - total_depenses:.3f} DT
 Tickets ouverts : {len(open_tickets)} / {len(tickets)}
 
 Appartements impayes ce mois :

@@ -21,7 +21,7 @@
                 <div style="font-weight:600;color:var(--text);">{{ apt_label }}</div>
                 <div style="font-size:.82rem;color:var(--muted);">
                     {{ pr.user.name or pr.user.email }} — {{ pr.month_target }}
-                    — {{ '{:.2f}'.format(pr.amount_declared) }} DT déclaré
+                    — {{ '{:.3f}'.format(pr.amount_declared) }} DT déclaré
                 </div>
                 <div style="font-size:.75rem;color:var(--muted);">
                     Soumis le {{ pr.created_at.strftime('%d/%m/%Y à %H:%M') }}
@@ -74,14 +74,14 @@
                         <td>{{ apt_label }}</td>
                         <td>{{ pr.user.name or pr.user.email }}</td>
                         <td>{{ pr.month_target }}</td>
-                        <td>{{ '{:.2f}'.format(pr.amount_declared) }} DT</td>
+                        <td>{{ '{:.3f}'.format(pr.amount_declared) }} DT</td>
                         <td>
                             {% if pr.amount_confirmed is not none %}
-                            {{ '{:.2f}'.format(pr.amount_confirmed) }} DT
+                            {{ '{:.3f}'.format(pr.amount_confirmed) }} DT
                             {% else %}—{% endif %}
                         </td>
                         <td>
-                            {% if pr.bank_fees %}{{ '{:.2f}'.format(pr.bank_fees) }} DT
+                            {% if pr.bank_fees %}{{ '{:.3f}'.format(pr.bank_fees) }} DT
                             {% else %}—{% endif %}
                         </td>
                         <td>

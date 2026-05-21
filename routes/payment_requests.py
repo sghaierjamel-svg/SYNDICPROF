@@ -198,7 +198,7 @@ def confirm_virement(token):
 
         months_label = ', '.join(created_months) if created_months else pr.month_target
         flash(
-            f'Virement de {amount_confirmed:.2f} DT confirmé pour {apt_label} — '
+            f'Virement de {amount_confirmed:.3f} DT confirmé pour {apt_label} — '
             f'{len(created_months)} mois crédité(s) : {months_label}.',
             'success'
         )
@@ -210,7 +210,7 @@ def confirm_virement(token):
             push_to_admins(
                 org.id,
                 title=f"✅ Virement confirmé — Apt {apt_label}",
-                body=f"Mois : {pr.month_target} | Montant : {amount_confirmed:.2f} DT",
+                body=f"Mois : {pr.month_target} | Montant : {amount_confirmed:.3f} DT",
                 url="/payments",
                 tag=f"virement-admin-{pr.id}",
             )
@@ -276,7 +276,7 @@ def _notify_admin_virement(org, apt, resident, pr):
     title = f"💸 Virement reçu — Apt {apt_label}"
     body  = (
         f"Résident : {resident.name or resident.email}\n"
-        f"Mois : {pr.month_target} | Montant déclaré : {pr.amount_declared:.2f} DT"
+        f"Mois : {pr.month_target} | Montant déclaré : {pr.amount_declared:.3f} DT"
     )
 
     # Push
@@ -298,7 +298,7 @@ def _notify_admin_virement(org, apt, resident, pr):
                 f"Appartement : {apt_label}\n"
                 f"Résident : {resident.name or resident.email}\n"
                 f"Mois : {pr.month_target}\n"
-                f"Montant déclaré : {pr.amount_declared:.2f} DT\n"
+                f"Montant déclaré : {pr.amount_declared:.3f} DT\n"
                 + (f"Réf. virement : {pr.bank_reference}\n" if pr.bank_reference else '') +
                 f"\n✅ Confirmer en 1 clic :\n{confirm_url}"
             )
@@ -314,7 +314,7 @@ def _notify_resident_virement(org, pr, confirme=True):
         if confirme:
             title = "✅ Virement confirmé"
             body  = (
-                f"Votre virement de {pr.amount_confirmed:.2f} DT a été validé.\n"
+                f"Votre virement de {pr.amount_confirmed:.3f} DT a été validé.\n"
                 f"Mois : {pr.month_target}"
             )
         else:

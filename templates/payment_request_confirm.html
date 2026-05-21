@@ -20,7 +20,7 @@
     {% if pr.status == 'confirme' %}
     <i class="bi bi-check-circle-fill"></i> Ce virement a déjà été <strong>confirmé</strong>
     le {{ pr.confirmed_at.strftime('%d/%m/%Y à %H:%M') }}.
-    Montant enregistré : <strong>{{ '{:.2f}'.format(pr.amount_confirmed) }} DT</strong>.
+    Montant enregistré : <strong>{{ '{:.3f}'.format(pr.amount_confirmed) }} DT</strong>.
     {% else %}
     <i class="bi bi-x-circle-fill"></i> Ce virement a été <strong>rejeté</strong>.
     {% endif %}
@@ -48,7 +48,7 @@
                     </tr>
                     <tr>
                         <td style="color:var(--muted);">Montant déclaré</td>
-                        <td><strong style="color:var(--accent);font-size:1.05rem;">{{ '{:.2f}'.format(pr.amount_declared) }} DT</strong></td>
+                        <td><strong style="color:var(--accent);font-size:1.05rem;">{{ '{:.3f}'.format(pr.amount_declared) }} DT</strong></td>
                     </tr>
                     {% if pr.bank_reference %}
                     <tr>
@@ -122,7 +122,7 @@
                             <strong style="color:#00C896;">Mois qui seront crédités</strong>
                         </div>
                         <div style="color:var(--muted);font-size:.78rem;margin-bottom:.5rem;">
-                            Redevance : <strong style="color:var(--text);">{{ '{:.2f}'.format(apt.monthly_fee) }} DT / mois</strong>
+                            Redevance : <strong style="color:var(--text);">{{ '{:.3f}'.format(apt.monthly_fee) }} DT / mois</strong>
                             &nbsp;·&nbsp;
                             Premier mois : <strong style="color:var(--text);">{{ pr.month_target }}</strong>
                         </div>
@@ -214,7 +214,7 @@
         if (!val || val <= 0) { calcResult.textContent = '—'; return; }
         const nb = Math.max(1, Math.floor(val / monthlyFee));
         const months = genMonths(startMonth, nb);
-        const amtPer = (val / nb).toFixed(2);
+        const amtPer = (val / nb).toFixed(3);
         calcResult.innerHTML =
             `<span style="color:#00C896;">${nb} mois</span> × ${amtPer} DT :<br>` +
             months.map(m => `<span class="badge me-1 mt-1" style="background:rgba(0,200,150,.2);color:#00C896;">${formatMonth(m)}</span>`).join('');

@@ -220,7 +220,7 @@
                         <div style="font-weight:600;color:#00C896;">
                             {% if last_payment %}
                                 {{ last_payment.payment_date.strftime('%d/%m/%Y') }}
-                                — {{ '{:.2f}'.format(last_payment.amount) }} DT
+                                — {{ '{:.3f}'.format(last_payment.amount) }} DT
                             {% else %}<span style="color:var(--muted);">Aucun</span>{% endif %}
                         </div>
                     </div>

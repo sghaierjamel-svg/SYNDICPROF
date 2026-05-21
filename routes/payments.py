@@ -46,7 +46,7 @@ def payments():
             total_available = amount + credit_used
 
             if credit_used > 0:
-                flash(f"Crédit utilisé : {credit_used:.2f} DT", "info")
+                flash(f"Crédit utilisé : {credit_used:.3f} DT", "info")
 
             months_to_pay = int(total_available // monthly_fee)
             new_remainder = total_available % monthly_fee
@@ -54,8 +54,8 @@ def payments():
             if months_to_pay == 0:
                 apt.credit_balance = total_available
                 db.session.commit()
-                flash(f"Montant ajouté au crédit : {amount:.2f} DT", "info")
-                flash(f"Crédit total : {apt.credit_balance:.2f} DT (sera utilisé au prochain paiement)", "success")
+                flash(f"Montant ajouté au crédit : {amount:.3f} DT", "info")
+                flash(f"Crédit total : {apt.credit_balance:.3f} DT (sera utilisé au prochain paiement)", "success")
                 return redirect(url_for('payments'))
 
             # Déterminer le mois de départ
@@ -118,7 +118,7 @@ def payments():
                 months_display = ", ".join(paid_months_list)
                 flash(f"Paiement enregistré avec succès !", "success")
                 flash(f"{months_actually_paid} mois payé(s) : {months_display}", "success")
-                flash(f"Montant total : {total_recorded_amount:.2f} DT", "info")
+                flash(f"Montant total : {total_recorded_amount:.3f} DT", "info")
                 # Notification WhatsApp + Push → admin
                 try:
                     resident = User.query.filter_by(apartment_id=apartment_id).first()
@@ -135,7 +135,7 @@ def payments():
                     push_to_admins(
                         org.id,
                         title=f"💰 Paiement reçu — Apt {apt_label}",
-                        body=f"Montant : {total_recorded_amount:.2f} DT\nMois : {months_str}\nRésident : {resident_name}",
+                        body=f"Montant : {total_recorded_amount:.3f} DT\nMois : {months_str}\nRésident : {resident_name}",
                         url="/payments",
                         tag=f"payment-{apartment_id}",
                     )
@@ -144,7 +144,7 @@ def payments():
                         push_to_user(
                             resident.id,
                             title=f"✅ Paiement confirmé",
-                            body=f"Votre paiement de {total_recorded_amount:.2f} DT a été enregistré.\nMois : {months_str}",
+                            body=f"Votre paiement de {total_recorded_amount:.3f} DT a été enregistré.\nMois : {months_str}",
                             url="/residents",
                             tag=f"payment-resident-{apartment_id}",
                         )
@@ -154,7 +154,7 @@ def payments():
                 flash("Aucun nouveau mois n'a été payé (tous les mois étaient déjà payés)", "warning")
 
             if new_remainder > 0:
-                flash(f"Nouveau crédit : {new_remainder:.2f} DT (sera utilisé automatiquement au prochain paiement)", "success")
+                flash(f"Nouveau crédit : {new_remainder:.3f} DT (sera utilisé automatiquement au prochain paiement)", "success")
             elif apt.credit_balance == 0 and months_actually_paid > 0:
                 flash(f"Montant exact, aucun crédit résiduel", "info")
 
@@ -245,7 +245,7 @@ def add_misc_receipt():
         )
         db.session.add(m)
         db.session.commit()
-        flash(f'Encaissement divers "{libelle}" enregistré ({amount:.2f} DT).', 'success')
+        flash(f'Encaissement divers "{libelle}" enregistré ({amount:.3f} DT).', 'success')
     except Exception as e:
         app.logger.error("ERREUR misc_receipt: %s", e, exc_info=True)
         flash('Une erreur est survenue.', 'danger')

@@ -103,7 +103,7 @@ def notify_payment(org, apt, month_paid: str, amount: float, resident=None):
         f"✅ *SyndicPro — Paiement reçu*\n"
         f"Appartement : {apt_label}\n"
         f"Mois : {month_paid}\n"
-        f"Montant : {amount:.2f} DT"
+        f"Montant : {amount:.3f} DT"
     )
     if resident:
         msg_admin += f"\nRésident : {resident.name or resident.email}"
@@ -114,7 +114,7 @@ def notify_payment(org, apt, month_paid: str, amount: float, resident=None):
     if resident and resident.phone:
         msg_resident = (
             f"✅ *SyndicPro — Paiement confirmé*\n"
-            f"Votre paiement de *{amount:.2f} DT* pour le mois *{month_paid}* "
+            f"Votre paiement de *{amount:.3f} DT* pour le mois *{month_paid}* "
             f"a bien été enregistré.\nMerci !"
         )
         send_whatsapp(org, resident.phone, msg_resident)

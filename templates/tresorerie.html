@@ -33,7 +33,7 @@
             <div class="card-body text-center">
                 <i class="bi bi-cash-coin" style="font-size: 2.5rem; opacity: 0.3; position: absolute; right: 20px; top: 15px;"></i>
                 <h6 class="text-uppercase mb-2" style="font-size: 0.85rem; font-weight: 600;">Total Encaissements</h6>
-                <h3 class="mb-0 fw-bold">{{ '{:,.2f}'.format(total_encaissements.value) }} DT</h3>
+                <h3 class="mb-0 fw-bold">{{ '{:,.3f}'.format(total_encaissements.value) }} DT</h3>
             </div>
         </div>
     </div>
@@ -43,7 +43,7 @@
             <div class="card-body text-center">
                 <i class="bi bi-credit-card" style="font-size: 2.5rem; opacity: 0.3; position: absolute; right: 20px; top: 15px;"></i>
                 <h6 class="text-uppercase mb-2" style="font-size: 0.85rem; font-weight: 600;">Total Dépenses</h6>
-                <h3 class="mb-0 fw-bold">{{ '{:,.2f}'.format(total_depenses.value) }} DT</h3>
+                <h3 class="mb-0 fw-bold">{{ '{:,.3f}'.format(total_depenses.value) }} DT</h3>
             </div>
         </div>
     </div>
@@ -53,7 +53,7 @@
             <div class="card-body text-center">
                 <i class="bi bi-piggy-bank" style="font-size: 2.5rem; opacity: 0.3; position: absolute; right: 20px; top: 15px;"></i>
                 <h6 class="text-uppercase mb-2" style="font-size: 0.85rem; font-weight: 600;">Solde Net</h6>
-                <h3 class="mb-0 fw-bold">{{ '{:,.2f}'.format(total_encaissements.value - total_depenses.value) }} DT</h3>
+                <h3 class="mb-0 fw-bold">{{ '{:,.3f}'.format(total_encaissements.value - total_depenses.value) }} DT</h3>
             </div>
         </div>
     </div>
@@ -231,7 +231,7 @@
                                     <td class="text-center amount-cell {% if amount > 0 %}positive-amount{% else %}empty-cell{% endif %}">
                                         {% if amount > 0 %}
                                             <span class="badge bg-success fw-bold">
-                                                {{ '{:,.2f}'.format(amount) }}
+                                                {{ '{:,.3f}'.format(amount) }}
                                             </span>
                                         {% else %}
                                             <span class="text-muted">-</span>
@@ -252,7 +252,7 @@
                                     <td class="text-center amount-cell">
                                         {% if amount > 0 %}
                                             <span class="badge" style="background:#60A5FA;color:#0A0E1A;">
-                                                +{{ '{:,.2f}'.format(amount) }}
+                                                +{{ '{:,.3f}'.format(amount) }}
                                             </span>
                                         {% else %}
                                             <span class="text-muted">-</span>
@@ -275,7 +275,7 @@
                                     <td class="text-center amount-cell">
                                         {% if amount > 0 %}
                                             <span class="badge bg-danger fw-bold">
-                                                -{{ '{:,.2f}'.format(amount) }}
+                                                -{{ '{:,.3f}'.format(amount) }}
                                             </span>
                                         {% else %}
                                             <span class="text-muted">-</span>
@@ -297,9 +297,9 @@
                                     {% set solde = solde_row.months[month_key] %}
                                     <td class="text-center fw-bold">
                                         {% if solde > 0 %}
-                                            <span class="badge bg-primary">+{{ '{:,.2f}'.format(solde) }}</span>
+                                            <span class="badge bg-primary">+{{ '{:,.3f}'.format(solde) }}</span>
                                         {% elif solde < 0 %}
-                                            <span class="badge bg-warning text-dark">{{ '{:,.2f}'.format(solde) }}</span>
+                                            <span class="badge bg-warning text-dark">{{ '{:,.3f}'.format(solde) }}</span>
                                         {% else %}
                                             <span class="badge bg-secondary">0.00</span>
                                         {% endif %}
