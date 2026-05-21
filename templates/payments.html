@@ -119,23 +119,23 @@
         <div class="card-body">
             <form method="POST" id="paymentForm" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="row g-3">
-                    <!-- Sélection Bloc -->
+                <div class="row g-2">
+                    <!-- Bloc (1 colonne étroite) -->
                     <div class="col-md-2">
-                        <label class="form-label">Bloc *</label>
-                        <select class="form-select" id="sel_block" onchange="filterApts()">
-                            <option value="">-- Bloc --</option>
+                        <label class="form-label fw-semibold" style="font-size:.82rem;">Bloc</label>
+                        <select class="form-select form-select-sm" id="sel_block" onchange="filterApts()" style="height:38px;">
+                            <option value="">— Bloc —</option>
                             {% for b in blocks %}
                             <option value="{{ b.id }}">{{ b.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <!-- Sélection Appartement (filtré par JS) -->
-                    <div class="col-md-3">
-                        <label class="form-label">Appartement *</label>
-                        <select class="form-select" id="apartment_id" name="apartment_id"
-                                required onchange="updateAptInfo()">
-                            <option value="">-- Choisir un bloc d'abord --</option>
+                    <!-- Appartement filtré par JS -->
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold" style="font-size:.82rem;">Appartement *</label>
+                        <select class="form-select form-select-sm" id="apartment_id" name="apartment_id"
+                                required onchange="updateAptInfo()" style="height:38px;">
+                            <option value="">— Choisir le bloc —</option>
                             {% for apt in apartments %}
                             <option value="{{ apt.id }}"
                                     data-block="{{ apt.block_id }}"
@@ -144,41 +144,44 @@
                                     data-next="{{ apt.next_unpaid }}"
                                     data-credit="{{ apt.credit_balance }}"
                                     style="display:none;">
-                                {{ apt.number }}
-                                ({{ '{:.0f}'.format(apt.monthly_fee) }} DT · {{ apt.unpaid_count }} impayé{% if apt.unpaid_count > 1 %}s{% endif %}{% if apt.credit_balance > 0 %} · crédit {{ '{:.0f}'.format(apt.credit_balance) }} DT{% endif %})
+                                {{ apt.number }} — {{ '{:.0f}'.format(apt.monthly_fee) }} DT{% if apt.unpaid_count > 0 %} · {{ apt.unpaid_count }} imp.{% endif %}{% if apt.credit_balance > 0 %} · cr.{{ '{:.0f}'.format(apt.credit_balance) }}{% endif %}
                             </option>
                             {% endfor %}
                         </select>
-                        <div id="aptInfo" class="d-none mt-2 p-2 rounded" style="background:rgba(0,200,150,0.07);border:1px solid rgba(0,200,150,0.2);font-size:.8rem;">
-                            <span id="aptInfoText"></span>
-                        </div>
                     </div>
                     <!-- Mode de paiement -->
                     <div class="col-md-2">
-                        <label class="form-label">Mode *</label>
-                        <select class="form-select" id="payment_mode" name="payment_mode" onchange="toggleCheque()">
+                        <label class="form-label fw-semibold" style="font-size:.82rem;">Mode *</label>
+                        <select class="form-select form-select-sm" id="payment_mode" name="payment_mode" onchange="toggleCheque()" style="height:38px;">
                             <option value="especes">💵 Espèces</option>
                             <option value="virement">🏦 Virement</option>
                             <option value="cheque">📝 Chèque</option>
                         </select>
                     </div>
+                    <!-- Montant -->
                     <div class="col-md-2">
-                        <label class="form-label">Montant (DT) *</label>
-                        <input type="number" step="0.001" class="form-control" id="amount" name="amount"
-                               placeholder="0.000" required oninput="calcMonths()">
-                        <div id="monthsInfo" class="mt-1" style="font-size:.75rem;"></div>
+                        <label class="form-label fw-semibold" style="font-size:.82rem;">Montant (DT) *</label>
+                        <input type="number" step="0.001" class="form-control form-control-sm" id="amount" name="amount"
+                               placeholder="0.000" required oninput="calcMonths()" style="height:38px;">
+                        <div id="monthsInfo" class="mt-1" style="font-size:.72rem;"></div>
                     </div>
+                    <!-- Date -->
                     <div class="col-md-2">
-                        <label class="form-label">Date *</label>
-                        <input type="date" class="form-control" id="payment_date" name="payment_date" required>
+                        <label class="form-label fw-semibold" style="font-size:.82rem;">Date *</label>
+                        <input type="date" class="form-control form-control-sm" id="payment_date" name="payment_date" required style="height:38px;">
                     </div>
-                    <div class="col-md-1">
-                        <label class="form-label">
-                            Mois départ
-                            <small style="color:var(--muted);">(vide=auto)</small>
+                    <!-- Mois de départ -->
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold" style="font-size:.82rem;" title="Laisser vide = automatique (premier mois impayé)">
+                            Mois départ <i class="bi bi-info-circle" style="font-size:.75rem;color:var(--muted);"></i>
                         </label>
-                        <input type="month" class="form-control" id="start_month" name="start_month">
+                        <input type="month" class="form-control form-control-sm" id="start_month" name="start_month"
+                               title="Laisser vide = automatique (premier mois impayé)" style="height:38px;">
                     </div>
+                </div>
+                <!-- Info appartement (s'affiche après sélection) -->
+                <div id="aptInfo" class="d-none mt-2 px-2 py-1 rounded" style="background:rgba(0,200,150,0.07);border:1px solid rgba(0,200,150,0.2);font-size:.78rem;">
+                    <span id="aptInfoText"></span>
                 </div>
 
                 <!-- Section chèque (affichée uniquement si mode = chèque) -->
