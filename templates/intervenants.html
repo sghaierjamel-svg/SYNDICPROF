@@ -41,24 +41,30 @@
                         <input class="form-control" name="nom" placeholder="Ben Ali">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Téléphone 1 (principal)</label>
+                        <label class="form-label">Téléphone (principal)</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-whatsapp" style="color:#25D366;"></i></span>
-                            <input class="form-control" name="telephone" placeholder="+216 XX XXX XXX">
+                            <input class="form-control" name="telephone" placeholder="+216 XX XXX XXX" id="tel1_add">
+                            <button type="button" class="btn btn-outline-secondary" id="btnAddTel2_add"
+                                    onclick="showTel2('add')" title="Ajouter un 2e numéro" style="padding:.375rem .6rem;">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Téléphone 2</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-telephone" style="color:#94a3b8;"></i></span>
-                            <input class="form-control" name="telephone2" placeholder="+216 XX XXX XXX">
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Téléphone 3</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-telephone" style="color:#94a3b8;"></i></span>
-                            <input class="form-control" name="telephone3" placeholder="+216 XX XXX XXX">
+                        <div id="tel2_wrap_add" style="display:none;margin-top:.4rem;">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-telephone" style="color:#94a3b8;"></i></span>
+                                <input class="form-control" name="telephone2" placeholder="2e numéro" id="tel2_add">
+                                <button type="button" class="btn btn-outline-secondary" id="btnAddTel3_add"
+                                        onclick="showTel3('add')" title="Ajouter un 3e numéro" style="padding:.375rem .6rem;">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                            <div id="tel3_wrap_add" style="display:none;margin-top:.4rem;">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-telephone" style="color:#94a3b8;"></i></span>
+                                    <input class="form-control" name="telephone3" placeholder="3e numéro" id="tel3_add">
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -190,4 +196,20 @@
 {% endfor %}
 
 {% endif %}
+
+{% block extra_js %}
+<script>
+function showTel2(ctx) {
+    document.getElementById('tel2_wrap_' + ctx).style.display = 'block';
+    document.getElementById('btnAddTel2_' + ctx).style.display = 'none';
+    document.getElementById('tel2_' + ctx).focus();
+}
+function showTel3(ctx) {
+    document.getElementById('tel3_wrap_' + ctx).style.display = 'block';
+    document.getElementById('btnAddTel3_' + ctx).style.display = 'none';
+    document.getElementById('tel3_' + ctx).focus();
+}
+</script>
+{% endblock %}
+
 {% endblock %}

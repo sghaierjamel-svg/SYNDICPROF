@@ -139,6 +139,12 @@
                     <i class="bi bi-file-earmark-pdf"></i> PDF
                 </a>
                 {% endif %}
+                {% if ag.status in ('planifiee', 'ouverte') and user.role == 'admin' and stats[ag.id].nb_items > 0 %}
+                <a href="{{ url_for('assembly_convocation_pdf', ag_id=ag.id) }}"
+                   class="btn btn-sm btn-outline-primary" title="Imprimer les convocations">
+                    <i class="bi bi-printer"></i> Convocations
+                </a>
+                {% endif %}
                 {% if user.role == 'admin' %}
                 <form method="POST" action="{{ url_for('assembly_delete', ag_id=ag.id) }}" style="display:inline;"
                       onsubmit="return confirm('Supprimer cette assemblée et tous ses votes ?')">

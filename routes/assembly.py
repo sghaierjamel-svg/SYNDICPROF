@@ -554,6 +554,231 @@ def assembly_pv_pdf(ag_id):
     return send_file(buf, mimetype='application/pdf', as_attachment=True, download_name=filename)
 
 
+# ─── Convocation PDF ─────────────────────────────────────────────────────────
+
+@app.route('/assemblees/<int:ag_id>/convocation.pdf')
+@login_required
+@admin_required
+@subscription_required
+def assembly_convocation_pdf(ag_id):
+    from fpdf import FPDF
+    org  = current_organization()
+    ag   = AssemblyGeneral.query.filter_by(id=ag_id, organization_id=org.id).first_or_404()
+
+    residents = User.query.filter_by(organization_id=org.id, role='resident').all()
+
+    def s(t):
+        if not t:
+            return ''
+        return (str(t)
+                .replace('é', 'e').replace('è', 'e').replace('ê', 'e')
+                .replace('à', 'a').replace('â', 'a')
+                .replace('ô', 'o').replace('û', 'u').replace('ü', 'u')
+                .replace('î', 'i').replace('ï', 'i').replace('ç', 'c')
+                .replace('ù', 'u').replace('—', '-').replace('–', '-')
+                .replace('’', "'").replace('‘', "'")
+                .replace('É', 'E').replace('À', 'A').replace('Ç', 'C')
+                .replace('ä', 'a').replace('ë', 'e').replace('ö', 'o')
+                .encode('latin-1', errors='replace').decode('latin-1'))
+
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=20)
+
+    for resident in (residents if residents else [None]):
+        pdf.add_page()
+
+        # ── En-tête organisation ──
+        pdf.set_fill_color(0, 180, 130)
+        pdf.rect(0, 0, 210, 38, 'F')
+        pdf.set_xy(0, 6)
+        pdf.set_text_color(255, 255, 255)
+        pdf.set_font('Helvetica', 'B', 18)
+        pdf.cell(0, 10, s(org.name), ln=True, align='C')
+        pdf.set_font('Helvetica', '', 9)
+        pdf.cell(0, 5, 'SyndicPro — Gestion de copropriete', ln=True, align='C')
+        pdf.ln(2)
+
+        # ── Adresse destinataire (droite) ──
+        pdf.set_text_color(40, 40, 40)
+        pdf.set_font('Helvetica', '', 10)
+        pdf.set_xy(120, 48)
+        if resident:
+            apt = None
+            if resident.apartment_id:
+                apt = Apartment.query.get(resident.apartment_id)
+            dest_name = s(resident.name or resident.email)
+            pdf.cell(80, 6, dest_name, ln=True, align='L')
+            pdf.set_x(120)
+            if apt:
+                pdf.cell(80, 6, s(f'Appartement {apt.block.name}-{apt.number}'), ln=True, align='L')
+                pdf.set_x(120)
+            pdf.cell(80, 6, s(org.name), ln=True, align='L')
+        else:
+            pdf.cell(80, 6, '[Nom du destinataire]', ln=True, align='L')
+            pdf.set_x(120)
+            pdf.cell(80, 6, '[Appartement]', ln=True, align='L')
+
+        # ── Date d'envoi ──
+        pdf.set_xy(10, 48)
+        pdf.set_font('Helvetica', '', 9)
+        pdf.set_text_color(100, 100, 100)
+        pdf.cell(100, 6, s(f'Le {datetime.now().strftime("%d/%m/%Y")}'), ln=False)
+        pdf.ln(16)
+
+        # ── Objet ──
+        pdf.set_x(10)
+        pdf.set_font('Helvetica', 'B', 10)
+        pdf.set_text_color(40, 40, 40)
+        pdf.cell(40, 6, 'Objet :')
+        pdf.set_font('Helvetica', 'BU', 10)
+        pdf.cell(0, 6, s(f'Convocation a l\'Assemblee Generale — {ag.title}'), ln=True)
+        pdf.ln(1)
+        pdf.set_x(10)
+        pdf.set_font('Helvetica', 'B', 9)
+        pdf.set_text_color(180, 60, 60)
+        pdf.cell(0, 5,
+                 'Lettre recommandee avec accuse de reception — Art. 7 Loi 77-35 du 25 mai 1977',
+                 ln=True)
+        pdf.ln(5)
+
+        # ── Corps ──
+        pdf.set_draw_color(0, 200, 150)
+        pdf.set_line_width(0.4)
+        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+        pdf.ln(5)
+
+        pdf.set_font('Helvetica', '', 10)
+        pdf.set_text_color(40, 40, 40)
+        if resident:
+            salut = s(f'Madame, Monsieur {resident.name or ""},') if resident.name else 'Madame, Monsieur,'
+        else:
+            salut = 'Madame, Monsieur,'
+        pdf.cell(0, 7, salut, ln=True)
+        pdf.ln(2)
+
+        pdf.set_font('Helvetica', '', 10)
+        intro = s(
+            f'Nous avons l\'honneur de vous convoquer a l\'Assemblee Generale de la '
+            f'copropriete {org.name}, qui se tiendra le :'
+        )
+        pdf.multi_cell(0, 6, intro)
+        pdf.ln(3)
+
+        # ── Bloc date/heure/lieu ──
+        pdf.set_fill_color(240, 250, 247)
+        pdf.set_draw_color(0, 200, 150)
+        pdf.set_line_width(0.3)
+        x0 = 10
+        pdf.set_x(x0)
+        pdf.set_font('Helvetica', 'B', 11)
+        pdf.set_text_color(0, 140, 100)
+        pdf.cell(0, 8, s(ag.meeting_date.strftime('%A %d %B %Y a %H:%M').upper()),
+                 ln=True, align='C', fill=True)
+        if ag.location:
+            pdf.set_x(x0)
+            pdf.set_font('Helvetica', '', 10)
+            pdf.set_text_color(60, 60, 60)
+            pdf.cell(0, 6, s(f'Lieu : {ag.location}'), ln=True, align='C')
+        pdf.ln(5)
+
+        # ── Ordre du jour ──
+        pdf.set_font('Helvetica', 'B', 11)
+        pdf.set_text_color(0, 140, 100)
+        pdf.cell(0, 8, 'ORDRE DU JOUR', ln=True)
+        pdf.set_draw_color(0, 200, 150)
+        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+        pdf.ln(3)
+
+        if ag.items:
+            for idx, item in enumerate(ag.items, 1):
+                pdf.set_font('Helvetica', 'B', 9)
+                pdf.set_text_color(0, 140, 100)
+                pdf.set_x(10)
+                pdf.cell(10, 7, f'{idx}.')
+                pdf.set_font('Helvetica', '', 10)
+                pdf.set_text_color(40, 40, 40)
+                pdf.multi_cell(0, 6, s(item.question))
+                pdf.ln(1)
+        else:
+            pdf.set_font('Helvetica', 'I', 9)
+            pdf.set_text_color(120, 120, 120)
+            pdf.cell(0, 6, "L'ordre du jour sera communique ulterieurement.", ln=True)
+
+        pdf.ln(3)
+        pdf.set_draw_color(200, 200, 200)
+        pdf.set_line_width(0.2)
+        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+        pdf.ln(4)
+
+        # ── Mentions légales ──
+        pdf.set_font('Helvetica', 'I', 8)
+        pdf.set_text_color(120, 120, 120)
+        pdf.multi_cell(0, 5,
+            s('Conformement aux dispositions du Code Civil tunisien et a la loi n 77-35 du 25 mai 1977 '
+              'relative a la copropriete des immeubles, tout coproprietaire a le droit de participer '
+              'a cette assemblee. En cas d\'empechement, vous pouvez vous faire representer par un '
+              'autre coproprietaire muni d\'une procuration ecrite.'))
+        pdf.ln(4)
+
+        # ── Signature ──
+        pdf.set_font('Helvetica', '', 10)
+        pdf.set_text_color(40, 40, 40)
+        pdf.cell(0, 6, 'Nous vous prions d\'agreer, Madame, Monsieur, nos salutations distinguees.', ln=True)
+        pdf.ln(8)
+        pdf.set_font('Helvetica', 'B', 10)
+        pdf.cell(0, 6, s(f'Le Syndic de la copropriete — {org.name}'), ln=True)
+        pdf.ln(2)
+        pdf.set_font('Helvetica', '', 9)
+        pdf.set_text_color(100, 100, 100)
+        pdf.cell(60, 6, 'Signature et cachet :', ln=False)
+        pdf.ln(16)
+        pdf.set_draw_color(150, 150, 150)
+        pdf.set_line_width(0.3)
+        pdf.line(10, pdf.get_y(), 80, pdf.get_y())
+        pdf.ln(8)
+
+        # ── Accusé de réception (bas de page) ──
+        pdf.set_draw_color(0, 200, 150)
+        pdf.set_line_width(0.5)
+        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+        pdf.ln(3)
+        pdf.set_font('Helvetica', 'B', 8)
+        pdf.set_text_color(80, 80, 80)
+        pdf.cell(0, 5, s('ACCUSE DE RECEPTION — A retourner signe au syndic'), ln=True, align='C')
+        pdf.ln(2)
+        pdf.set_font('Helvetica', '', 8)
+        if resident:
+            pdf.cell(0, 5,
+                     s(f'Je soussigne(e) _________________________________ , '
+                       f'coproprietaire de l\'appartement '
+                       f'{"" if not (apt if resident.apartment_id else None) else f"{apt.block.name}-{apt.number}"}'
+                       f', accuse reception de la convocation a l\'AG du '
+                       f'{ag.meeting_date.strftime("%d/%m/%Y")} — {ag.title}.'),
+                     ln=True, align='C')
+        else:
+            pdf.cell(0, 5,
+                     s(f'Je soussigne(e) _________________________________, accuse reception de '
+                       f'la convocation a l\'AG du {ag.meeting_date.strftime("%d/%m/%Y")} — {ag.title}.'),
+                     ln=True, align='C')
+        pdf.ln(3)
+        pdf.set_font('Helvetica', '', 8)
+        pdf.cell(90, 5, 'Date : _____________________', ln=False)
+        pdf.cell(0, 5, 'Signature : _______________________', ln=True)
+
+        # ── Pied de page ──
+        pdf.ln(3)
+        pdf.set_font('Helvetica', 'I', 7)
+        pdf.set_text_color(180, 180, 180)
+        pdf.cell(0, 4,
+                 s(f'Document genere le {datetime.now().strftime("%d/%m/%Y")} par SyndicPro — {org.name}'),
+                 ln=True, align='C')
+
+    buf = io.BytesIO(pdf.output())
+    buf.seek(0)
+    filename = f"Convocation_AG_{ag.id}_{ag.meeting_date.strftime('%Y%m%d')}.pdf"
+    return send_file(buf, mimetype='application/pdf', as_attachment=True, download_name=filename)
+
+
 # ─── Supprimer une AG ────────────────────────────────────────────────────────
 
 @app.route('/assemblees/<int:ag_id>/supprimer', methods=['POST'])

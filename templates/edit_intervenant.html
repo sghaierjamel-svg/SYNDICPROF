@@ -56,7 +56,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Téléphone 1 — Principal (WhatsApp)</label>
+                        <label class="form-label">Téléphone principal (WhatsApp)</label>
                         <div class="input-group">
                             <span class="input-group-text">
                                 <i class="bi bi-whatsapp" style="color:#25D366;"></i>
@@ -64,30 +64,46 @@
                             <input class="form-control" name="telephone"
                                    value="{{ iv.telephone or '' }}"
                                    placeholder="+216 XX XXX XXX">
+                            {% if not iv.telephone2 %}
+                            <button type="button" class="btn btn-outline-secondary" id="btnAddTel2_edit"
+                                    onclick="showTel2('edit')" title="Ajouter un 2e numéro" style="padding:.375rem .6rem;">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                            {% endif %}
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Téléphone 2</label>
-                        <div class="input-group">
-                            <span class="input-group-text">
-                                <i class="bi bi-telephone" style="color:#94a3b8;"></i>
-                            </span>
-                            <input class="form-control" name="telephone2"
-                                   value="{{ iv.telephone2 or '' }}"
-                                   placeholder="+216 XX XXX XXX">
+                    <div id="tel2_wrap_edit" style="{{ 'display:block' if iv.telephone2 else 'display:none' }};">
+                        <div class="mb-3">
+                            <label class="form-label">Téléphone 2</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-telephone" style="color:#94a3b8;"></i>
+                                </span>
+                                <input class="form-control" name="telephone2" id="tel2_edit"
+                                       value="{{ iv.telephone2 or '' }}"
+                                       placeholder="+216 XX XXX XXX">
+                                {% if not iv.telephone3 %}
+                                <button type="button" class="btn btn-outline-secondary" id="btnAddTel3_edit"
+                                        onclick="showTel3('edit')" title="Ajouter un 3e numéro" style="padding:.375rem .6rem;">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Téléphone 3</label>
-                        <div class="input-group">
-                            <span class="input-group-text">
-                                <i class="bi bi-telephone" style="color:#94a3b8;"></i>
-                            </span>
-                            <input class="form-control" name="telephone3"
-                                   value="{{ iv.telephone3 or '' }}"
-                                   placeholder="+216 XX XXX XXX">
+                    <div id="tel3_wrap_edit" style="{{ 'display:block' if iv.telephone3 else 'display:none' }};">
+                        <div class="mb-3">
+                            <label class="form-label">Téléphone 3</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-telephone" style="color:#94a3b8;"></i>
+                                </span>
+                                <input class="form-control" name="telephone3" id="tel3_edit"
+                                       value="{{ iv.telephone3 or '' }}"
+                                       placeholder="+216 XX XXX XXX">
+                            </div>
                         </div>
                     </div>
 
@@ -117,4 +133,24 @@
         </div>
     </div>
 </div>
+
+{% block extra_js %}
+<script>
+function showTel2(ctx) {
+    document.getElementById('tel2_wrap_' + ctx).style.display = 'block';
+    var btn = document.getElementById('btnAddTel2_' + ctx);
+    if (btn) btn.style.display = 'none';
+    var f = document.getElementById('tel2_' + ctx);
+    if (f) f.focus();
+}
+function showTel3(ctx) {
+    document.getElementById('tel3_wrap_' + ctx).style.display = 'block';
+    var btn = document.getElementById('btnAddTel3_' + ctx);
+    if (btn) btn.style.display = 'none';
+    var f = document.getElementById('tel3_' + ctx);
+    if (f) f.focus();
+}
+</script>
+{% endblock %}
+
 {% endblock %}
