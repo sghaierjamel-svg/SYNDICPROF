@@ -25,6 +25,7 @@ def payments():
     blocks = Block.query.filter_by(organization_id=org.id).order_by(Block.name).all()
 
     if request.method == 'POST':
+        redirect_apt_url = url_for('payments')
         try:
             from datetime import date as date_cls
             apartment_id = int(request.form['apartment_id'])
@@ -152,6 +153,7 @@ def payments():
 
             # Messages de confirmation détaillés
             if months_actually_paid > 0:
+                redirect_apt_url = url_for('payments', apt_id=apartment_id)
                 months_display = ", ".join(paid_months_list)
                 flash(f"Paiement enregistré avec succès !", "success")
                 flash(f"{months_actually_paid} mois payé(s) : {months_display}", "success")
@@ -199,7 +201,7 @@ def payments():
             app.logger.error("ERREUR paiement: %s", e, exc_info=True)
             flash('Une erreur est survenue. Réessayez.', 'danger')
 
-        return redirect(url_for('payments'))
+        return redirect(redirect_apt_url)
 
     # ── Filtres historique encaissements ────────────────────────────────────────
     filter_year     = request.args.get('year', '', type=str).strip()
@@ -228,7 +230,7 @@ def payments():
     if filter_mode:
         pay_q = pay_q.filter(Payment.payment_mode == filter_mode)
 
-    pay_q = pay_q.order_by(Payment.payment_date.desc())
+    pay_q = pay_q.order_by(Payment.payment_date.desc(), Payment.id.desc())
     payments_pagination = pay_q.paginate(page=page, per_page=per_page, error_out=False)
     payments_list = payments_pagination.items
 
