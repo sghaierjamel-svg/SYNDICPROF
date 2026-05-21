@@ -460,21 +460,42 @@ def payment_receipt(payment_id):
         from flask import redirect
         return redirect(url_for('residents_menu'))
 
+    # Regrouper tous les mois payés lors de la même transaction (même date + même appartement)
+    group = Payment.query.filter_by(
+        organization_id=org.id,
+        apartment_id=p.apartment_id,
+        payment_date=p.payment_date,
+    ).order_by(Payment.month_paid).all()
+    if not group:
+        group = [p]
+
     apt = p.apartment
     resident = apt.residents[0] if apt.residents else None
+    total_amount = sum(s.amount for s in group)
+    total_credit = sum((s.credit_used or 0) for s in group)
+    payment_mode = next((s.payment_mode for s in group if s.payment_mode), 'especes')
+    cheque_number = next((s.cheque_number for s in group if s.cheque_number), None)
+    cheque_bank   = next((s.cheque_bank   for s in group if s.cheque_bank),   None)
+    multi = len(group) > 1
+
+    MODE_LABELS = {
+        'especes':  'Especes',
+        'virement': 'Virement bancaire',
+        'cheque':   'Cheque',
+    }
 
     def _s(t):
         if not t: return ''
         return (str(t)
-            .replace('\u2014', '-').replace('\u2013', '-')
-            .replace('\u2019', "'").replace('\u2018', "'")
+            .replace('—', '-').replace('–', '-')
+            .replace('’', "'").replace('‘', "'")
             .encode('latin-1', errors='replace').decode('latin-1'))
 
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
 
-    # En-tête — fond blanc, bandeau vert
+    # En-tete bandeau vert
     pdf.set_fill_color(0, 180, 130)
     pdf.rect(0, 0, 210, 32, 'F')
     pdf.set_xy(0, 5)
@@ -485,44 +506,86 @@ def payment_receipt(payment_id):
     pdf.cell(0, 6, _s(org.name), ln=True, align='C')
     pdf.ln(6)
 
-    # Titre reçu
+    # Titre
+    ref = f'N\xb0 {group[0].id:05d}'
+    if multi:
+        ref += f' au {group[-1].id:05d}'
+    titre = 'RECU DE PAIEMENT GROUPE' if multi else 'RECU DE PAIEMENT'
     pdf.set_fill_color(240, 253, 250)
     pdf.set_draw_color(0, 180, 130)
     pdf.set_line_width(0.5)
     pdf.set_text_color(0, 120, 90)
     pdf.set_font('Helvetica', 'B', 13)
-    pdf.cell(0, 10, f'  RECU DE PAIEMENT  N\xb0 {p.id:05d}', ln=True, fill=True, border=1)
+    pdf.cell(0, 10, f'  {titre}  {ref}', ln=True, fill=True, border=1)
     pdf.ln(6)
 
-    def line(label, value, accent=False):
+    # Infos generales
+    def line(label, value):
         pdf.set_font('Helvetica', 'B', 9)
         pdf.set_text_color(120, 120, 120)
-        pdf.cell(60, 7, _s(label))
+        pdf.cell(65, 7, _s(label))
         pdf.set_font('Helvetica', '', 9)
-        pdf.set_text_color(0, 140, 100) if accent else pdf.set_text_color(40, 40, 40)
+        pdf.set_text_color(40, 40, 40)
         pdf.cell(0, 7, _s(str(value)), ln=True)
 
     line('Appartement :', f"{apt.block.name}-{apt.number}")
     line('Resident :', resident.name if resident else '-')
-    line('Mois paye :', p.month_paid)
     line('Date de paiement :', p.payment_date.strftime('%d/%m/%Y'))
-    if p.description:
-        line('Description :', p.description)
+    line('Mode de paiement :', MODE_LABELS.get(payment_mode, 'Especes'))
+    if payment_mode == 'cheque' and cheque_number:
+        detail = f'N\xb0{cheque_number}'
+        if cheque_bank:
+            detail += f'  -  {cheque_bank}'
+        line('Detail cheque :', detail)
+
     pdf.ln(4)
     pdf.set_draw_color(200, 200, 200)
     pdf.set_line_width(0.3)
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
     pdf.ln(4)
 
-    # Montant
+    # Tableau des mois (multi) ou ligne unique
+    if multi:
+        pdf.set_font('Helvetica', 'B', 9)
+        pdf.set_text_color(80, 80, 80)
+        pdf.set_fill_color(232, 249, 244)
+        pdf.cell(12, 7, '#',          fill=True, border='B')
+        pdf.cell(55, 7, 'Mois paye',  fill=True, border='B')
+        pdf.cell(0,  7, 'Montant',    fill=True, border='B', ln=True)
+        for i, s in enumerate(group, 1):
+            pdf.set_font('Helvetica', '', 9)
+            pdf.set_text_color(40, 40, 40)
+            bg = (248, 252, 250) if i % 2 == 0 else (255, 255, 255)
+            pdf.set_fill_color(*bg)
+            pdf.cell(12, 6, str(i),               fill=True)
+            pdf.cell(55, 6, _s(s.month_paid),     fill=True)
+            pdf.cell(0,  6, f'{s.amount:.3f} DT', fill=True, ln=True)
+        pdf.ln(3)
+        pdf.set_draw_color(200, 200, 200)
+        pdf.set_line_width(0.3)
+        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+        pdf.ln(4)
+    else:
+        line('Mois paye :', p.month_paid)
+        if p.description:
+            line('Description :', p.description)
+        pdf.ln(4)
+        pdf.set_draw_color(200, 200, 200)
+        pdf.set_line_width(0.3)
+        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+        pdf.ln(4)
+
+    # Montant total
     pdf.set_fill_color(0, 180, 130)
     pdf.set_text_color(255, 255, 255)
     pdf.set_font('Helvetica', 'B', 14)
-    pdf.cell(0, 13, f'  MONTANT PAYE : {p.amount:.3f} DT', ln=True, fill=True)
-    if p.credit_used and p.credit_used > 0:
+    label_total = 'MONTANT TOTAL PAYE' if multi else 'MONTANT PAYE'
+    nb_mois = f'  ({len(group)} mois)' if multi else ''
+    pdf.cell(0, 13, f'  {label_total} : {total_amount:.3f} DT{nb_mois}', ln=True, fill=True)
+    if total_credit > 0:
         pdf.set_font('Helvetica', '', 8)
         pdf.set_text_color(100, 100, 100)
-        pdf.cell(0, 5, f'  (dont {p.credit_used:.3f} DT de credit reporte)', ln=True)
+        pdf.cell(0, 5, f'  (dont {total_credit:.3f} DT de credit reporte)', ln=True)
 
     pdf.ln(10)
     pdf.set_draw_color(200, 200, 200)
@@ -535,7 +598,11 @@ def payment_receipt(payment_id):
 
     buf = io.BytesIO(pdf.output())
     buf.seek(0)
-    filename = f"Recu_{apt.block.name}{apt.number}_{p.month_paid}.pdf"
+    apt_label = f"{apt.block.name}{apt.number}"
+    if multi:
+        filename = f"Recu_{apt_label}_{group[0].month_paid}_au_{group[-1].month_paid}.pdf"
+    else:
+        filename = f"Recu_{apt_label}_{p.month_paid}.pdf"
     return send_file(buf, mimetype='application/pdf', as_attachment=True, download_name=filename)
 
 
