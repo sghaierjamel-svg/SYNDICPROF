@@ -51,7 +51,7 @@
                             </optgroup>
                             <optgroup label="── Catégories standard ──">
                             {% endif %}
-                                {% for cat in ['Eau','Électricité','Entretien','Réparations','Gardiennage','Assurances','Taxes','Salaire','Immobilisation','Autre'] %}
+                                {% for cat in ['Eau','Électricité','Entretien','Réparations','Gardiennage','Assurances','Taxes','Salaire','Charges sociales','Immobilisation','Autre'] %}
                                 <option value="{{ cat }}"
                                     {% if not expense.intervenant_id and expense.category == cat %}selected{% endif %}>
                                     {{ cat }}

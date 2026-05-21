@@ -24,6 +24,7 @@ CATEGORY_TO_SCE = {
     'Assurances':      ('616', "Primes d'assurance immeuble"),
     'Taxes':           ('635', 'Impots et taxes'),
     'Salaire':         ('641', 'Salaires et remunerations du personnel'),
+    'Charges sociales': ('642', 'Charges sociales - cotisations CNSS'),
     'Immobilisation':  ('22x', 'Immobilisations corporelles (valeur achat)'),
     'Charges bancaires': ('627', 'Services bancaires et assimilés'),
     'Autre':           ('65x', "Autres charges d'exploitation"),
