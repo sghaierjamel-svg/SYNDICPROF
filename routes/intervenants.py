@@ -26,13 +26,15 @@ def intervenants():
     org = current_organization()
 
     if request.method == 'POST':
-        categorie  = request.form.get('categorie', '').strip()[:60]
+        categorie   = request.form.get('categorie', '').strip()[:60]
         nom_societe = request.form.get('nom_societe', '').strip()[:200]
-        prenom     = request.form.get('prenom', '').strip()[:100]
-        nom        = request.form.get('nom', '').strip()[:100]
-        telephone  = request.form.get('telephone', '').strip()[:25]
-        email      = request.form.get('email', '').strip()[:120]
-        notes      = request.form.get('notes', '').strip()
+        prenom      = request.form.get('prenom', '').strip()[:100]
+        nom         = request.form.get('nom', '').strip()[:100]
+        telephone   = request.form.get('telephone', '').strip()[:25]
+        telephone2  = request.form.get('telephone2', '').strip()[:25]
+        telephone3  = request.form.get('telephone3', '').strip()[:25]
+        email       = request.form.get('email', '').strip()[:120]
+        notes       = request.form.get('notes', '').strip()
 
         if not categorie:
             flash('La catégorie est obligatoire.', 'danger')
@@ -45,6 +47,8 @@ def intervenants():
             prenom=prenom or None,
             nom=nom or None,
             telephone=telephone or None,
+            telephone2=telephone2 or None,
+            telephone3=telephone3 or None,
             email=email or None,
             notes=notes or None,
         )
@@ -85,6 +89,8 @@ def edit_intervenant(iv_id):
         iv.prenom      = request.form.get('prenom', '').strip()[:100] or None
         iv.nom         = request.form.get('nom', '').strip()[:100] or None
         iv.telephone   = request.form.get('telephone', '').strip()[:25] or None
+        iv.telephone2  = request.form.get('telephone2', '').strip()[:25] or None
+        iv.telephone3  = request.form.get('telephone3', '').strip()[:25] or None
         iv.email       = request.form.get('email', '').strip()[:120] or None
         iv.notes       = request.form.get('notes', '').strip() or None
         db.session.commit()

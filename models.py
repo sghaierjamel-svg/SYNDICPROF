@@ -477,6 +477,8 @@ class Intervenant(db.Model):
     prenom = db.Column(db.String(100))
     nom = db.Column(db.String(100))
     telephone = db.Column(db.String(25))
+    telephone2 = db.Column(db.String(25))
+    telephone3 = db.Column(db.String(25))
     email = db.Column(db.String(120))
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -1191,13 +1193,17 @@ def init_db():
                         prenom VARCHAR(100),
                         nom VARCHAR(100),
                         telephone VARCHAR(25),
+                        telephone2 VARCHAR(25),
+                        telephone3 VARCHAR(25),
                         email VARCHAR(120),
                         notes TEXT,
                         created_at TIMESTAMP DEFAULT NOW()
                     )
                 """))
+                conn.execute(db.text("ALTER TABLE intervenant ADD COLUMN IF NOT EXISTS telephone2 VARCHAR(25)"))
+                conn.execute(db.text("ALTER TABLE intervenant ADD COLUMN IF NOT EXISTS telephone3 VARCHAR(25)"))
                 conn.commit()
-                print("Migration PostgreSQL : table intervenant créée.")
+                print("Migration PostgreSQL : table intervenant créée/mise à jour.")
     except Exception as e:
         print(f"Migration intervenant : {e}")
 

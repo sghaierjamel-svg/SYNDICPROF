@@ -41,10 +41,24 @@
                         <input class="form-control" name="nom" placeholder="Ben Ali">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Téléphone (WhatsApp)</label>
+                        <label class="form-label">Téléphone 1 (principal)</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-whatsapp" style="color:#25D366;"></i></span>
                             <input class="form-control" name="telephone" placeholder="+216 XX XXX XXX">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Téléphone 2</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-telephone" style="color:#94a3b8;"></i></span>
+                            <input class="form-control" name="telephone2" placeholder="+216 XX XXX XXX">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Téléphone 3</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-telephone" style="color:#94a3b8;"></i></span>
+                            <input class="form-control" name="telephone3" placeholder="+216 XX XXX XXX">
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -126,6 +140,18 @@
                        target="_blank"
                        style="color:#25D366;text-decoration:none;">
                         <i class="bi bi-whatsapp"></i> {{ iv.telephone }}
+                    </a>
+                    {% endif %}
+                    {% if iv.telephone2 %}
+                    <a href="tel:{{ iv.telephone2 }}"
+                       style="color:#94a3b8;text-decoration:none;">
+                        <i class="bi bi-telephone"></i> {{ iv.telephone2 }}
+                    </a>
+                    {% endif %}
+                    {% if iv.telephone3 %}
+                    <a href="tel:{{ iv.telephone3 }}"
+                       style="color:#94a3b8;text-decoration:none;">
+                        <i class="bi bi-telephone"></i> {{ iv.telephone3 }}
                     </a>
                     {% endif %}
                     {% if iv.email %}

@@ -56,13 +56,37 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Téléphone (WhatsApp de préférence)</label>
+                        <label class="form-label">Téléphone 1 — Principal (WhatsApp)</label>
                         <div class="input-group">
                             <span class="input-group-text">
                                 <i class="bi bi-whatsapp" style="color:#25D366;"></i>
                             </span>
                             <input class="form-control" name="telephone"
                                    value="{{ iv.telephone or '' }}"
+                                   placeholder="+216 XX XXX XXX">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Téléphone 2</label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-telephone" style="color:#94a3b8;"></i>
+                            </span>
+                            <input class="form-control" name="telephone2"
+                                   value="{{ iv.telephone2 or '' }}"
+                                   placeholder="+216 XX XXX XXX">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Téléphone 3</label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-telephone" style="color:#94a3b8;"></i>
+                            </span>
+                            <input class="form-control" name="telephone3"
+                                   value="{{ iv.telephone3 or '' }}"
                                    placeholder="+216 XX XXX XXX">
                         </div>
                     </div>
