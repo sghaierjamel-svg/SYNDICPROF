@@ -1,13 +1,17 @@
 from flask import render_template, request, redirect, url_for, flash, jsonify, send_file
 import io
 from core import app, db
-from models import Apartment, Payment, User, MiscReceipt, KonnectPayment, FlouciPayment, PaymentRequest
+from models import Apartment, Block, Payment, User, MiscReceipt, KonnectPayment, FlouciPayment, PaymentRequest
 from utils import (current_user, current_organization, login_required,
                    admin_required, subscription_required,
                    get_unpaid_months_count, get_next_unpaid_month)
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from utils_whatsapp import notify_payment
+from storage_helper import upload_file as _storage_upload
+
+MAX_CHEQUE_BYTES = 5 * 1024 * 1024
+ALLOWED_CHEQUE_MIMES = {'image/jpeg', 'image/png', 'image/webp', 'application/pdf'}
 
 
 @app.route('/payments', methods=['GET', 'POST'])
@@ -16,7 +20,8 @@ from utils_whatsapp import notify_payment
 @subscription_required
 def payments():
     org = current_organization()
-    apartments = Apartment.query.filter_by(organization_id=org.id).all()
+    apartments = Apartment.query.filter_by(organization_id=org.id).order_by(Apartment.block_id, Apartment.number).all()
+    blocks = Block.query.filter_by(organization_id=org.id).order_by(Block.name).all()
 
     if request.method == 'POST':
         try:
@@ -33,6 +38,11 @@ def payments():
                 return redirect(url_for('payments'))
             description = request.form.get('description', 'Redevance')[:200]
             start_month_str = request.form.get('start_month', '').strip()
+            payment_mode = request.form.get('payment_mode', 'especes')
+            if payment_mode not in ('especes', 'virement', 'cheque'):
+                payment_mode = 'especes'
+            cheque_number = request.form.get('cheque_number', '').strip()[:50] if payment_mode == 'cheque' else None
+            cheque_bank = request.form.get('cheque_bank', '').strip()[:100] if payment_mode == 'cheque' else None
 
             apt = Apartment.query.get(apartment_id)
             if not apt:
@@ -79,6 +89,7 @@ def payments():
             months_actually_paid = 0
             total_recorded_amount = 0.0
             paid_months_list = []
+            first_payment_obj = None
 
             for i in range(months_to_pay):
                 month_paid_date = start_month_date + relativedelta(months=i)
@@ -90,7 +101,7 @@ def payments():
                     new_remainder += monthly_fee
                     continue
 
-                # Enregistrer le paiement
+                # Enregistrer le paiement — le mode et les infos chèque sont sur le 1er enregistrement
                 p = Payment(
                     organization_id=org.id,
                     apartment_id=apartment_id,
@@ -98,9 +109,14 @@ def payments():
                     payment_date=payment_date,
                     month_paid=month_paid_str,
                     description=f"Redevance {month_paid_str}",
-                    credit_used=credit_used if i == 0 else 0.0
+                    credit_used=credit_used if i == 0 else 0.0,
+                    payment_mode=payment_mode,
+                    cheque_number=cheque_number if i == 0 else None,
+                    cheque_bank=cheque_bank if i == 0 else None,
                 )
                 db.session.add(p)
+                if first_payment_obj is None:
+                    first_payment_obj = p
                 months_actually_paid += 1
                 total_recorded_amount += monthly_fee
                 paid_months_list.append(month_paid_str)
@@ -111,6 +127,26 @@ def payments():
 
             # Mettre à jour le crédit résiduel
             apt.credit_balance = new_remainder
+            db.session.flush()  # obtenir l'ID du premier paiement avant l'upload
+
+            # Upload scan chèque (optionnel)
+            if payment_mode == 'cheque' and first_payment_obj is not None:
+                cheque_file = request.files.get('cheque_file')
+                if cheque_file and cheque_file.filename:
+                    mime = cheque_file.mimetype
+                    if mime not in ALLOWED_CHEQUE_MIMES:
+                        flash('Scan chèque : format non accepté (JPG, PNG, PDF uniquement).', 'warning')
+                    else:
+                        raw = cheque_file.read()
+                        if len(raw) > MAX_CHEQUE_BYTES:
+                            flash('Scan chèque : fichier trop lourd (max 5 Mo).', 'warning')
+                        else:
+                            url = _storage_upload(raw, mime, folder='cheques')
+                            if url:
+                                first_payment_obj.cheque_url = url
+                            else:
+                                flash('Scan chèque non sauvegardé (Storage non configuré).', 'warning')
+
             db.session.commit()
 
             # Messages de confirmation détaillés
@@ -164,16 +200,45 @@ def payments():
 
         return redirect(url_for('payments'))
 
+    # ── Filtres historique encaissements ────────────────────────────────────────
+    filter_year     = request.args.get('year', '', type=str).strip()
+    filter_block_id = request.args.get('block_id', '', type=str).strip()
+    filter_apt_id   = request.args.get('apt_id', '', type=str).strip()
+    filter_mode     = request.args.get('mode', '', type=str).strip()
+    page            = request.args.get('page', 1, type=int)
+    per_page        = 50
+
+    pay_q = Payment.query.filter_by(organization_id=org.id)
+
+    # Par défaut (aucun filtre actif) : 3 derniers mois
+    has_filter = any([filter_year, filter_block_id, filter_apt_id, filter_mode])
+    if not has_filter:
+        from datetime import date as _d
+        cutoff = (_d.today().replace(day=1) - relativedelta(months=2))
+        pay_q = pay_q.filter(Payment.payment_date >= cutoff)
+
+    if filter_year:
+        pay_q = pay_q.filter(db.extract('year', Payment.payment_date) == int(filter_year))
+    if filter_apt_id:
+        pay_q = pay_q.filter(Payment.apartment_id == int(filter_apt_id))
+    elif filter_block_id:
+        apt_ids = [a.id for a in apartments if str(a.block_id) == filter_block_id]
+        pay_q = pay_q.filter(Payment.apartment_id.in_(apt_ids))
+    if filter_mode:
+        pay_q = pay_q.filter(Payment.payment_mode == filter_mode)
+
+    pay_q = pay_q.order_by(Payment.payment_date.desc())
+    payments_pagination = pay_q.paginate(page=page, per_page=per_page, error_out=False)
+    payments_list = payments_pagination.items
+
+    # Grouper les mois payés par appartement (sur TOUS les paiements, sans filtre)
+    all_payments_for_apt = Payment.query.filter_by(organization_id=org.id).all()
+    paid_months_by_apt = {}
+    for p in all_payments_for_apt:
+        paid_months_by_apt.setdefault(p.apartment_id, set()).add(p.month_paid)
+
     # Encaissements divers
     misc_list = MiscReceipt.query.filter_by(organization_id=org.id).order_by(MiscReceipt.payment_date.desc()).all()
-
-    # Charger TOUS les paiements de l'org en UNE seule requête (évite le N+1)
-    payments_list = Payment.query.filter_by(organization_id=org.id).order_by(Payment.payment_date.desc()).all()
-
-    # Grouper les mois payés par appartement en mémoire (pas de requêtes supplémentaires)
-    paid_months_by_apt = {}
-    for p in payments_list:
-        paid_months_by_apt.setdefault(p.apartment_id, set()).add(p.month_paid)
 
     today_month = date.today().replace(day=1)
 
@@ -213,10 +278,29 @@ def payments():
         organization_id=org.id
     ).order_by(PaymentRequest.created_at.desc()).limit(50).all()
 
-    return render_template('payments.html', apartments=apartments, payments=payments_list,
-                           misc_list=misc_list, konnect_links=konnect_links,
-                           flouci_links=flouci_links, org=org, user=current_user(),
-                           virement_pending=virement_pending, virement_all=virement_all)
+    # Années disponibles pour le filtre
+    years_available = sorted(set(
+        p.payment_date.year for p in all_payments_for_apt
+    ), reverse=True)
+
+    return render_template('payments.html',
+                           apartments=apartments,
+                           blocks=blocks,
+                           payments=payments_list,
+                           payments_pagination=payments_pagination,
+                           has_filter=has_filter,
+                           filter_year=filter_year,
+                           filter_block_id=filter_block_id,
+                           filter_apt_id=filter_apt_id,
+                           filter_mode=filter_mode,
+                           years_available=years_available,
+                           misc_list=misc_list,
+                           konnect_links=konnect_links,
+                           flouci_links=flouci_links,
+                           org=org,
+                           user=current_user(),
+                           virement_pending=virement_pending,
+                           virement_all=virement_all)
 
 
 @app.route('/misc-receipt/add', methods=['POST'])
@@ -327,11 +411,30 @@ def edit_payment(payment_id):
             if payment_date > datetime.today().date():
                 flash('La date ne peut pas être dans le futur.', 'danger')
                 return redirect(url_for('edit_payment', payment_id=payment_id))
+            payment_mode = request.form.get('payment_mode', 'especes')
+            if payment_mode not in ('especes', 'virement', 'cheque'):
+                payment_mode = 'especes'
             p.apartment_id = int(request.form['apartment_id'])
             p.amount = amount
             p.payment_date = payment_date
             p.month_paid = request.form['month_paid']
             p.description = request.form.get('description', '')[:200]
+            p.payment_mode = payment_mode
+            if payment_mode == 'cheque':
+                p.cheque_number = request.form.get('cheque_number', '').strip()[:50] or None
+                p.cheque_bank = request.form.get('cheque_bank', '').strip()[:100] or None
+                cheque_file = request.files.get('cheque_file')
+                if cheque_file and cheque_file.filename:
+                    mime = cheque_file.mimetype
+                    if mime in ALLOWED_CHEQUE_MIMES:
+                        raw = cheque_file.read()
+                        if len(raw) <= MAX_CHEQUE_BYTES:
+                            url = _storage_upload(raw, mime, folder='cheques')
+                            if url:
+                                p.cheque_url = url
+            else:
+                p.cheque_number = None
+                p.cheque_bank = None
             db.session.commit()
             flash('Encaissement modifié', 'success')
         except Exception as e:

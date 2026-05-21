@@ -117,28 +117,50 @@
             <i class="bi bi-plus-circle" style="color:#00C896;"></i> Nouvel Encaissement
         </div>
         <div class="card-body">
-            <form method="POST" id="paymentForm">
+            <form method="POST" id="paymentForm" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="row g-3">
-                    <div class="col-md-4">
+                    <!-- Sélection Bloc -->
+                    <div class="col-md-2">
+                        <label class="form-label">Bloc *</label>
+                        <select class="form-select" id="sel_block" onchange="filterApts()">
+                            <option value="">-- Bloc --</option>
+                            {% for b in blocks %}
+                            <option value="{{ b.id }}">{{ b.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <!-- Sélection Appartement (filtré par JS) -->
+                    <div class="col-md-3">
                         <label class="form-label">Appartement *</label>
                         <select class="form-select" id="apartment_id" name="apartment_id"
                                 required onchange="updateAptInfo()">
-                            <option value="">-- Sélectionner --</option>
+                            <option value="">-- Choisir un bloc d'abord --</option>
                             {% for apt in apartments %}
                             <option value="{{ apt.id }}"
+                                    data-block="{{ apt.block_id }}"
                                     data-fee="{{ apt.monthly_fee }}"
                                     data-unpaid="{{ apt.unpaid_count }}"
                                     data-next="{{ apt.next_unpaid }}"
-                                    data-credit="{{ apt.credit_balance }}">
-                                {% if apt.block %}{{ apt.block.name }}-{% endif %}{{ apt.number }}
-                                ({{ '{:.0f}'.format(apt.monthly_fee) }} DT · {{ apt.unpaid_count }} impayés{% if apt.credit_balance > 0 %} · crédit {{ '{:.0f}'.format(apt.credit_balance) }} DT{% endif %})
+                                    data-credit="{{ apt.credit_balance }}"
+                                    style="display:none;">
+                                {{ apt.number }}
+                                ({{ '{:.0f}'.format(apt.monthly_fee) }} DT · {{ apt.unpaid_count }} impayé{% if apt.unpaid_count > 1 %}s{% endif %}{% if apt.credit_balance > 0 %} · crédit {{ '{:.0f}'.format(apt.credit_balance) }} DT{% endif %})
                             </option>
                             {% endfor %}
                         </select>
                         <div id="aptInfo" class="d-none mt-2 p-2 rounded" style="background:rgba(0,200,150,0.07);border:1px solid rgba(0,200,150,0.2);font-size:.8rem;">
                             <span id="aptInfoText"></span>
                         </div>
+                    </div>
+                    <!-- Mode de paiement -->
+                    <div class="col-md-2">
+                        <label class="form-label">Mode *</label>
+                        <select class="form-select" id="payment_mode" name="payment_mode" onchange="toggleCheque()">
+                            <option value="especes">💵 Espèces</option>
+                            <option value="virement">🏦 Virement</option>
+                            <option value="cheque">📝 Chèque</option>
+                        </select>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Montant (DT) *</label>
@@ -150,26 +172,57 @@
                         <label class="form-label">Date *</label>
                         <input type="date" class="form-control" id="payment_date" name="payment_date" required>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-1">
                         <label class="form-label">
-                            Mois de départ
-                            <small style="color:var(--muted);">(vide = auto)</small>
+                            Mois départ
+                            <small style="color:var(--muted);">(vide=auto)</small>
                         </label>
                         <input type="month" class="form-control" id="start_month" name="start_month">
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Description</label>
-                        <input type="text" class="form-control" name="description" placeholder="Optionnel">
+                </div>
+
+                <!-- Section chèque (affichée uniquement si mode = chèque) -->
+                <div id="chequeSection" class="d-none mt-3 p-3 rounded" style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.25);">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label"><i class="bi bi-hash"></i> N° de chèque</label>
+                            <input type="text" class="form-control" id="cheque_number" name="cheque_number"
+                                   placeholder="Ex : 001234567" maxlength="50">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label"><i class="bi bi-bank"></i> Banque du tiré</label>
+                            <input type="text" class="form-control" id="cheque_bank" name="cheque_bank"
+                                   placeholder="Ex : STB, BNA, Attijari..." maxlength="100">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label"><i class="bi bi-camera"></i> Scan du chèque <small style="color:var(--muted);">(JPG, PNG, PDF — max 5 Mo)</small></label>
+                            <input type="file" class="form-control" id="cheque_file" name="cheque_file"
+                                   accept="image/jpeg,image/png,image/webp,application/pdf">
+                        </div>
+                        <div class="col-md-2">
+                            <div id="chequePreview" class="d-none">
+                                <img id="chequePreviewImg" src="" alt="Aperçu" style="max-height:60px;border-radius:4px;border:1px solid rgba(255,255,255,0.15);">
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="mt-3 d-flex align-items-center gap-3 flex-wrap">
-                    <button type="submit" class="btn btn-primary px-4">
-                        <i class="bi bi-floppy"></i> Enregistrer
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary"
-                            data-bs-toggle="collapse" data-bs-target="#guideCollapse">
-                        <i class="bi bi-info-circle"></i> Comment ça marche ?
-                    </button>
+
+                <div class="mt-3 row g-2 align-items-center">
+                    <div class="col-auto">
+                        <input type="text" class="form-control form-control-sm" name="description"
+                               placeholder="Description (optionnel)" style="min-width:200px;">
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-floppy"></i> Enregistrer
+                        </button>
+                    </div>
+                    <div class="col-auto">
+                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                data-bs-toggle="collapse" data-bs-target="#guideCollapse">
+                            <i class="bi bi-info-circle"></i> Comment ça marche ?
+                        </button>
+                    </div>
                 </div>
 
                 <div class="collapse mt-3" id="guideCollapse">
@@ -194,18 +247,79 @@
         </div>
     </div>
 
+    <!-- Filtres historique -->
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <form method="GET" class="row g-2 align-items-end" id="filterForm">
+                <div class="col-auto">
+                    <label class="form-label mb-1" style="font-size:.75rem;color:var(--muted);">Année</label>
+                    <select name="year" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">Toutes</option>
+                        {% for y in years_available %}
+                        <option value="{{ y }}" {% if filter_year == y|string %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label mb-1" style="font-size:.75rem;color:var(--muted);">Bloc</label>
+                    <select name="block_id" class="form-select form-select-sm" id="flt_block" onchange="filterFltApts(); this.form.submit()">
+                        <option value="">Tous</option>
+                        {% for b in blocks %}
+                        <option value="{{ b.id }}" {% if filter_block_id == b.id|string %}selected{% endif %}>{{ b.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label mb-1" style="font-size:.75rem;color:var(--muted);">Appartement</label>
+                    <select name="apt_id" class="form-select form-select-sm" id="flt_apt" onchange="this.form.submit()">
+                        <option value="">Tous</option>
+                        {% for apt in apartments %}
+                        <option value="{{ apt.id }}"
+                                data-block="{{ apt.block_id }}"
+                                {% if filter_apt_id == apt.id|string %}selected{% endif %}
+                                {% if filter_block_id and filter_block_id != apt.block_id|string %}style="display:none;"{% endif %}>
+                            {% if apt.block %}{{ apt.block.name }}-{% endif %}{{ apt.number }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label mb-1" style="font-size:.75rem;color:var(--muted);">Mode</label>
+                    <select name="mode" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">Tous</option>
+                        <option value="especes" {% if filter_mode == 'especes' %}selected{% endif %}>💵 Espèces</option>
+                        <option value="virement" {% if filter_mode == 'virement' %}selected{% endif %}>🏦 Virement</option>
+                        <option value="cheque" {% if filter_mode == 'cheque' %}selected{% endif %}>📝 Chèque</option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    {% if has_filter %}
+                    <a href="{{ url_for('payments') }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Réinitialiser
+                    </a>
+                    {% else %}
+                    <span style="font-size:.75rem;color:var(--muted);">3 derniers mois</span>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <span><i class="bi bi-list-ul" style="color:#00C896;"></i> Historique des Encaissements</span>
-            <small style="color:var(--muted);">{{ payments|length }} enregistrement{{ 's' if payments|length > 1 }}</small>
+            <small style="color:var(--muted);">
+                {{ payments_pagination.total }} enregistrement{{ 's' if payments_pagination.total > 1 }}
+                {% if payments_pagination.pages > 1 %}· page {{ payments_pagination.page }}/{{ payments_pagination.pages }}{% endif %}
+            </small>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover mb-0" style="font-size:.83rem;">
                     <thead>
                         <tr>
-                            <th>Date</th><th>Appartement</th><th>Mois</th><th>Montant</th>
-                            <th>Crédit utilisé</th><th>Description</th><th>Actions</th>
+                            <th>Date</th><th>Appartement</th><th>Mois</th><th>Mode</th>
+                            <th>Montant</th><th>Crédit utilisé</th><th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -214,15 +328,35 @@
                             <td style="white-space:nowrap;">{{ p.payment_date.strftime('%d/%m/%Y') }}</td>
                             <td><strong>{% if p.apartment.block %}{{ p.apartment.block.name }}-{% endif %}{{ p.apartment.number }}</strong></td>
                             <td><span class="badge bg-primary">{{ p.month_paid }}</span></td>
+                            <td>
+                                {% set mode = p.payment_mode or 'especes' %}
+                                {% if mode == 'cheque' %}
+                                <span class="badge" style="background:rgba(99,102,241,0.2);color:#a5b4fc;" title="{% if p.cheque_number %}N°{{ p.cheque_number }}{% if p.cheque_bank %} — {{ p.cheque_bank }}{% endif %}{% endif %}">
+                                    📝 Chèque
+                                </span>
+                                {% if p.cheque_number %}
+                                <div style="font-size:.7rem;color:var(--muted);">N°{{ p.cheque_number }}{% if p.cheque_bank %} · {{ p.cheque_bank }}{% endif %}</div>
+                                {% endif %}
+                                {% elif mode == 'virement' %}
+                                <span class="badge" style="background:rgba(56,189,248,0.15);color:#7dd3fc;">🏦 Virement</span>
+                                {% else %}
+                                <span class="badge" style="background:rgba(0,200,150,0.12);color:#6ee7b7;">💵 Espèces</span>
+                                {% endif %}
+                            </td>
                             <td><strong style="color:#00C896;">{{ '{:.3f}'.format(p.amount) }} DT</strong></td>
                             <td>
                                 {% if p.credit_used and p.credit_used > 0 %}
                                 <span class="badge bg-info text-dark">{{ '{:.3f}'.format(p.credit_used) }} DT</span>
                                 {% else %}<span style="color:var(--muted);">—</span>{% endif %}
                             </td>
-                            <td style="color:var(--muted);">{{ p.description or '—' }}</td>
                             <td>
                                 <div class="d-flex gap-1">
+                                    {% if p.cheque_url %}
+                                    <a href="{{ p.cheque_url }}" target="_blank"
+                                       class="btn btn-sm btn-outline-secondary" title="Voir scan chèque">
+                                        <i class="bi bi-image"></i>
+                                    </a>
+                                    {% endif %}
                                     <a href="{{ url_for('payment_receipt', payment_id=p.id) }}"
                                        class="btn btn-sm btn-outline-secondary" title="Reçu PDF">
                                         <i class="bi bi-file-earmark-pdf"></i>
@@ -242,13 +376,35 @@
                         {% else %}
                         <tr>
                             <td colspan="7" class="text-center py-4" style="color:var(--muted);">
-                                Aucun encaissement enregistré
+                                Aucun encaissement pour cette période
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+
+            <!-- Pagination -->
+            {% if payments_pagination.pages > 1 %}
+            <div class="d-flex justify-content-center py-3 gap-2 flex-wrap">
+                {% if payments_pagination.has_prev %}
+                <a href="{{ url_for('payments', page=payments_pagination.prev_num, year=filter_year, block_id=filter_block_id, apt_id=filter_apt_id, mode=filter_mode) }}"
+                   class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-left"></i></a>
+                {% endif %}
+                {% for pg in payments_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if pg %}
+                    <a href="{{ url_for('payments', page=pg, year=filter_year, block_id=filter_block_id, apt_id=filter_apt_id, mode=filter_mode) }}"
+                       class="btn btn-sm {% if pg == payments_pagination.page %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ pg }}</a>
+                    {% else %}
+                    <span class="btn btn-sm btn-outline-secondary disabled">…</span>
+                    {% endif %}
+                {% endfor %}
+                {% if payments_pagination.has_next %}
+                <a href="{{ url_for('payments', page=payments_pagination.next_num, year=filter_year, block_id=filter_block_id, apt_id=filter_apt_id, mode=filter_mode) }}"
+                   class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-right"></i></a>
+                {% endif %}
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -749,6 +905,19 @@ function openSection(id, card) {
     }
 })();
 
+// ── Cascade Bloc → Appartement (formulaire Nouvel Encaissement) ──────────────
+function filterApts() {
+    const blockId = document.getElementById('sel_block').value;
+    const aptSel  = document.getElementById('apartment_id');
+    aptSel.value  = '';
+    Array.from(aptSel.options).forEach(function(opt) {
+        if (!opt.value) { opt.style.display = ''; return; }
+        opt.style.display = (!blockId || opt.dataset.block === blockId) ? '' : 'none';
+    });
+    aptSel.options[0].text = blockId ? '-- Choisir un appartement --' : '-- Choisir un bloc d\'abord --';
+    updateAptInfo();
+}
+
 // ── Redevances ─────────────────────────────────────────────────────────────
 let fee = 0, credit = 0;
 
@@ -756,7 +925,7 @@ function updateAptInfo() {
     const sel = document.getElementById('apartment_id');
     const opt = sel.options[sel.selectedIndex];
     const box = document.getElementById('aptInfo');
-    if (!opt.value) { box.classList.add('d-none'); fee = 0; credit = 0; return; }
+    if (!opt || !opt.value) { box.classList.add('d-none'); fee = 0; credit = 0; return; }
     fee    = parseFloat(opt.dataset.fee);
     credit = parseFloat(opt.dataset.credit || 0);
     document.getElementById('aptInfoText').innerHTML =
@@ -774,6 +943,42 @@ function calcMonths() {
     box.innerHTML = months > 0
         ? `<span style="color:#6ee7b7;">✅ ${months} mois${rem > 0 ? ' · crédit restant : ' + rem + ' DT' : ''}</span>`
         : `<span style="color:#fcd34d;">Insuffisant · sera mis en crédit</span>`;
+}
+
+// ── Mode chèque ─────────────────────────────────────────────────────────────
+function toggleCheque() {
+    const mode = document.getElementById('payment_mode').value;
+    const sec  = document.getElementById('chequeSection');
+    if (mode === 'cheque') { sec.classList.remove('d-none'); }
+    else                   { sec.classList.add('d-none'); }
+}
+
+// Aperçu image scan chèque
+document.getElementById('cheque_file').addEventListener('change', function() {
+    const file = this.files[0];
+    const preview = document.getElementById('chequePreview');
+    const img     = document.getElementById('chequePreviewImg');
+    if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            img.src = e.target.result;
+            preview.classList.remove('d-none');
+        };
+        reader.readAsDataURL(file);
+    } else {
+        preview.classList.add('d-none');
+    }
+});
+
+// ── Filtre historique — cascade bloc → apt ───────────────────────────────────
+function filterFltApts() {
+    const blockId = document.getElementById('flt_block').value;
+    const aptSel  = document.getElementById('flt_apt');
+    aptSel.value  = '';
+    Array.from(aptSel.options).forEach(function(opt) {
+        if (!opt.value) { opt.style.display = ''; return; }
+        opt.style.display = (!blockId || opt.dataset.block === blockId) ? '' : 'none';
+    });
 }
 
 document.getElementById('amount').addEventListener('input', calcMonths);

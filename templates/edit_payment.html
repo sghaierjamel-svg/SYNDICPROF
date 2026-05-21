@@ -19,13 +19,13 @@
                 <i class="bi bi-cash-coin"></i> Modifier Encaissement #{{ payment.id }}
             </div>
             <div class="card-body">
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-3">
                         <label class="form-label">Appartement *</label>
                         <select name="apartment_id" class="form-select" required>
                             {% for a in apartments %}
-                            <option value="{{ a.id }}" 
+                            <option value="{{ a.id }}"
                                     {% if payment.apartment_id == a.id %}selected{% endif %}>
                                 {{ a.block.name }}-{{ a.number }}
                             </option>
@@ -34,27 +34,62 @@
                     </div>
 
                     <div class="mb-3">
+                        <label class="form-label">Mode de paiement *</label>
+                        <select name="payment_mode" class="form-select" id="ep_mode" onchange="epToggleCheque()">
+                            <option value="especes" {% if (payment.payment_mode or 'especes') == 'especes' %}selected{% endif %}>💵 Espèces</option>
+                            <option value="virement" {% if payment.payment_mode == 'virement' %}selected{% endif %}>🏦 Virement</option>
+                            <option value="cheque" {% if payment.payment_mode == 'cheque' %}selected{% endif %}>📝 Chèque</option>
+                        </select>
+                    </div>
+
+                    <!-- Section chèque -->
+                    <div id="ep_chequeSection" class="{% if payment.payment_mode != 'cheque' %}d-none{% endif %} mb-3 p-3 rounded" style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.25);">
+                        <div class="mb-2">
+                            <label class="form-label"><i class="bi bi-hash"></i> N° de chèque</label>
+                            <input type="text" class="form-control" name="cheque_number"
+                                   value="{{ payment.cheque_number or '' }}" maxlength="50" placeholder="Ex : 001234567">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label"><i class="bi bi-bank"></i> Banque du tiré</label>
+                            <input type="text" class="form-control" name="cheque_bank"
+                                   value="{{ payment.cheque_bank or '' }}" maxlength="100" placeholder="Ex : STB, BNA, Attijari...">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label"><i class="bi bi-camera"></i> Remplacer le scan <small class="text-muted">(JPG, PNG, PDF — max 5 Mo)</small></label>
+                            {% if payment.cheque_url %}
+                            <div class="mb-2">
+                                <a href="{{ payment.cheque_url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-image"></i> Voir scan actuel
+                                </a>
+                            </div>
+                            {% endif %}
+                            <input type="file" class="form-control" name="cheque_file"
+                                   accept="image/jpeg,image/png,image/webp,application/pdf">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label">Mois de Redevance *</label>
-                        <input type="month" name="month_paid" class="form-control" 
+                        <input type="month" name="month_paid" class="form-control"
                                value="{{ payment.month_paid }}" required>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Montant (DT) *</label>
-                        <input class="form-control" name="amount" type="number" 
+                        <input class="form-control" name="amount" type="number"
                                step="0.001" value="{{ payment.amount }}" required>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Date de Paiement *</label>
-                        <input class="form-control" name="payment_date" type="date" 
+                        <input class="form-control" name="payment_date" type="date"
                                value="{{ payment.payment_date }}" required>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Description</label>
-                        <input class="form-control" name="description" 
-                               value="{{ payment.description }}" 
+                        <input class="form-control" name="description"
+                               value="{{ payment.description }}"
                                placeholder="Description">
                     </div>
 
@@ -67,6 +102,14 @@
                         </a>
                     </div>
                 </form>
+                <script>
+                function epToggleCheque() {
+                    const mode = document.getElementById('ep_mode').value;
+                    const sec  = document.getElementById('ep_chequeSection');
+                    if (mode === 'cheque') { sec.classList.remove('d-none'); }
+                    else                   { sec.classList.add('d-none'); }
+                }
+                </script>
             </div>
         </div>
     </div>

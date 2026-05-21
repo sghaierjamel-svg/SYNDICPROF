@@ -132,6 +132,10 @@ class Payment(db.Model):
     month_paid = db.Column(db.String(7), nullable=False)
     description = db.Column(db.String(200))
     credit_used = db.Column(db.Float, default=0.0)
+    payment_mode = db.Column(db.String(20), default='especes')   # especes, virement, cheque
+    cheque_number = db.Column(db.String(50), nullable=True)
+    cheque_bank = db.Column(db.String(100), nullable=True)
+    cheque_url = db.Column(db.String(500), nullable=True)
 
 
 class MiscReceipt(db.Model):
@@ -1480,6 +1484,36 @@ def init_db():
                 print("Migration Storage URLs : colonnes *_url vérifiées.")
     except Exception as e:
         print(f"Migration Storage URLs : {e}")
+
+    # Migration : colonnes mode paiement + chèque sur la table payment
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                for col, col_type in [
+                    ('payment_mode',   "VARCHAR(20) DEFAULT 'especes'"),
+                    ('cheque_number',  'VARCHAR(50)'),
+                    ('cheque_bank',    'VARCHAR(100)'),
+                    ('cheque_url',     'TEXT'),
+                ]:
+                    conn.execute(db.text(
+                        f"ALTER TABLE payment ADD COLUMN IF NOT EXISTS {col} {col_type}"
+                    ))
+                conn.commit()
+            else:
+                result = conn.execute(db.text("PRAGMA table_info(payment)"))
+                cols = [row[1] for row in result]
+                for col, col_type in [
+                    ('payment_mode',   "VARCHAR(20) DEFAULT 'especes'"),
+                    ('cheque_number',  'VARCHAR(50)'),
+                    ('cheque_bank',    'VARCHAR(100)'),
+                    ('cheque_url',     'TEXT'),
+                ]:
+                    if col not in cols:
+                        conn.execute(db.text(f"ALTER TABLE payment ADD COLUMN {col} {col_type}"))
+                conn.commit()
+            print("Migration payment mode/cheque OK.")
+    except Exception as e:
+        print(f"Migration payment mode/cheque : {e}")
 
     if not User.query.filter_by(email='superadmin@syndicpro.tn').first():
         # CRIT-003 : SUPERADMIN_PASSWORD obligatoire et >= 16 caractères
