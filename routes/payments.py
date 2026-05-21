@@ -1,6 +1,7 @@
 from flask import render_template, request, redirect, url_for, flash, jsonify, send_file
 import io
 from core import app, db
+from sqlalchemy import extract as sql_extract
 from models import Apartment, Block, Payment, User, MiscReceipt, KonnectPayment, FlouciPayment, PaymentRequest
 from utils import (current_user, current_organization, login_required,
                    admin_required, subscription_required,
@@ -218,7 +219,7 @@ def payments():
         pay_q = pay_q.filter(Payment.payment_date >= cutoff)
 
     if filter_year:
-        pay_q = pay_q.filter(db.extract('year', Payment.payment_date) == int(filter_year))
+        pay_q = pay_q.filter(sql_extract('year', Payment.payment_date) == int(filter_year))
     if filter_apt_id:
         pay_q = pay_q.filter(Payment.apartment_id == int(filter_apt_id))
     elif filter_block_id:
