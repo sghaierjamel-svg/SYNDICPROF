@@ -244,30 +244,30 @@ def payments():
     misc_list = MiscReceipt.query.filter_by(organization_id=org.id).order_by(MiscReceipt.payment_date.desc()).all()
 
     today_month = date.today().replace(day=1)
+    today_ym    = today_month.year * 12 + today_month.month
+    end_next_ym = today_ym + 3  # horizon 3 mois
+
+    def _ym_str(ym):
+        """Convertit year*12+month en 'YYYY-MM' sans relativedelta."""
+        y, mo = divmod(ym - 1, 12)
+        return f"{y}-{mo + 1:02d}"
 
     for apt in apartments:
-        paid = paid_months_by_apt.get(apt.id, set())
-        start = apt.created_at.date().replace(day=1) if apt.created_at else today_month
-        end_count = today_month
-        end_next = today_month + relativedelta(months=3)
+        paid     = paid_months_by_apt.get(apt.id, set())
+        start_d  = apt.created_at.date().replace(day=1) if apt.created_at else today_month
+        start_ym = start_d.year * 12 + start_d.month
 
-        # Calcul impayés
-        unpaid = 0
-        cur = start
-        while cur <= end_count:
-            if cur.strftime('%Y-%m') not in paid:
-                unpaid += 1
-            cur += relativedelta(months=1)
+        # Calcul impayés — arithmétique entière, pas de relativedelta par itération
+        unpaid = sum(1 for ym in range(start_ym, today_ym + 1) if _ym_str(ym) not in paid)
         apt.unpaid_count = unpaid
 
-        # Premier mois impayé
-        apt.next_unpaid = (end_next + relativedelta(months=1)).strftime('%Y-%m')
-        cur = start
-        while cur <= end_next:
-            if cur.strftime('%Y-%m') not in paid:
-                apt.next_unpaid = cur.strftime('%Y-%m')
+        # Premier mois impayé dans [start, today+3 mois]
+        apt.next_unpaid = _ym_str(end_next_ym + 1)  # défaut : 4e mois si tout payé
+        for ym in range(start_ym, end_next_ym + 1):
+            m_str = _ym_str(ym)
+            if m_str not in paid:
+                apt.next_unpaid = m_str
                 break
-            cur += relativedelta(months=1)
 
     konnect_links = KonnectPayment.query.filter_by(organization_id=org.id)\
         .order_by(KonnectPayment.created_at.desc()).all()

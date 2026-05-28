@@ -262,8 +262,20 @@ def subscription_required(f):
         if user and user.role == 'superadmin':
             return f(*args, **kwargs)
         if not check_subscription():
-            flash("Votre abonnement a expiré. Veuillez le renouveler.", "danger")
+            if _req.method == 'GET':
+                # Lecture seule autorisée — avertir une seule fois par session
+                if not session.get('sub_expired_warned'):
+                    flash(
+                        "Votre abonnement a expiré — vous êtes en lecture seule. "
+                        "Renouvelez pour reprendre la gestion complète.",
+                        "warning"
+                    )
+                    session['sub_expired_warned'] = True
+                return f(*args, **kwargs)
+            # Toute action d'écriture (POST/PUT/DELETE) reste bloquée
+            flash("Votre abonnement a expiré. Renouvelez pour effectuer des modifications.", "danger")
             return redirect(url_for('subscription_status'))
+        session.pop('sub_expired_warned', None)  # réinitialise si abonnement redevient valide
         return f(*args, **kwargs)
     return wrapper
 
