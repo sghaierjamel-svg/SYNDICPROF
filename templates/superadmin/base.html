@@ -340,6 +340,15 @@
             <i class="bi bi-bar-chart-line"></i> Analytiques
         </a>
 
+        <a class="sidebar-link {% if request.endpoint == 'superadmin_sub_payments' %}active{% endif %}"
+           href="{{ url_for('superadmin_sub_payments') }}">
+            <i class="bi bi-bank2"></i> Virements abonnements
+            {% set sp_count = pending_sub_payments_count | default(0) %}
+            {% if sp_count > 0 %}
+            <span class="badge bg-danger ms-1" style="font-size:.7rem;">{{ sp_count }}</span>
+            {% endif %}
+        </a>
+
         <a class="sidebar-link" href="{{ url_for('superadmin_export_csv') }}" title="Exporter tous les clients CSV">
             <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
         </a>
