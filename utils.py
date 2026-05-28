@@ -218,6 +218,7 @@ def warn_subscription_expiry():
         session['expiry_warned'] = True
     elif days > 7:
         session.pop('expiry_warned', None)
+        session.pop('sub_expired_warned', None)  # abonnement valide → reset lecture seule
 
 
 def current_user():
@@ -302,60 +303,39 @@ def superadmin_required(f):
     return wrapper
 
 
+def ym_str(ym):
+    """Convertit un entier year*12+month en 'YYYY-MM'. Sans relativedelta."""
+    y, mo = divmod(ym - 1, 12)
+    return f"{y}-{mo + 1:02d}"
+
+
 def get_unpaid_months_count(apartment_id):
-    """Compte le nombre de mois impayés DEPUIS LA CRÉATION de l'appartement"""
+    """Compte le nombre de mois impayés DEPUIS LA CRÉATION de l'appartement."""
     apt = Apartment.query.get(apartment_id)
     if not apt:
         return 0
-
-    payments = Payment.query.filter_by(apartment_id=apartment_id).all()
-    paid_months = set(p.month_paid for p in payments)
-
-    if apt.created_at:
-        start_date = apt.created_at.date().replace(day=1)
-    else:
-        start_date = date.today().replace(day=1)
-
-    current = start_date
-    end_date = date.today().replace(day=1)
-
-    unpaid_count = 0
-    while current <= end_date:
-        month_str = current.strftime('%Y-%m')
-        if month_str not in paid_months:
-            unpaid_count += 1
-        current += relativedelta(months=1)
-
-    return unpaid_count
+    paid_months = {p.month_paid for p in Payment.query.filter_by(apartment_id=apartment_id).all()}
+    start_d   = apt.created_at.date().replace(day=1) if apt.created_at else date.today().replace(day=1)
+    today_d   = date.today().replace(day=1)
+    start_ym  = start_d.year * 12 + start_d.month
+    today_ym  = today_d.year * 12 + today_d.month
+    return sum(1 for ym in range(start_ym, today_ym + 1) if ym_str(ym) not in paid_months)
 
 
 def get_next_unpaid_month(apartment_id):
-    """
-    Retourne le premier mois (YYYY-MM) non couvert par un paiement
-    depuis la création de l'appartement, en regardant jusqu'à 3 mois dans le futur.
-    """
+    """Retourne le premier mois (YYYY-MM) impayé depuis la création, jusqu'à 3 mois dans le futur."""
     apt = Apartment.query.get(apartment_id)
     if not apt:
         return date.today().strftime('%Y-%m')
-
-    payments = Payment.query.filter_by(apartment_id=apartment_id).all()
-    paid_months = set(p.month_paid for p in payments)
-
-    if apt.created_at:
-        start_date = apt.created_at.date().replace(day=1)
-    else:
-        start_date = date.today().replace(day=1)
-
-    current = start_date
-    end_check_date = date.today().replace(day=1) + relativedelta(months=3)
-
-    while current <= end_check_date:
-        month_str = current.strftime('%Y-%m')
-        if month_str not in paid_months:
-            return month_str
-        current += relativedelta(months=1)
-
-    return (end_check_date + relativedelta(months=1)).strftime('%Y-%m')
+    paid_months  = {p.month_paid for p in Payment.query.filter_by(apartment_id=apartment_id).all()}
+    start_d      = apt.created_at.date().replace(day=1) if apt.created_at else date.today().replace(day=1)
+    today_d      = date.today().replace(day=1)
+    start_ym     = start_d.year * 12 + start_d.month
+    end_next_ym  = today_d.year * 12 + today_d.month + 3
+    for ym in range(start_ym, end_next_ym + 1):
+        if ym_str(ym) not in paid_months:
+            return ym_str(ym)
+    return ym_str(end_next_ym + 1)
 
 
 def check_unpaid_alerts():

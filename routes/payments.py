@@ -5,7 +5,7 @@ from sqlalchemy import extract as sql_extract
 from models import Apartment, Block, Payment, User, MiscReceipt, KonnectPayment, FlouciPayment, PaymentRequest
 from utils import (current_user, current_organization, login_required,
                    admin_required, subscription_required,
-                   get_unpaid_months_count, get_next_unpaid_month)
+                   get_unpaid_months_count, get_next_unpaid_month, ym_str)
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from utils_whatsapp import notify_payment
@@ -234,11 +234,12 @@ def payments():
     payments_pagination = pay_q.paginate(page=page, per_page=per_page, error_out=False)
     payments_list = payments_pagination.items
 
-    # Grouper les mois payés par appartement (sur TOUS les paiements, sans filtre)
-    all_payments_for_apt = Payment.query.filter_by(organization_id=org.id).all()
+    # Grouper les mois payés — 2 colonnes seulement, pas les objets complets
+    rows = db.session.query(Payment.apartment_id, Payment.month_paid)\
+        .filter(Payment.organization_id == org.id).all()
     paid_months_by_apt = {}
-    for p in all_payments_for_apt:
-        paid_months_by_apt.setdefault(p.apartment_id, set()).add(p.month_paid)
+    for apt_id, month in rows:
+        paid_months_by_apt.setdefault(apt_id, set()).add(month)
 
     # Encaissements divers
     misc_list = MiscReceipt.query.filter_by(organization_id=org.id).order_by(MiscReceipt.payment_date.desc()).all()
@@ -247,27 +248,25 @@ def payments():
     today_ym    = today_month.year * 12 + today_month.month
     end_next_ym = today_ym + 3  # horizon 3 mois
 
-    def _ym_str(ym):
-        """Convertit year*12+month en 'YYYY-MM' sans relativedelta."""
-        y, mo = divmod(ym - 1, 12)
-        return f"{y}-{mo + 1:02d}"
-
     for apt in apartments:
         paid     = paid_months_by_apt.get(apt.id, set())
         start_d  = apt.created_at.date().replace(day=1) if apt.created_at else today_month
         start_ym = start_d.year * 12 + start_d.month
 
-        # Calcul impayés — arithmétique entière, pas de relativedelta par itération
-        unpaid = sum(1 for ym in range(start_ym, today_ym + 1) if _ym_str(ym) not in paid)
-        apt.unpaid_count = unpaid
-
-        # Premier mois impayé dans [start, today+3 mois]
-        apt.next_unpaid = _ym_str(end_next_ym + 1)  # défaut : 4e mois si tout payé
+        # Une seule passe : unpaid_count + next_unpaid calculés simultanément
+        unpaid   = 0
+        next_u   = ym_str(end_next_ym + 1)   # défaut si tout payé dans la fenêtre
+        next_set = False
         for ym in range(start_ym, end_next_ym + 1):
-            m_str = _ym_str(ym)
+            m_str = ym_str(ym)
             if m_str not in paid:
-                apt.next_unpaid = m_str
-                break
+                if ym <= today_ym:
+                    unpaid += 1
+                if not next_set:
+                    next_u   = m_str
+                    next_set = True
+        apt.unpaid_count = unpaid
+        apt.next_unpaid  = next_u
 
     konnect_links = KonnectPayment.query.filter_by(organization_id=org.id)\
         .order_by(KonnectPayment.created_at.desc()).all()
@@ -281,10 +280,12 @@ def payments():
         organization_id=org.id
     ).order_by(PaymentRequest.created_at.desc()).limit(50).all()
 
-    # Années disponibles pour le filtre
-    years_available = sorted(set(
-        p.payment_date.year for p in all_payments_for_apt
-    ), reverse=True)
+    # Années disponibles — requête SQL directe, pas d'itération Python sur tous les paiements
+    years_available = sorted({
+        int(r[0]) for r in db.session.query(
+            sql_extract('year', Payment.payment_date)
+        ).filter(Payment.organization_id == org.id).distinct().all()
+    }, reverse=True)
 
     return render_template('payments.html',
                            apartments=apartments,

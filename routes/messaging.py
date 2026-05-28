@@ -5,7 +5,7 @@ from flask import render_template, request, redirect, url_for, flash, jsonify
 from core import app, db
 from models import DirectMessage, Apartment, User, Block
 from utils import (current_user, current_organization, login_required,
-                   admin_required, subscription_required)
+                   admin_required, subscription_required, check_subscription)
 from utils_push import push_to_user, push_to_admins
 from datetime import datetime
 
@@ -125,16 +125,17 @@ def messagerie_fil(apt_id):
 
         return redirect(url_for('messagerie_fil', apt_id=apt_id))
 
-    # Marquer les messages de l'autre partie comme lus
-    unread = (DirectMessage.query
-              .filter_by(organization_id=org.id, apartment_id=apt.id)
-              .filter(DirectMessage.read_at.is_(None))
-              .filter(DirectMessage.sender_id != user.id)
-              .all())
-    for m in unread:
-        m.read_at = datetime.utcnow()
-    if unread:
-        db.session.commit()
+    # Marquer les messages comme lus uniquement si l'abonnement est actif
+    if check_subscription():
+        unread = (DirectMessage.query
+                  .filter_by(organization_id=org.id, apartment_id=apt.id)
+                  .filter(DirectMessage.read_at.is_(None))
+                  .filter(DirectMessage.sender_id != user.id)
+                  .all())
+        for m in unread:
+            m.read_at = datetime.utcnow()
+        if unread:
+            db.session.commit()
 
     messages = (DirectMessage.query
                 .filter_by(organization_id=org.id, apartment_id=apt.id)

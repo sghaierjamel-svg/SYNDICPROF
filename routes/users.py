@@ -2,7 +2,8 @@ from flask import render_template, request, redirect, url_for, flash
 from core import app, db
 from models import User, Apartment, UnpaidAlert
 from utils import (current_user, current_organization, login_required,
-                   admin_required, subscription_required, check_unpaid_alerts)
+                   admin_required, subscription_required, check_subscription,
+                   check_unpaid_alerts)
 
 
 @app.route('/users', methods=['GET', 'POST'])
@@ -121,7 +122,7 @@ def delete_user(user_id):
 @subscription_required
 def alerts():
     org = current_organization()
-    new_alerts = check_unpaid_alerts()
+    new_alerts = check_unpaid_alerts() if check_subscription() else []
     if new_alerts:
         flash(f'{len(new_alerts)} nouvelle(s) alerte(s) d\'impayés créée(s)', 'warning')
     all_alerts = UnpaidAlert.query.filter_by(organization_id=org.id).order_by(UnpaidAlert.alert_date.desc()).all()
