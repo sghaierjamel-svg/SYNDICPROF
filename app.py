@@ -36,20 +36,6 @@ import routes.seo
 import routes.sub_payments
 
 
-@app.context_processor
-def _inject_superadmin_counts():
-    from utils import current_user
-    from models import SubscriptionPaymentRequest
-    try:
-        u = current_user()
-        if u and u.role == 'superadmin':
-            count = SubscriptionPaymentRequest.query.filter_by(status='en_attente').count()
-            return {'pending_sub_payments_count': count}
-    except Exception:
-        pass
-    return {}
-
-
 @app.after_request
 def _track_page_view(response):
     from utils_analytics import track_visit

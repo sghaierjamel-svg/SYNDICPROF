@@ -14,7 +14,18 @@ def inject_notifications():
                          'index', 'demo', 'subscription_status'):
         return {}
     user = current_user()
-    if not user or not user.organization_id:
+    if not user:
+        return {}
+
+    if user.role == 'superadmin':
+        from models import SubscriptionPaymentRequest
+        try:
+            count = SubscriptionPaymentRequest.query.filter_by(status='en_attente').count()
+            return {'pending_sub_payments_count': count}
+        except Exception:
+            return {}
+
+    if not user.organization_id:
         return {}
 
     org_id = user.organization_id
