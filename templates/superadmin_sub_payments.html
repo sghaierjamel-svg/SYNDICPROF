@@ -131,7 +131,7 @@
                       action="{{ url_for('superadmin_sub_reject', pr_id=pr.id) }}">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <div class="modal-body">
-                    <p><strong>{{ pr.organization.name }}</strong> — {{ pr.amount_declared:.0f }} DT</p>
+                    <p><strong>{{ pr.organization.name }}</strong> — {{ pr.amount_declared|int }} DT</p>
                     <div class="mb-3">
                       <label class="form-label">Motif du rejet <span class="text-danger">*</span></label>
                       <textarea name="superadmin_notes" class="form-control" rows="3" required
