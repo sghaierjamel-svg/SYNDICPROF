@@ -93,7 +93,7 @@
           <div>
             <span class="badge bg-warning text-dark">{{ p.plan_requested.capitalize() }}</span>
             <span class="ms-2 fw-semibold">{{ p.months_count }} mois</span>
-            <div class="text-muted small">{{ p.amount_declared:.0f }} DT — {{ p.created_at.strftime('%d/%m/%Y') }}</div>
+            <div class="text-muted small">{{ p.amount_declared|int }} DT — {{ p.created_at.strftime('%d/%m/%Y') }}</div>
           </div>
           <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split"></i> En attente</span>
         </div>

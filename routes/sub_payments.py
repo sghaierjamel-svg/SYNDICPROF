@@ -66,6 +66,8 @@ def _next_invoice_number():
 @admin_required
 def subscription_payer_virement():
     user = current_user()
+    if user.role == 'superadmin':
+        return redirect(url_for('superadmin_sub_payments'))
     org  = current_organization()
 
     if request.method == 'POST':
