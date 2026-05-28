@@ -177,12 +177,11 @@
             </div>
             <div class="card-body">
                 <div class="d-grid gap-2">
-                    <a href="tel:+21624545853" class="btn btn-primary">
-                        <i class="bi bi-telephone"></i> Nous Contacter
+                    <a href="{{ url_for('subscription_payer_virement') }}" class="btn btn-primary">
+                        <i class="bi bi-bank"></i> Payer par virement bancaire
                     </a>
-                    <a href="mailto:contact@syndicpro.tn?subject=Abonnement - {{ org.name }}"
-                       class="btn btn-success">
-                        <i class="bi bi-envelope"></i> Choisir un Plan
+                    <a href="tel:+21624545853" class="btn btn-outline-secondary">
+                        <i class="bi bi-telephone"></i> Nous Contacter
                     </a>
                     <a href="https://wa.me/21624545853?text=Bonjour, je souhaite souscrire à un plan SyndicPro pour {{ org.name }}"
                        class="btn btn-outline-success" target="_blank">

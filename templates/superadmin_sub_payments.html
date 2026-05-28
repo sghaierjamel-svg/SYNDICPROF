@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-3">
+  <div class="col-12">
+    <h2 class="text-white mb-1"><i class="bi bi-bank2"></i> Paiements abonnements — Virements</h2>
+    <p class="text-white-50">Vérifiez les virements reçus et activez les abonnements.</p>
+  </div>
+</div>
+
+<!-- Demandes en attente -->
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-hourglass-split text-warning"></i> En attente
+      {% if pending %}<span class="badge bg-warning text-dark ms-2">{{ pending|length }}</span>{% endif %}
+    </span>
+  </div>
+  <div class="card-body p-0">
+    {% if not pending %}
+    <div class="text-center text-muted py-5">
+      <i class="bi bi-check-circle fs-1 d-block mb-2 text-success"></i>
+      Aucune demande en attente.
+    </div>
+    {% else %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Organisation</th>
+            <th>Plan demandé</th>
+            <th>Durée</th>
+            <th>Montant déclaré</th>
+            <th>Référence</th>
+            <th>Date soumission</th>
+            <th>Scan</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pr in pending %}
+          <tr>
+            <td>
+              <strong>{{ pr.organization.name }}</strong><br>
+              <small class="text-muted">{{ pr.organization.email }}</small>
+            </td>
+            <td>
+              <span class="badge bg-primary">{{ pr.plan_requested.capitalize() }}</span><br>
+              <small class="text-muted">{{ plans[pr.plan_requested].price|int }} DT/mois</small>
+            </td>
+            <td>{{ pr.months_count }} mois</td>
+            <td class="fw-bold">{{ '%.3f'|format(pr.amount_declared) }} DT</td>
+            <td><small>{{ pr.bank_reference or '—' }}</small></td>
+            <td><small>{{ pr.created_at.strftime('%d/%m/%Y %H:%M') }}</small></td>
+            <td>
+              {% if pr.photo_url or pr.photo_data %}
+              <a href="{{ url_for('sub_payment_scan', pr_id=pr.id) }}" target="_blank"
+                 class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-eye"></i> Voir
+              </a>
+              {% else %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              <!-- Approuver -->
+              <button class="btn btn-sm btn-success mb-1" data-bs-toggle="modal"
+                      data-bs-target="#approveModal{{ pr.id }}">
+                <i class="bi bi-check-lg"></i> Approuver
+              </button>
+              <!-- Rejeter -->
+              <button class="btn btn-sm btn-outline-danger mb-1" data-bs-toggle="modal"
+                      data-bs-target="#rejectModal{{ pr.id }}">
+                <i class="bi bi-x-lg"></i> Rejeter
+              </button>
+            </td>
+          </tr>
+
+          <!-- Modal Approbation -->
+          <div class="modal fade" id="approveModal{{ pr.id }}" tabindex="-1">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                  <h5 class="modal-title"><i class="bi bi-check-circle"></i> Approuver le virement</h5>
+                  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST"
+                      action="{{ url_for('superadmin_sub_approve', pr_id=pr.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <div class="modal-body">
+                    <p>
+                      <strong>{{ pr.organization.name }}</strong> —
+                      Plan {{ pr.plan_requested.capitalize() }},
+                      {{ pr.months_count }} mois
+                    </p>
+                    <div class="mb-3">
+                      <label class="form-label">Montant confirmé reçu (DT)</label>
+                      <input type="number" name="amount_confirmed" class="form-control"
+                             step="0.001" value="{{ '%.3f'|format(pr.amount_declared) }}" required>
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Notes (optionnel)</label>
+                      <textarea name="superadmin_notes" class="form-control" rows="2"
+                                placeholder="Ex: Reçu le 28/05, virement BT"></textarea>
+                    </div>
+                    <div class="alert alert-info small mb-0">
+                      <i class="bi bi-info-circle"></i>
+                      L'abonnement sera prolongé de <strong>{{ pr.months_count }} mois</strong>
+                      et une facture PDF sera générée automatiquement.
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-success">
+                      <i class="bi bi-check-lg"></i> Confirmer l'activation
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modal Rejet -->
+          <div class="modal fade" id="rejectModal{{ pr.id }}" tabindex="-1">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                  <h5 class="modal-title"><i class="bi bi-x-circle"></i> Rejeter la demande</h5>
+                  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST"
+                      action="{{ url_for('superadmin_sub_reject', pr_id=pr.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <div class="modal-body">
+                    <p><strong>{{ pr.organization.name }}</strong> — {{ pr.amount_declared:.0f }} DT</p>
+                    <div class="mb-3">
+                      <label class="form-label">Motif du rejet <span class="text-danger">*</span></label>
+                      <textarea name="superadmin_notes" class="form-control" rows="3" required
+                                placeholder="Ex: Montant incorrect, référence virement manquante…"></textarea>
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-danger">Rejeter</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Historique -->
+<div class="card">
+  <div class="card-header"><i class="bi bi-clock-history"></i> Historique (50 derniers)</div>
+  <div class="card-body p-0">
+    {% if not history %}
+    <div class="text-center text-muted py-4">Aucun paiement traité.</div>
+    {% else %}
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Organisation</th>
+            <th>Facture</th>
+            <th>Plan</th>
+            <th>Durée</th>
+            <th>Montant</th>
+            <th>Statut</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for h in history %}
+          <tr>
+            <td>{{ h.organization.name }}</td>
+            <td><small class="font-monospace">{{ h.invoice_number or '—' }}</small></td>
+            <td><span class="badge bg-secondary">{{ h.plan_requested.capitalize() }}</span></td>
+            <td>{{ h.months_count }} mois</td>
+            <td>{{ '%.0f'|format(h.amount_confirmed or h.amount_declared) }} DT</td>
+            <td>
+              {% if h.status == 'approuve' %}
+                <span class="badge bg-success">Approuvé</span>
+              {% else %}
+                <span class="badge bg-danger">Rejeté</span>
+              {% endif %}
+            </td>
+            <td><small>{{ (h.confirmed_at or h.created_at).strftime('%d/%m/%Y') }}</small></td>
+            <td>
+              {% if h.status == 'approuve' %}
+              <a href="{{ url_for('sub_payment_invoice', pr_id=h.id) }}"
+                 class="btn btn-sm btn-outline-success" title="Télécharger la facture">
+                <i class="bi bi-file-earmark-pdf"></i>
+              </a>
+              {% endif %}
+              {% if h.photo_url or h.photo_data %}
+              <a href="{{ url_for('sub_payment_scan', pr_id=h.id) }}" target="_blank"
+                 class="btn btn-sm btn-outline-secondary ms-1" title="Voir le scan">
+                <i class="bi bi-image"></i>
+              </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

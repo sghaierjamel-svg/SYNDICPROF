@@ -593,6 +593,42 @@ class BadgeAccessLog(db.Model):
     badge = db.relationship('Badge', backref='access_logs', lazy=True)
 
 
+class SubscriptionPaymentRequest(db.Model):
+    """Demande de paiement d'abonnement SyndicPro par virement bancaire.
+    Soumise par l'admin du syndic, approuvée par le superadmin.
+    À l'approbation : abonnement prolongé + facture PDF générée."""
+    __tablename__ = 'subscription_payment_request'
+    id               = db.Column(db.Integer, primary_key=True)
+    organization_id  = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
+    submitted_by_id  = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    plan_requested   = db.Column(db.String(20), nullable=False)   # essentiel / pro / business
+    months_count     = db.Column(db.Integer, default=1)           # 1 ou 12
+    amount_declared  = db.Column(db.Float, nullable=False)
+    bank_reference   = db.Column(db.String(200))
+    # Scan virement / avis de débit
+    photo_data       = db.Column(db.Text)                         # base64 (fallback Supabase)
+    photo_mime       = db.Column(db.String(30))
+    photo_url        = db.Column(db.Text)                         # URL Supabase Storage
+    # Token sécurisé pour action superadmin
+    confirm_token    = db.Column(db.String(64), unique=True, nullable=False)
+    # Statut : en_attente / approuve / rejete
+    status           = db.Column(db.String(20), default='en_attente')
+    # Rempli par superadmin à l'approbation
+    amount_confirmed = db.Column(db.Float)
+    superadmin_notes = db.Column(db.Text)
+    invoice_number   = db.Column(db.String(30))                   # SP-YYYY-NNNN
+    created_at       = db.Column(db.DateTime, default=datetime.utcnow)
+    confirmed_at     = db.Column(db.DateTime)
+    organization  = db.relationship('Organization', backref='subscription_payment_requests', lazy=True)
+    submitted_by  = db.relationship('User', backref='subscription_payment_requests', lazy=True)
+
+    PLAN_DETAILS = {
+        'essentiel': {'price': 29.0, 'max_apartments': 30,     'label': 'Essentiel'},
+        'pro':       {'price': 59.0, 'max_apartments': 150,    'label': 'Pro'},
+        'business':  {'price': 99.0, 'max_apartments': 999999, 'label': 'Business'},
+    }
+
+
 class SiteVisit(db.Model):
     """Suivi des visites du site public (analytics)."""
     __tablename__ = 'site_visit'
@@ -1514,6 +1550,57 @@ def init_db():
             print("Migration payment mode/cheque OK.")
     except Exception as e:
         print(f"Migration payment mode/cheque : {e}")
+
+    # Migration : table subscription_payment_request
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS subscription_payment_request (
+                        id SERIAL PRIMARY KEY,
+                        organization_id INTEGER REFERENCES organization(id) ON DELETE CASCADE,
+                        submitted_by_id INTEGER REFERENCES "user"(id) ON DELETE CASCADE,
+                        plan_requested VARCHAR(20) NOT NULL,
+                        months_count INTEGER DEFAULT 1,
+                        amount_declared FLOAT NOT NULL,
+                        bank_reference VARCHAR(200),
+                        photo_data TEXT,
+                        photo_mime VARCHAR(30),
+                        photo_url TEXT,
+                        confirm_token VARCHAR(64) UNIQUE NOT NULL,
+                        status VARCHAR(20) DEFAULT 'en_attente',
+                        amount_confirmed FLOAT,
+                        superadmin_notes TEXT,
+                        invoice_number VARCHAR(30),
+                        created_at TIMESTAMP DEFAULT NOW(),
+                        confirmed_at TIMESTAMP
+                    )
+                """))
+                conn.execute(db.text(
+                    "ALTER TABLE subscription_payment_request ENABLE ROW LEVEL SECURITY"
+                ))
+                conn.commit()
+            else:
+                conn.execute(db.text("""
+                    CREATE TABLE IF NOT EXISTS subscription_payment_request (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        organization_id INTEGER, submitted_by_id INTEGER,
+                        plan_requested VARCHAR(20) NOT NULL,
+                        months_count INTEGER DEFAULT 1,
+                        amount_declared FLOAT NOT NULL,
+                        bank_reference VARCHAR(200),
+                        photo_data TEXT, photo_mime VARCHAR(30), photo_url TEXT,
+                        confirm_token VARCHAR(64) UNIQUE NOT NULL,
+                        status VARCHAR(20) DEFAULT 'en_attente',
+                        amount_confirmed FLOAT, superadmin_notes TEXT, invoice_number VARCHAR(30),
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        confirmed_at DATETIME
+                    )
+                """))
+                conn.commit()
+            print("Migration : table subscription_payment_request OK")
+    except Exception as e:
+        print(f"Migration subscription_payment_request : {e}")
 
     if not User.query.filter_by(email='superadmin@syndicpro.tn').first():
         # CRIT-003 : SUPERADMIN_PASSWORD obligatoire et >= 16 caractères

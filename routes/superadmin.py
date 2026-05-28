@@ -188,9 +188,13 @@ def superadmin_dashboard():
             score += 10
         engagement_scores[o.id] = min(score, 100)
 
+    from models import SubscriptionPaymentRequest as _SubPR
+    pending_sub_count = _SubPR.query.filter_by(status='en_attente').count()
+
     return render_template(
         'superadmin/dashboard.html',
         organizations=real_orgs,
+        pending_sub_payments_count=pending_sub_count,
         total_orgs=total_orgs,
         active_orgs=active_orgs,
         mrr=mrr, arr=arr,

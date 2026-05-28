@@ -33,6 +33,7 @@ import routes.messaging
 import routes.badges
 import routes.analytics
 import routes.seo
+import routes.sub_payments
 
 
 @app.after_request
