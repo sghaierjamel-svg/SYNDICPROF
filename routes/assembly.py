@@ -217,7 +217,7 @@ def assembly_open_vote(ag_id):
         return redirect(url_for('assembly_detail', ag_id=ag_id))
     ag.status = 'ouverte'
     db.session.commit()
-    flash('Vote ouvert — les résidents peuvent maintenant voter en ligne.', 'success')
+    flash('Vote ouvert - les résidents peuvent maintenant voter en ligne.', 'success')
     return redirect(url_for('assembly_detail', ag_id=ag_id))
 
 
@@ -232,7 +232,7 @@ def assembly_close(ag_id):
     ag  = AssemblyGeneral.query.filter_by(id=ag_id, organization_id=org.id).first_or_404()
     ag.status = 'cloturee'
     db.session.commit()
-    flash('Assemblée clôturée — le PV est maintenant disponible.', 'success')
+    flash('Assemblée clôturée - le PV est maintenant disponible.', 'success')
     return redirect(url_for('assembly_pv', ag_id=ag_id))
 
 
@@ -290,7 +290,7 @@ def assembly_vote(ag_id):
     if recorded > 0:
         flash(f'Votre vote a été enregistré ({recorded} point{"s" if recorded > 1 else ""}).', 'success')
     else:
-        flash("Aucun vote envoyé — veuillez sélectionner une option par point.", 'warning')
+        flash("Aucun vote envoyé - veuillez sélectionner une option par point.", 'warning')
     return redirect(url_for('assembly_detail', ag_id=ag_id))
 
 
@@ -345,7 +345,7 @@ def assembly_upload_pv_scan(ag_id):
         db.session.commit()
         flash('PV scanné enregistré dans le dossier de l\'assemblée.', 'success')
     else:
-        flash('Stockage non configuré — scan non sauvegardé.', 'warning')
+        flash('Stockage non configuré - scan non sauvegardé.', 'warning')
     return redirect(url_for('assembly_pv', ag_id=ag_id))
 
 
@@ -417,7 +417,7 @@ def assembly_pv_pdf(ag_id):
                 .replace('à', 'a').replace('â', 'a').replace('ô', 'o')
                 .replace('û', 'u').replace('ü', 'u').replace('î', 'i')
                 .replace('ï', 'i').replace('ç', 'c').replace('ù', 'u')
-                .replace('—', '-').replace('–', '-')
+                .replace('-', '-').replace('–', '-')
                 .replace('’', "'").replace('‘', "'")
                 .replace('É', 'E').replace('À', 'A').replace('Ç', 'C')
                 .replace('æ', 'ae').replace('œ', 'oe')
@@ -442,7 +442,7 @@ def assembly_pv_pdf(ag_id):
     pdf.set_text_color(40, 40, 40)
     pdf.cell(0, 6, s('REPUBLIQUE TUNISIENNE'), new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.set_font('Helvetica', '', 10)
-    pdf.cell(0, 5, s('Code des Droits Reels — Articles 90 et suivants'), new_x="LMARGIN", new_y="NEXT", align='C')
+    pdf.cell(0, 5, s('Code des Droits Reels - Articles 90 et suivants'), new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.ln(3)
     pdf.set_draw_color(80, 80, 80)
     pdf.set_line_width(0.8)
@@ -462,8 +462,8 @@ def assembly_pv_pdf(ag_id):
     # Titre PV
     pdf.set_font('Helvetica', 'B', 12)
     pdf.set_text_color(0, 0, 0)
-    titre = "PROCES-VERBAL D'ASSEMBLEE GENERALE" + (" — BROUILLON" if is_draft else "")
-    pdf.cell(0, 8, titre, new_x="LMARGIN", new_y="NEXT", align='C')
+    titre = "PROCES-VERBAL D'ASSEMBLEE GENERALE" + (" - BROUILLON" if is_draft else "")
+    pdf.cell(0, 8, s(titre), new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.set_font('Helvetica', '', 10)
     pdf.cell(0, 6, s(ag.title), new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.ln(3)
@@ -516,10 +516,10 @@ def assembly_pv_pdf(ag_id):
         pdf.set_font('Helvetica', 'B', 9)
         if quorum_ok:
             pdf.set_text_color(0, 120, 80)
-            pdf.cell(0, 6, '  -> QUORUM ATTEINT — L\'assemblee peut valablement deliberer.', new_x="LMARGIN", new_y="NEXT")
+            pdf.cell(0, 6, '  -> QUORUM ATTEINT - L\'assemblee peut valablement deliberer.', new_x="LMARGIN", new_y="NEXT")
         else:
             pdf.set_text_color(180, 60, 60)
-            pdf.cell(0, 6, '  -> QUORUM NON ATTEINT — Deliberation sous reserve (2eme convocation).', new_x="LMARGIN", new_y="NEXT")
+            pdf.cell(0, 6, '  -> QUORUM NON ATTEINT - Deliberation sous reserve (2eme convocation).', new_x="LMARGIN", new_y="NEXT")
         pdf.set_text_color(0, 0, 0)
     pdf.ln(3)
 
@@ -581,7 +581,7 @@ def assembly_pv_pdf(ag_id):
                 decision = f'  RESOLUTION REJETEE ({cc} voix contre / {pc} pour).'
             else:
                 pdf.set_text_color(100, 100, 180)
-                decision = f'  EGALITE DES VOIX ({pc} pour / {cc} contre) — A soumettre a nouvelle deliberation.'
+                decision = f'  EGALITE DES VOIX ({pc} pour / {cc} contre) - A soumettre a nouvelle deliberation.'
             pdf.set_font('Helvetica', 'B', 9)
             pdf.cell(0, 6, s(decision), new_x="LMARGIN", new_y="NEXT")
             pdf.set_text_color(0, 0, 0)
@@ -653,13 +653,13 @@ def assembly_pv_pdf(ag_id):
     pdf.ln(3)
     pdf.set_font('Helvetica', 'I', 7)
     pdf.set_text_color(150, 150, 150)
-    statut_label = 'BROUILLON — non officiel' if is_draft else 'Document officiel'
+    statut_label = 'BROUILLON - non officiel' if is_draft else 'Document officiel'
     pdf.cell(0, 4,
-             s(f'{statut_label} — Etabli le {datetime.now().strftime("%d/%m/%Y")} — SyndicPro — {org.name}'),
+             s(f'{statut_label} - Etabli le {datetime.now().strftime("%d/%m/%Y")} - SyndicPro - {org.name}'),
              new_x="LMARGIN", new_y="NEXT", align='C')
     if not is_draft:
         pdf.cell(0, 4,
-                 "Ce PV constitue le document officiel de l'assemblee generale — CDR Tunisie.",
+                 "Ce PV constitue le document officiel de l'assemblee generale - CDR Tunisie.",
                  new_x="LMARGIN", new_y="NEXT", align='C')
 
     buf = io.BytesIO(pdf.output())
@@ -690,7 +690,7 @@ def assembly_convocation_pdf(ag_id):
                 .replace('à', 'a').replace('â', 'a')
                 .replace('ô', 'o').replace('û', 'u').replace('ü', 'u')
                 .replace('î', 'i').replace('ï', 'i').replace('ç', 'c')
-                .replace('ù', 'u').replace('—', '-').replace('–', '-')
+                .replace('ù', 'u').replace('-', '-').replace('–', '-')
                 .replace('’', "'").replace('‘', "'")
                 .replace('É', 'E').replace('À', 'A').replace('Ç', 'C')
                 .encode('latin-1', errors='replace').decode('latin-1'))
