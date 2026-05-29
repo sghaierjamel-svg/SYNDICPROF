@@ -5,18 +5,18 @@ from models import AssemblyGeneral, AGItem, AGVote, Apartment, User
 from utils import (current_user, current_organization, login_required,
                    admin_required, subscription_required)
 from datetime import datetime
+from storage_helper import upload_file as _storage_upload
+
+ALLOWED_PV_SCAN_MIMES = {'image/jpeg', 'image/png', 'image/webp', 'application/pdf'}
 
 
 # ─── helpers ────────────────────────────────────────────────────────────────
 
 def _build_votes(ag):
-    """Retourne {item.id: {pour, contre, abstention, total, result}} avec objets User."""
     item_ids = [it.id for it in ag.items]
     if not item_ids:
         return {}
     all_votes = AGVote.query.filter(AGVote.item_id.in_(item_ids)).all()
-
-    # Précharger les users d'un coup
     user_ids = {v.user_id for v in all_votes}
     users_map = {u.id: u for u in User.query.filter(User.id.in_(user_ids)).all()} if user_ids else {}
     apt_ids = {v.apartment_id for v in all_votes if v.apartment_id}
@@ -41,7 +41,6 @@ def _build_votes(ag):
 
 
 def _user_votes(ag, user):
-    """Retourne {item.id: 'pour'|'contre'|'abstention'|None} pour le user connecté."""
     item_ids = [it.id for it in ag.items]
     if not item_ids:
         return {}
@@ -63,7 +62,6 @@ def assembly_list():
     assemblies = AssemblyGeneral.query.filter_by(organization_id=org.id)\
         .order_by(AssemblyGeneral.meeting_date.desc()).all()
 
-    # Statistiques rapides par AG
     stats = {}
     for ag in assemblies:
         item_ids = [it.id for it in ag.items]
@@ -133,7 +131,6 @@ def assembly_detail(ag_id):
     votes_by_item = _build_votes(ag)
     user_voted    = _user_votes(ag, user)
 
-    # Liste des participants (résidents ayant voté)
     item_ids = [it.id for it in ag.items]
     voters = []
     if item_ids:
@@ -141,13 +138,15 @@ def assembly_detail(ag_id):
         voters = User.query.filter(User.id.in_(voter_ids)).all() if voter_ids else []
 
     has_voted_all = bool(user_voted) and len(user_voted) == len(ag.items)
+    total_residents = User.query.filter_by(organization_id=org.id, role='resident').count()
 
     return render_template('assembly_detail.html',
                            ag=ag, user=user,
                            votes_by_item=votes_by_item,
                            user_voted=user_voted,
                            voters=voters,
-                           has_voted_all=has_voted_all)
+                           has_voted_all=has_voted_all,
+                           total_residents=total_residents)
 
 
 # ─── Ajouter un point ────────────────────────────────────────────────────────
@@ -283,6 +282,61 @@ def assembly_vote(ag_id):
     return redirect(url_for('assembly_detail', ag_id=ag_id))
 
 
+# ─── Mettre à jour les infos PV (président, secrétaire, heures, quorum) ──────
+
+@app.route('/assemblees/<int:ag_id>/update-infos', methods=['POST'])
+@login_required
+@admin_required
+@subscription_required
+def assembly_update_infos(ag_id):
+    org = current_organization()
+    ag  = AssemblyGeneral.query.filter_by(id=ag_id, organization_id=org.id).first_or_404()
+    ag.president_seance  = request.form.get('president_seance', '').strip()[:150] or None
+    ag.secretaire_seance = request.form.get('secretaire_seance', '').strip()[:150] or None
+    ag.heure_ouverture   = request.form.get('heure_ouverture', '').strip()[:10] or None
+    ag.heure_cloture     = request.form.get('heure_cloture', '').strip()[:10] or None
+    try:
+        ag.nb_presents     = int(request.form.get('nb_presents', '')) if request.form.get('nb_presents') else None
+        ag.nb_procurations = int(request.form.get('nb_procurations', '')) if request.form.get('nb_procurations') else None
+    except (ValueError, TypeError):
+        pass
+    db.session.commit()
+    flash('Informations du PV enregistrées.', 'success')
+    return redirect(url_for('assembly_pv', ag_id=ag_id))
+
+
+# ─── Upload PV scanné ────────────────────────────────────────────────────────
+
+@app.route('/assemblees/<int:ag_id>/upload-pv', methods=['POST'])
+@login_required
+@admin_required
+@subscription_required
+def assembly_upload_pv_scan(ag_id):
+    org = current_organization()
+    ag  = AssemblyGeneral.query.filter_by(id=ag_id, organization_id=org.id).first_or_404()
+    f = request.files.get('pv_scan')
+    if not f or not f.filename:
+        flash('Aucun fichier sélectionné.', 'warning')
+        return redirect(url_for('assembly_pv', ag_id=ag_id))
+    mime = f.mimetype
+    if mime not in ALLOWED_PV_SCAN_MIMES:
+        flash('Format non accepté (JPG, PNG, PDF uniquement).', 'danger')
+        return redirect(url_for('assembly_pv', ag_id=ag_id))
+    raw = f.read()
+    if len(raw) > 10 * 1024 * 1024:
+        flash('Fichier trop lourd (max 10 Mo).', 'danger')
+        return redirect(url_for('assembly_pv', ag_id=ag_id))
+    url = _storage_upload(raw, mime, folder='pv_scans')
+    if url:
+        ag.pv_scan_url  = url
+        ag.pv_scan_mime = mime
+        db.session.commit()
+        flash('PV scanné enregistré dans le dossier de l\'assemblée.', 'success')
+    else:
+        flash('Stockage non configuré — scan non sauvegardé.', 'warning')
+    return redirect(url_for('assembly_pv', ag_id=ag_id))
+
+
 # ─── PV HTML ─────────────────────────────────────────────────────────────────
 
 @app.route('/assemblees/<int:ag_id>/pv')
@@ -293,7 +347,7 @@ def assembly_pv(ag_id):
     user = current_user()
     ag   = AssemblyGeneral.query.filter_by(id=ag_id, organization_id=org.id).first_or_404()
 
-    # Résident ne voit le PV que si l'AG est clôturée
+    # Résidents : PV uniquement après clôture
     if user.role == 'resident' and ag.status != 'cloturee':
         flash("Le PV est disponible après clôture de l'assemblée.", 'warning')
         return redirect(url_for('assembly_detail', ag_id=ag_id))
@@ -317,7 +371,7 @@ def assembly_pv(ag_id):
                            total_residents=total_residents)
 
 
-# ─── PV PDF ──────────────────────────────────────────────────────────────────
+# ─── PV PDF (format légal tunisien CDR) ─────────────────────────────────────
 
 @app.route('/assemblees/<int:ag_id>/pv.pdf')
 @login_required
@@ -341,216 +395,264 @@ def assembly_pv_pdf(ag_id):
     voters = User.query.filter(User.id.in_(voter_ids)).all() if voter_ids else []
     total_residents = User.query.filter_by(organization_id=org.id, role='resident').count()
 
-    # ── Helpers PDF (latin-1 safe) ──
+    is_draft = ag.status != 'cloturee'
+
     def s(t):
         if not t:
             return ''
         return (str(t)
-                .replace('\u00e9', 'e').replace('\u00e8', 'e').replace('\u00ea', 'e')
-                .replace('\u00e0', 'a').replace('\u00e2', 'a')
-                .replace('\u00f4', 'o').replace('\u00fb', 'u').replace('\u00fc', 'u')
-                .replace('\u00ee', 'i').replace('\u00ef', 'i').replace('\u00e7', 'c')
-                .replace('\u00e2', 'a').replace('\u00f9', 'u')
-                .replace('\u2014', '-').replace('\u2013', '-')
-                .replace('\u2019', "'").replace('\u2018', "'")
-                .replace('\u00c9', 'E').replace('\u00c0', 'A').replace('\u00c7', 'C')
+                .replace('é', 'e').replace('è', 'e').replace('ê', 'e')
+                .replace('à', 'a').replace('â', 'a').replace('ô', 'o')
+                .replace('û', 'u').replace('ü', 'u').replace('î', 'i')
+                .replace('ï', 'i').replace('ç', 'c').replace('ù', 'u')
+                .replace('—', '-').replace('–', '-')
+                .replace('’', "'").replace('‘', "'")
+                .replace('É', 'E').replace('À', 'A').replace('Ç', 'C')
+                .replace('æ', 'ae').replace('œ', 'oe')
                 .encode('latin-1', errors='replace').decode('latin-1'))
 
     pdf = FPDF()
-    pdf.set_auto_page_break(auto=True, margin=18)
+    pdf.set_auto_page_break(auto=True, margin=20)
     pdf.add_page()
+    pdf.set_margins(20, 15, 20)
 
-    # En-tête — bandeau vert sur fond blanc
-    pdf.set_fill_color(0, 180, 130)
-    pdf.rect(0, 0, 210, 44, 'F')
-    pdf.set_xy(0, 7)
-    pdf.set_text_color(255, 255, 255)
-    pdf.set_font('Helvetica', 'B', 22)
-    pdf.cell(0, 12, 'SyndicPro', ln=True, align='C')
+    # ── Filigrane BROUILLON ──────────────────────────────────────────────────
+    if is_draft:
+        pdf.set_font('Helvetica', 'B', 60)
+        pdf.set_text_color(220, 220, 220)
+        pdf.set_xy(30, 100)
+        pdf.cell(0, 20, 'BROUILLON', align='C')
+        pdf.set_text_color(0, 0, 0)
+
+    # ── En-tête sobre (pas de bandeau coloré) ───────────────────────────────
+    pdf.set_font('Helvetica', 'B', 11)
+    pdf.set_text_color(40, 40, 40)
+    pdf.cell(0, 6, s('REPUBLIQUE TUNISIENNE'), ln=True, align='C')
     pdf.set_font('Helvetica', '', 10)
-    pdf.set_text_color(255, 255, 255)
-    pdf.cell(0, 5, s(org.name), ln=True, align='C')
+    pdf.cell(0, 5, s('Code des Droits Reels — Articles 90 et suivants'), ln=True, align='C')
     pdf.ln(3)
+    pdf.set_draw_color(80, 80, 80)
+    pdf.set_line_width(0.8)
+    pdf.line(20, pdf.get_y(), 190, pdf.get_y())
+    pdf.ln(5)
+
+    # Résidence
+    pdf.set_font('Helvetica', 'B', 13)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, 7, s(org.name), ln=True, align='C')
+    if org.address:
+        pdf.set_font('Helvetica', '', 9)
+        pdf.set_text_color(80, 80, 80)
+        pdf.cell(0, 5, s(org.address), ln=True, align='C')
+    pdf.ln(4)
 
     # Titre PV
-    pdf.set_fill_color(0, 180, 130)
-    pdf.set_text_color(255, 255, 255)
-    pdf.set_font('Helvetica', 'B', 13)
-    pdf.cell(0, 11, "  PROCES-VERBAL D'ASSEMBLEE GENERALE", ln=True, fill=True)
+    pdf.set_font('Helvetica', 'B', 12)
+    pdf.set_text_color(0, 0, 0)
+    titre = "PROCES-VERBAL D'ASSEMBLEE GENERALE" + (" — BROUILLON" if is_draft else "")
+    pdf.cell(0, 8, titre, ln=True, align='C')
+    pdf.set_font('Helvetica', '', 10)
+    pdf.cell(0, 6, s(ag.title), ln=True, align='C')
+    pdf.ln(3)
+    pdf.set_line_width(0.4)
+    pdf.line(20, pdf.get_y(), 190, pdf.get_y())
     pdf.ln(6)
 
-    # Infos AG
-    def info_line(lbl, val):
+    def section_title(txt):
+        pdf.set_font('Helvetica', 'B', 10)
+        pdf.set_fill_color(230, 230, 230)
+        pdf.set_text_color(0, 0, 0)
+        pdf.cell(0, 7, '  ' + s(txt), ln=True, fill=True)
+        pdf.ln(2)
+
+    def info_row(label, value, bold_val=False):
         pdf.set_font('Helvetica', 'B', 9)
-        pdf.set_text_color(120, 120, 120)
-        pdf.cell(48, 7, s(lbl))
-        pdf.set_font('Helvetica', '', 9)
-        pdf.set_text_color(40, 40, 40)
-        pdf.cell(0, 7, s(str(val)), ln=True)
-
-    info_line('Titre :', ag.title)
-    info_line('Date :', ag.meeting_date.strftime('%d/%m/%Y a %H:%M'))
-    if ag.location:
-        info_line('Lieu :', ag.location)
-    if ag.description:
-        pdf.set_font('Helvetica', 'B', 9)
-        pdf.set_text_color(120, 120, 120)
-        pdf.cell(48, 7, 'Objet :')
-        pdf.set_font('Helvetica', '', 9)
-        pdf.set_text_color(40, 40, 40)
-        pdf.multi_cell(0, 6, s(ag.description))
-    info_line('Statut :', 'Cloturee' if ag.status == 'cloturee' else ag.status.capitalize())
-    info_line('Etabli le :', datetime.now().strftime('%d/%m/%Y a %H:%M'))
-    info_line('Participants :', f'{len(voters)} votants sur {total_residents} residents')
-
-    # ── Section : Résumé des résolutions ──
-    pdf.ln(5)
-    pdf.set_draw_color(0, 200, 150)
-    pdf.set_line_width(0.5)
-    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-    pdf.ln(4)
-    pdf.set_font('Helvetica', 'B', 11)
-    pdf.set_text_color(0, 140, 100)
-    pdf.cell(0, 8, 'RESUME DES RESOLUTIONS', ln=True)
-    pdf.ln(2)
-
-    # Tableau résumé
-    col_w = [85, 22, 22, 22, 39]
-    headers = ['Question', 'Pour', 'Contre', 'Abst.', 'Resultat']
-    pdf.set_font('Helvetica', 'B', 8)
-    pdf.set_fill_color(220, 240, 235)
-    pdf.set_text_color(60, 60, 60)
-    for h, w in zip(headers, col_w):
-        pdf.cell(w, 7, h, border=0, fill=True, align='C')
-    pdf.ln()
-
-    for idx, item in enumerate(ag.items, 1):
-        data = votes_data.get(item.id, {})
-        res  = data.get('result', '-')
-        pdf.set_font('Helvetica', '', 8)
-        pdf.set_text_color(40, 40, 40)
-        q_text = s(f'{idx}. {item.question}')
-        if len(q_text) > 55:
-            q_text = q_text[:52] + '...'
-        pdf.set_fill_color(248, 250, 252) if idx % 2 == 0 else pdf.set_fill_color(255, 255, 255)
-        pdf.cell(col_w[0], 7, q_text, fill=True)
-        pdf.set_text_color(0, 140, 90)
-        pdf.cell(col_w[1], 7, str(data.get('pour_count', 0)), fill=True, align='C')
-        pdf.set_text_color(220, 60, 60)
-        pdf.cell(col_w[2], 7, str(data.get('contre_count', 0)), fill=True, align='C')
-        pdf.set_text_color(100, 100, 100)
-        pdf.cell(col_w[3], 7, str(data.get('abstention_count', 0)), fill=True, align='C')
-        if res == 'ADOPTÉ':
-            pdf.set_text_color(0, 140, 90)
-        elif res == 'REJETÉ':
-            pdf.set_text_color(220, 60, 60)
+        pdf.set_text_color(80, 80, 80)
+        pdf.cell(55, 6, s(label))
+        if bold_val:
+            pdf.set_font('Helvetica', 'B', 9)
         else:
-            pdf.set_text_color(100, 100, 180)
-        pdf.cell(col_w[4], 7, s(res), fill=True, align='C')
-        pdf.ln()
+            pdf.set_font('Helvetica', '', 9)
+        pdf.set_text_color(0, 0, 0)
+        pdf.cell(0, 6, s(str(value)), ln=True)
 
-    # ── Section : Détail des votes ──
-    pdf.ln(6)
-    pdf.set_draw_color(0, 200, 150)
-    pdf.set_line_width(0.5)
-    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-    pdf.ln(4)
-    pdf.set_font('Helvetica', 'B', 11)
-    pdf.set_text_color(0, 140, 100)
-    pdf.cell(0, 8, "DETAIL DES VOTES PAR POINT", ln=True)
+    # ── Section 1 : Informations de séance ──────────────────────────────────
+    section_title('1. INFORMATIONS DE SEANCE')
+    info_row('Date :', ag.meeting_date.strftime('%d/%m/%Y'))
+    info_row('Heure d\'ouverture :', ag.heure_ouverture or '___:___')
+    if ag.location:
+        info_row('Lieu :', ag.location)
+    info_row('Convocation :', 'Conformement aux articles 90 et suivants du CDR')
+    pdf.ln(3)
 
-    for idx, item in enumerate(ag.items, 1):
-        data = votes_data.get(item.id, {})
-        res  = data.get('result', '-')
+    # ── Section 2 : Vérification du quorum ──────────────────────────────────
+    section_title('2. VERIFICATION DU QUORUM')
+    nb_presents     = ag.nb_presents     if ag.nb_presents     is not None else '___'
+    nb_procurations = ag.nb_procurations if ag.nb_procurations is not None else '___'
+    total_coprops   = total_residents or '___'
+    info_row('Coproprietaires presents :', f'{nb_presents} / {total_coprops}')
+    info_row('Procurations recues :',      str(nb_procurations))
+    info_row('Total represente :',
+             f'{(ag.nb_presents or 0) + (ag.nb_procurations or 0)} / {total_coprops}'
+             if (ag.nb_presents is not None or ag.nb_procurations is not None) else '___')
+
+    # Quorum atteint ou non
+    if ag.nb_presents is not None and total_residents > 0:
+        total_rep = (ag.nb_presents or 0) + (ag.nb_procurations or 0)
+        quorum_ok = total_rep >= (total_residents / 2)
+        pdf.set_font('Helvetica', 'B', 9)
+        if quorum_ok:
+            pdf.set_text_color(0, 120, 80)
+            pdf.cell(0, 6, '  -> QUORUM ATTEINT — L\'assemblee peut valablement deliberer.', ln=True)
+        else:
+            pdf.set_text_color(180, 60, 60)
+            pdf.cell(0, 6, '  -> QUORUM NON ATTEINT — Deliberation sous reserve (2eme convocation).', ln=True)
+        pdf.set_text_color(0, 0, 0)
+    pdf.ln(3)
+
+    # ── Section 3 : Bureau de séance ────────────────────────────────────────
+    section_title('3. CONSTITUTION DU BUREAU DE SEANCE')
+    info_row('President de seance :',
+             ag.president_seance or '_________________________________ (elu par l\'assemblee)')
+    info_row('Secretaire de seance :',
+             ag.secretaire_seance or '_________________________________ (designe par le president)')
+    pdf.ln(3)
+
+    # ── Section 4 : Ordre du jour ────────────────────────────────────────────
+    section_title('4. ORDRE DU JOUR')
+    if ag.items:
+        for idx, item in enumerate(ag.items, 1):
+            pdf.set_font('Helvetica', 'B', 9)
+            pdf.set_text_color(0, 0, 0)
+            pdf.cell(10, 6, f'{idx}.')
+            pdf.set_font('Helvetica', '', 9)
+            pdf.multi_cell(0, 6, s(item.question))
+            pdf.ln(1)
+    else:
+        pdf.set_font('Helvetica', 'I', 9)
+        pdf.set_text_color(120, 120, 120)
+        pdf.cell(0, 6, "L'ordre du jour sera communique lors de la seance.", ln=True)
+    pdf.ln(3)
+
+    # ── Section 5 : Délibérations ────────────────────────────────────────────
+    section_title('5. DELIBERATIONS')
+
+    if ag.items and any(votes_data.get(it.id, {}).get('total', 0) > 0 for it in ag.items):
+        for idx, item in enumerate(ag.items, 1):
+            data = votes_data.get(item.id, {})
+            total = data.get('total', 0)
+            pc    = data.get('pour_count', 0)
+            cc    = data.get('contre_count', 0)
+            ac    = data.get('abstention_count', 0)
+            res   = data.get('result', '-')
+
+            pdf.set_font('Helvetica', 'B', 9)
+            pdf.set_text_color(0, 0, 0)
+            pdf.multi_cell(0, 6, s(f'Point {idx} : {item.question}'))
+
+            pdf.set_font('Helvetica', '', 9)
+            pdf.set_text_color(60, 60, 60)
+            pdf.cell(0, 5, s('Apres deliberation, l\'assemblee procede au vote :'), ln=True)
+
+            # Résultat du vote
+            pdf.set_font('Helvetica', 'B', 9)
+            vote_line = f'  Pour : {pc}   |   Contre : {cc}   |   Abstention : {ac}   |   Total : {total} votants'
+            pdf.cell(0, 6, s(vote_line), ln=True)
+
+            # Décision formulée
+            if res == 'ADOPTÉ':
+                pdf.set_text_color(0, 120, 80)
+                decision = f'  RESOLUTION ADOPTEE a la majorite ({pc} voix pour / {cc} contre).'
+            elif res == 'REJETÉ':
+                pdf.set_text_color(180, 60, 60)
+                decision = f'  RESOLUTION REJETEE ({cc} voix contre / {pc} pour).'
+            else:
+                pdf.set_text_color(100, 100, 180)
+                decision = f'  EGALITE DES VOIX ({pc} pour / {cc} contre) — A soumettre a nouvelle deliberation.'
+            pdf.set_font('Helvetica', 'B', 9)
+            pdf.cell(0, 6, s(decision), ln=True)
+            pdf.set_text_color(0, 0, 0)
+
+            pdf.set_draw_color(180, 180, 180)
+            pdf.set_line_width(0.2)
+            pdf.line(20, pdf.get_y() + 2, 190, pdf.get_y() + 2)
+            pdf.ln(5)
+    else:
+        pdf.set_font('Helvetica', 'I', 9)
+        pdf.set_text_color(120, 120, 120)
+        pdf.cell(0, 6, 'Les deliberations seront reportees ici apres la seance.', ln=True)
         pdf.ln(3)
 
-        # Question
-        pdf.set_font('Helvetica', 'B', 10)
-        pdf.set_text_color(40, 40, 40)
-        pdf.multi_cell(0, 7, s(f'Point {idx} : {item.question}'))
-
-        # Badge résultat
-        if res == 'ADOPTÉ':
-            pdf.set_fill_color(210, 245, 235)
-            pdf.set_text_color(0, 140, 90)
-        elif res == 'REJETÉ':
-            pdf.set_fill_color(255, 225, 225)
-            pdf.set_text_color(200, 40, 40)
-        else:
-            pdf.set_fill_color(230, 230, 255)
-            pdf.set_text_color(80, 80, 180)
-        pdf.set_font('Helvetica', 'B', 9)
-        stat_line = (f"  {s(res)}   |   Pour : {data.get('pour_count', 0)}   "
-                     f"Contre : {data.get('contre_count', 0)}   "
-                     f"Abstention : {data.get('abstention_count', 0)}   "
-                     f"Total : {data.get('total', 0)} votants")
-        pdf.cell(0, 7, stat_line, ln=True, fill=True)
-
-        # Listes nominatives
-        for lbl, key, rgb in [
-            ('POUR', 'pour', (0, 140, 90)),
-            ('CONTRE', 'contre', (200, 40, 40)),
-            ('ABSTENTION', 'abstention', (100, 100, 100)),
-        ]:
-            voters_list = data.get(key, [])
-            if not voters_list:
-                continue
-            pdf.set_font('Helvetica', 'B', 8)
-            pdf.set_text_color(*rgb)
-            names = []
-            for u, apt in voters_list:
-                n = u.name or u.email if u else '?'
-                apt_lbl = f' ({apt.block.name}-{apt.number})' if apt else ''
-                names.append(s(n + apt_lbl))
-            pdf.multi_cell(0, 5, f'   {lbl} : {", ".join(names)}')
-
-        pdf.set_draw_color(200, 200, 200)
-        pdf.set_line_width(0.2)
-        pdf.line(10, pdf.get_y() + 2, 200, pdf.get_y() + 2)
-        pdf.ln(4)
-
-    # ── Section : Participants ──
-    pdf.ln(4)
-    pdf.set_draw_color(0, 200, 150)
-    pdf.set_line_width(0.5)
-    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-    pdf.ln(4)
-    pdf.set_font('Helvetica', 'B', 11)
-    pdf.set_text_color(0, 140, 100)
-    pdf.cell(0, 8, f'LISTE DES PARTICIPANTS ({len(voters)} votants)', ln=True)
-    pdf.set_font('Helvetica', '', 8)
-    pdf.set_text_color(40, 40, 40)
-
-    if voters:
-        col_per_row = 2
-        col_width   = 95
-        pairs = [voters[i:i + col_per_row] for i in range(0, len(voters), col_per_row)]
-        for pair in pairs:
-            for v_user in pair:
-                apt = None
-                if v_user.apartment_id:
-                    apt = Apartment.query.get(v_user.apartment_id)
-                apt_lbl = f' — {apt.block.name}-{apt.number}' if apt else ''
-                pdf.cell(col_width, 6, s(f'• {v_user.name or v_user.email}{apt_lbl}'))
-            pdf.ln()
+    # ── Section 6 : Clôture ──────────────────────────────────────────────────
+    section_title('6. CLOTURE DE SEANCE')
+    pdf.set_font('Helvetica', '', 9)
+    pdf.set_text_color(0, 0, 0)
+    if ag.heure_cloture:
+        pdf.cell(0, 6, s(f"L'ordre du jour etant epuise, la seance est levee a {ag.heure_cloture}."), ln=True)
     else:
-        pdf.set_text_color(120, 120, 120)
-        pdf.cell(0, 6, 'Aucun participant enregistre.', ln=True)
+        pdf.cell(0, 6, "L'ordre du jour etant epuise, la seance est levee a ___:___.", ln=True)
+    pdf.ln(4)
 
-    # Pied de page
-    pdf.ln(8)
+    # ── Section 7 : Signatures ───────────────────────────────────────────────
+    pdf.set_draw_color(80, 80, 80)
+    pdf.set_line_width(0.5)
+    pdf.line(20, pdf.get_y(), 190, pdf.get_y())
+    pdf.ln(5)
+    pdf.set_font('Helvetica', 'B', 9)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, 5, 'SIGNATURES', ln=True, align='C')
+    pdf.ln(4)
+
+    col_w = 56
+    gap   = 3
+    labels = [
+        ('Le President de seance', ag.president_seance or ''),
+        ('Le Secretaire de seance', ag.secretaire_seance or ''),
+        ('Le Syndic', org.name),
+    ]
+    for lbl, name in labels:
+        pdf.set_font('Helvetica', 'B', 8)
+        pdf.set_text_color(60, 60, 60)
+        pdf.cell(col_w, 5, s(lbl), align='C')
+        pdf.cell(gap, 5, '')
+    pdf.ln()
+
+    for lbl, name in labels:
+        pdf.set_font('Helvetica', '', 8)
+        pdf.set_text_color(100, 100, 100)
+        pdf.cell(col_w, 5, s(name), align='C')
+        pdf.cell(gap, 5, '')
+    pdf.ln(12)
+
+    for _, __ in labels:
+        pdf.set_draw_color(120, 120, 120)
+        x = pdf.get_x()
+        pdf.line(x + 5, pdf.get_y(), x + col_w - 5, pdf.get_y())
+        pdf.cell(col_w, 0, '')
+        pdf.cell(gap, 0, '')
+    pdf.ln(6)
+
+    # ── Pied de page légal ───────────────────────────────────────────────────
+    pdf.ln(4)
+    pdf.set_draw_color(180, 180, 180)
+    pdf.set_line_width(0.3)
+    pdf.line(20, pdf.get_y(), 190, pdf.get_y())
+    pdf.ln(3)
     pdf.set_font('Helvetica', 'I', 7)
-    pdf.set_text_color(156, 163, 175)
+    pdf.set_text_color(150, 150, 150)
+    statut_label = 'BROUILLON — non officiel' if is_draft else 'Document officiel'
     pdf.cell(0, 4,
-             s(f'Document officiel genere le {datetime.now().strftime("%d/%m/%Y a %H:%M")} — SyndicPro — {org.name}'),
+             s(f'{statut_label} — Etabli le {datetime.now().strftime("%d/%m/%Y")} — SyndicPro — {org.name}'),
              ln=True, align='C')
-    pdf.cell(0, 4,
-             "Ce PV constitue le document officiel de l'assemblee generale des coproprietaires.",
-             ln=True, align='C')
+    if not is_draft:
+        pdf.cell(0, 4,
+                 "Ce PV constitue le document officiel de l'assemblee generale — CDR Tunisie.",
+                 ln=True, align='C')
 
     buf = io.BytesIO(pdf.output())
     buf.seek(0)
-    filename = f"PV_AG_{ag.id}_{ag.meeting_date.strftime('%Y%m%d')}.pdf"
+    prefix = 'BROUILLON_PV' if is_draft else 'PV_AG'
+    filename = f"{prefix}_{ag.id}_{ag.meeting_date.strftime('%Y%m%d')}.pdf"
     return send_file(buf, mimetype='application/pdf', as_attachment=True, download_name=filename)
 
 
@@ -576,7 +678,7 @@ def assembly_convocation_pdf(ag_id):
                 .replace('ô', 'o').replace('û', 'u').replace('ü', 'u')
                 .replace('î', 'i').replace('ï', 'i').replace('ç', 'c')
                 .replace('ù', 'u').replace('—', '-').replace('–', '-')
-                .replace(''', "'").replace(''', "'")
+                .replace('’', "'").replace('‘', "'")
                 .replace('É', 'E').replace('À', 'A').replace('Ç', 'C')
                 .encode('latin-1', errors='replace').decode('latin-1'))
 
@@ -586,7 +688,6 @@ def assembly_convocation_pdf(ag_id):
     for resident in (residents if residents else [None]):
         pdf.add_page()
 
-        # ── Pré-calcul appartement ──
         apt = None
         apt_label = ''
         if resident and resident.apartment_id:
@@ -596,7 +697,6 @@ def assembly_convocation_pdf(ag_id):
             elif apt:
                 apt_label = str(apt.number)
 
-        # ── En-tête organisation ──
         pdf.set_fill_color(0, 180, 130)
         pdf.rect(0, 0, 210, 38, 'F')
         pdf.set_xy(0, 6)
@@ -607,7 +707,6 @@ def assembly_convocation_pdf(ag_id):
         pdf.cell(0, 5, 'SyndicPro - Gestion de copropriete', ln=True, align='C')
         pdf.ln(2)
 
-        # ── Adresse destinataire (droite) ──
         pdf.set_text_color(40, 40, 40)
         pdf.set_font('Helvetica', '', 10)
         pdf.set_xy(120, 48)
@@ -623,14 +722,12 @@ def assembly_convocation_pdf(ag_id):
             pdf.set_x(120)
             pdf.cell(80, 6, '[Appartement]', ln=True, align='L')
 
-        # ── Date d'envoi ──
         pdf.set_xy(10, 48)
         pdf.set_font('Helvetica', '', 9)
         pdf.set_text_color(100, 100, 100)
         pdf.cell(100, 6, 'Le ' + datetime.now().strftime('%d/%m/%Y'), ln=False)
         pdf.ln(16)
 
-        # ── Objet ──
         pdf.set_x(10)
         pdf.set_font('Helvetica', 'B', 10)
         pdf.set_text_color(40, 40, 40)
@@ -646,13 +743,11 @@ def assembly_convocation_pdf(ag_id):
                  ln=True)
         pdf.ln(5)
 
-        # ── Séparateur ──
         pdf.set_draw_color(0, 200, 150)
         pdf.set_line_width(0.4)
         pdf.line(10, pdf.get_y(), 200, pdf.get_y())
         pdf.ln(5)
 
-        # ── Formule d'appel ──
         pdf.set_font('Helvetica', '', 10)
         pdf.set_text_color(40, 40, 40)
         if resident and resident.name:
@@ -667,7 +762,6 @@ def assembly_convocation_pdf(ag_id):
         pdf.multi_cell(0, 6, intro)
         pdf.ln(3)
 
-        # ── Bloc date/heure/lieu ──
         pdf.set_fill_color(240, 250, 247)
         pdf.set_x(10)
         pdf.set_font('Helvetica', 'B', 11)
@@ -681,7 +775,6 @@ def assembly_convocation_pdf(ag_id):
             pdf.cell(0, 6, s('Lieu : ' + ag.location), ln=True, align='C')
         pdf.ln(5)
 
-        # ── Ordre du jour ──
         pdf.set_font('Helvetica', 'B', 11)
         pdf.set_text_color(0, 140, 100)
         pdf.cell(0, 8, 'ORDRE DU JOUR', ln=True)
@@ -710,7 +803,6 @@ def assembly_convocation_pdf(ag_id):
         pdf.line(10, pdf.get_y(), 200, pdf.get_y())
         pdf.ln(4)
 
-        # ── Mentions légales ──
         pdf.set_font('Helvetica', 'I', 8)
         pdf.set_text_color(120, 120, 120)
         pdf.multi_cell(0, 5,
@@ -720,7 +812,6 @@ def assembly_convocation_pdf(ag_id):
             'autre coproprietaire muni d\'une procuration ecrite.')
         pdf.ln(4)
 
-        # ── Signature ──
         pdf.set_font('Helvetica', '', 10)
         pdf.set_text_color(40, 40, 40)
         pdf.cell(0, 6, 'Nous vous prions d\'agreer, Madame, Monsieur, nos salutations distinguees.', ln=True)
@@ -737,7 +828,6 @@ def assembly_convocation_pdf(ag_id):
         pdf.line(10, pdf.get_y(), 80, pdf.get_y())
         pdf.ln(8)
 
-        # ── Accusé de réception ──
         pdf.set_draw_color(0, 200, 150)
         pdf.set_line_width(0.5)
         pdf.line(10, pdf.get_y(), 200, pdf.get_y())
@@ -761,7 +851,6 @@ def assembly_convocation_pdf(ag_id):
         pdf.cell(90, 5, 'Date : _____________________', ln=False)
         pdf.cell(0, 5, 'Signature : _______________________', ln=True)
 
-        # ── Pied de page ──
         pdf.ln(3)
         pdf.set_font('Helvetica', 'I', 7)
         pdf.set_text_color(180, 180, 180)

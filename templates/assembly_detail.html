@@ -121,6 +121,13 @@
                     </a>
                     {% endif %}
                 </div>
+                {% if ag.items %}
+                <div class="mt-2 d-flex gap-2">
+                    <a href="{{ url_for('assembly_pv', ag_id=ag.id) }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-file-earmark-text"></i> PV (brouillon)
+                    </a>
+                </div>
+                {% endif %}
 
                 {% elif ag.status == 'ouverte' %}
                 <div class="alert alert-success mb-3" style="font-size:.85rem;">
@@ -132,12 +139,15 @@
                           onsubmit="return confirm('Clôturer le vote ? Les résidents ne pourront plus voter.')">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button class="btn btn-danger">
-                            <i class="bi bi-lock"></i> Clôturer et générer le PV
+                            <i class="bi bi-lock"></i> Clôturer et officialiser le PV
                         </button>
                     </form>
+                    <a href="{{ url_for('assembly_pv', ag_id=ag.id) }}" class="btn btn-outline-primary">
+                        <i class="bi bi-file-earmark-text"></i> PV (brouillon)
+                    </a>
                     <a href="{{ url_for('assembly_convocation_pdf', ag_id=ag.id) }}"
                        class="btn btn-outline-secondary" title="Réimprimer les convocations">
-                        <i class="bi bi-printer"></i> Convocations PDF
+                        <i class="bi bi-printer"></i> Convocations
                     </a>
                 </div>
 

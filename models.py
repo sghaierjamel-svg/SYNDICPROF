@@ -358,9 +358,19 @@ class AssemblyGeneral(db.Model):
     description = db.Column(db.Text)
     meeting_date = db.Column(db.DateTime, nullable=False)
     location = db.Column(db.String(200))
-    status = db.Column(db.String(20), default='ouverte')  # ouverte / cloturee
+    status = db.Column(db.String(20), default='ouverte')  # planifiee / ouverte / cloturee
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    # Infos PV officiel
+    president_seance    = db.Column(db.String(150), nullable=True)
+    secretaire_seance   = db.Column(db.String(150), nullable=True)
+    heure_ouverture     = db.Column(db.String(10),  nullable=True)   # ex: "10:30"
+    heure_cloture       = db.Column(db.String(10),  nullable=True)
+    nb_presents         = db.Column(db.Integer,     nullable=True)   # présents physiquement
+    nb_procurations     = db.Column(db.Integer,     nullable=True)
+    # PV scanné (upload fichier signé)
+    pv_scan_url         = db.Column(db.Text,        nullable=True)
+    pv_scan_mime        = db.Column(db.String(30),  nullable=True)
     items = db.relationship('AGItem', backref='assembly', lazy=True, cascade='all, delete-orphan')
     author = db.relationship('User', backref='assemblies', lazy=True)
 
@@ -1601,6 +1611,44 @@ def init_db():
             print("Migration : table subscription_payment_request OK")
     except Exception as e:
         print(f"Migration subscription_payment_request : {e}")
+
+    # Migration : nouvelles colonnes assembly_general (infos PV + scan)
+    try:
+        with db.engine.connect() as conn:
+            if is_postgres:
+                for col, col_type in [
+                    ('president_seance',  'VARCHAR(150)'),
+                    ('secretaire_seance', 'VARCHAR(150)'),
+                    ('heure_ouverture',   'VARCHAR(10)'),
+                    ('heure_cloture',     'VARCHAR(10)'),
+                    ('nb_presents',       'INTEGER'),
+                    ('nb_procurations',   'INTEGER'),
+                    ('pv_scan_url',       'TEXT'),
+                    ('pv_scan_mime',      'VARCHAR(30)'),
+                ]:
+                    conn.execute(db.text(
+                        f"ALTER TABLE assembly_general ADD COLUMN IF NOT EXISTS {col} {col_type}"
+                    ))
+                conn.commit()
+            else:
+                result = conn.execute(db.text("PRAGMA table_info(assembly_general)"))
+                cols = [row[1] for row in result]
+                for col, col_type in [
+                    ('president_seance',  'VARCHAR(150)'),
+                    ('secretaire_seance', 'VARCHAR(150)'),
+                    ('heure_ouverture',   'VARCHAR(10)'),
+                    ('heure_cloture',     'VARCHAR(10)'),
+                    ('nb_presents',       'INTEGER'),
+                    ('nb_procurations',   'INTEGER'),
+                    ('pv_scan_url',       'TEXT'),
+                    ('pv_scan_mime',      'VARCHAR(30)'),
+                ]:
+                    if col not in cols:
+                        conn.execute(db.text(f"ALTER TABLE assembly_general ADD COLUMN {col} {col_type}"))
+                conn.commit()
+            print("Migration assembly_general colonnes PV : OK")
+    except Exception as e:
+        print(f"Migration assembly_general PV : {e}")
 
     if not User.query.filter_by(email='superadmin@syndicpro.tn').first():
         # CRIT-003 : SUPERADMIN_PASSWORD obligatoire et >= 16 caractères

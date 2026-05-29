@@ -3,6 +3,25 @@
 
 {% block content %}
 
+<!-- Bannière BROUILLON -->
+{% if ag.status != 'cloturee' %}
+<div class="alert alert-warning d-flex align-items-center gap-2 mb-3" style="border-radius:10px;">
+    <i class="bi bi-exclamation-triangle-fill" style="font-size:1.2rem;flex-shrink:0;"></i>
+    <div>
+        <strong>Brouillon — votes en cours.</strong>
+        Le PV est modifiable. Les résidents n'y ont pas accès.
+        Le PDF généré portera la mention <em>"BROUILLON"</em>.
+    </div>
+    <form method="POST" action="{{ url_for('assembly_close', ag_id=ag.id) }}"
+          onsubmit="return confirm('Clôturer définitivement le vote ?')" class="ms-auto">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-danger btn-sm flex-shrink-0">
+            <i class="bi bi-lock"></i> Clôturer et officialiser
+        </button>
+    </form>
+</div>
+{% endif %}
+
 <!-- En-tête PV -->
 <div class="d-flex align-items-start gap-3 mb-4 flex-wrap">
     <a href="{{ url_for('assembly_detail', ag_id=ag.id) }}" class="btn btn-outline-secondary btn-sm mt-1">
@@ -11,7 +30,7 @@
     <div style="flex:1;min-width:0;">
         <h2 class="text-white mb-1" style="font-size:1.35rem;">
             <i class="bi bi-file-earmark-text" style="color:#00C896;"></i>
-            Procès-Verbal — {{ ag.title }}
+            {% if ag.status != 'cloturee' %}[Brouillon] {% endif %}Procès-Verbal — {{ ag.title }}
         </h2>
         <div style="font-size:.83rem;color:var(--muted);" class="d-flex gap-3 flex-wrap">
             <span><i class="bi bi-calendar3"></i> {{ ag.meeting_date.strftime('%d/%m/%Y à %H:%M') }}</span>
@@ -20,20 +39,116 @@
         </div>
     </div>
     <div class="d-flex gap-2 flex-shrink-0 flex-wrap">
-        {% if user.role == 'admin' and ag.status != 'cloturee' %}
-        <form method="POST" action="{{ url_for('assembly_close', ag_id=ag.id) }}"
-              onsubmit="return confirm('Clôturer définitivement ?')">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="btn btn-danger btn-sm">
-                <i class="bi bi-lock"></i> Clôturer
-            </button>
-        </form>
-        {% endif %}
         <a href="{{ url_for('assembly_pv_pdf', ag_id=ag.id) }}" class="btn btn-primary btn-sm">
             <i class="bi bi-file-earmark-pdf"></i> Télécharger PDF
         </a>
     </div>
 </div>
+
+<!-- ── BLOC ADMIN : infos PV + upload scan ── -->
+{% if user.role == 'admin' %}
+<div class="row g-3 mb-4">
+
+    <!-- Informations PV (président, secrétaire, heures, quorum) -->
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-pencil-square" style="color:#00C896;"></i> Informations officielles du PV
+                <small class="text-muted ms-2" style="font-size:.75rem;">Complétez avant ou après la séance</small>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('assembly_update_infos', ag_id=ag.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" style="font-size:.82rem;">Président de séance</label>
+                            <input type="text" name="president_seance" class="form-control form-control-sm"
+                                   value="{{ ag.president_seance or '' }}"
+                                   placeholder="Nom élu par l'assemblée">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" style="font-size:.82rem;">Secrétaire de séance</label>
+                            <input type="text" name="secretaire_seance" class="form-control form-control-sm"
+                                   value="{{ ag.secretaire_seance or '' }}"
+                                   placeholder="Nom désigné par le président">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label" style="font-size:.82rem;">Heure d'ouverture</label>
+                            <input type="time" name="heure_ouverture" class="form-control form-control-sm"
+                                   value="{{ ag.heure_ouverture or '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label" style="font-size:.82rem;">Heure de clôture</label>
+                            <input type="time" name="heure_cloture" class="form-control form-control-sm"
+                                   value="{{ ag.heure_cloture or '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label" style="font-size:.82rem;">Présents</label>
+                            <input type="number" name="nb_presents" class="form-control form-control-sm"
+                                   value="{{ ag.nb_presents or '' }}" min="0" placeholder="Nb copropr.">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label" style="font-size:.82rem;">Procurations</label>
+                            <input type="number" name="nb_procurations" class="form-control form-control-sm"
+                                   value="{{ ag.nb_procurations or '' }}" min="0" placeholder="Nb proxy">
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-floppy"></i> Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload PV scanné -->
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-file-earmark-arrow-up" style="color:#818CF8;"></i> PV scanné (document signé)
+            </div>
+            <div class="card-body">
+                {% if ag.pv_scan_url %}
+                <div class="mb-3 p-3 rounded" style="background:rgba(0,200,150,0.07);border:1px solid rgba(0,200,150,0.2);">
+                    <div style="font-size:.82rem;color:#00C896;font-weight:600;">
+                        <i class="bi bi-check-circle-fill"></i> PV scanné enregistré
+                    </div>
+                    <div class="mt-2 d-flex gap-2">
+                        <a href="{{ ag.pv_scan_url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-eye"></i> Voir le scan
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="mb-3" style="font-size:.83rem;color:var(--muted);">
+                    <i class="bi bi-info-circle"></i>
+                    Aucun scan enregistré. Uploadez le PV signé après la séance physique.
+                </div>
+                {% endif %}
+
+                <form method="POST" action="{{ url_for('assembly_upload_pv_scan', ag_id=ag.id) }}"
+                      enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-2">
+                        <label class="form-label" style="font-size:.82rem;">
+                            {% if ag.pv_scan_url %}Remplacer le scan{% else %}Joindre le PV signé{% endif %}
+                            <small style="color:var(--muted);">(PDF, JPG, PNG — max 10 Mo)</small>
+                        </label>
+                        <input type="file" name="pv_scan" class="form-control form-control-sm"
+                               accept=".pdf,.jpg,.jpeg,.png,.webp" required>
+                    </div>
+                    <button type="submit" class="btn btn-secondary btn-sm">
+                        <i class="bi bi-upload"></i> Uploader
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endif %}
 
 <!-- Info AG -->
 <div class="card mb-4" style="border-left:4px solid #00C896;">
