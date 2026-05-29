@@ -284,7 +284,7 @@ def autre_litige_nouveau():
     description = request.form.get('description', '').strip()
     if not titre:
         flash('Le titre est obligatoire.', 'danger')
-        return redirect(url_for('litiges') + '#autres')
+        return redirect(url_for('assembly_list') + '#autres')
     al = AutreLitige(
         organization_id=org.id,
         titre=titre,
@@ -385,4 +385,4 @@ def autre_litige_supprimer(al_id):
     db.session.delete(al)
     db.session.commit()
     flash('Dossier supprimé.', 'success')
-    return redirect(url_for('litiges') + '#autres')
+    return redirect(url_for('assembly_list') + '#autres')

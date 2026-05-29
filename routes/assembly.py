@@ -1,11 +1,17 @@
 from flask import render_template, request, redirect, url_for, flash, send_file
 import io
 from core import app, db
-from models import AssemblyGeneral, AGItem, AGVote, Apartment, User
+from models import AssemblyGeneral, AGItem, AGVote, Apartment, User, AutreLitige
 from utils import (current_user, current_organization, login_required,
                    admin_required, subscription_required)
 from datetime import datetime
 from storage_helper import upload_file as _storage_upload
+
+STATUS_LABELS_AUTRES = {
+    'ouvert':   ('Ouvert',   'danger'),
+    'en_cours': ('En cours', 'warning'),
+    'resolu':   ('Résolu',   'success'),
+}
 
 ALLOWED_PV_SCAN_MIMES = {'image/jpeg', 'image/png', 'image/webp', 'application/pdf'}
 
@@ -72,8 +78,14 @@ def assembly_list():
             ).filter(AGVote.item_id.in_(item_ids)).scalar() or 0
         stats[ag.id] = {'nb_items': len(ag.items), 'nb_voters': voter_count}
 
+    autres = (AutreLitige.query
+              .filter_by(organization_id=org.id)
+              .order_by(AutreLitige.created_at.desc())
+              .all())
+
     return render_template('assembly_list.html',
-                           assemblies=assemblies, stats=stats, user=user)
+                           assemblies=assemblies, stats=stats, user=user,
+                           autres=autres, status_labels=STATUS_LABELS_AUTRES)
 
 
 # ─── Nouvelle assemblée ──────────────────────────────────────────────────────
@@ -412,17 +424,18 @@ def assembly_pv_pdf(ag_id):
                 .encode('latin-1', errors='replace').decode('latin-1'))
 
     pdf = FPDF()
+    pdf.set_margins(20, 15, 20)
     pdf.set_auto_page_break(auto=True, margin=20)
     pdf.add_page()
-    pdf.set_margins(20, 15, 20)
 
-    # ── Filigrane BROUILLON ──────────────────────────────────────────────────
+    # ── Filigrane BROUILLON (largeur fixe 170 = A4 - marges, puis reset curseur) ──
     if is_draft:
         pdf.set_font('Helvetica', 'B', 60)
         pdf.set_text_color(220, 220, 220)
-        pdf.set_xy(30, 100)
-        pdf.cell(0, 20, 'BROUILLON', align='C')
+        pdf.set_xy(20, 110)
+        pdf.cell(170, 20, 'BROUILLON', align='C')
         pdf.set_text_color(0, 0, 0)
+        pdf.set_xy(20, 15)  # reset au coin supérieur gauche
 
     # ── En-tête sobre (pas de bandeau coloré) ───────────────────────────────
     pdf.set_font('Helvetica', 'B', 11)

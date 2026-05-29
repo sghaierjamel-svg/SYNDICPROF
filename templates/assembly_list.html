@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Assemblées Générales{% endblock %}
+{% block title %}Assemblées & Dossiers{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <h2 class="text-white mb-0">
-        <i class="bi bi-people-fill" style="color:#00C896;"></i> Assemblées Générales
+        <i class="bi bi-people-fill" style="color:#00C896;"></i> Assemblées & Dossiers
     </h2>
     {% if user.role == 'admin' %}
     <a href="{{ url_for('assembly_new') }}" class="btn btn-primary">
@@ -12,6 +12,31 @@
     </a>
     {% endif %}
 </div>
+
+<!-- ONGLETS -->
+<ul class="nav nav-tabs mb-4" id="assemblyTabs">
+    <li class="nav-item">
+        <a class="nav-link active" data-bs-toggle="tab" href="#tab-ag">
+            <i class="bi bi-people-fill"></i> Assemblées Générales
+            {% if assemblies %}
+            <span class="badge bg-secondary ms-1">{{ assemblies|length }}</span>
+            {% endif %}
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#tab-autres">
+            <i class="bi bi-folder2-open"></i> Autres Dossiers
+            {% if autres %}
+            <span class="badge bg-secondary ms-1">{{ autres|length }}</span>
+            {% endif %}
+        </a>
+    </li>
+</ul>
+
+<div class="tab-content">
+
+<!-- ════════ TAB ASSEMBLÉES ════════ -->
+<div class="tab-pane fade show active" id="tab-ag">
 
 {% if not assemblies %}
 <div class="card text-center py-5">
@@ -164,4 +189,107 @@
 {% endfor %}
 
 {% endif %}
+
+</div><!-- /tab-ag -->
+
+
+<!-- ════════ TAB AUTRES DOSSIERS ════════ -->
+<div class="tab-pane fade" id="tab-autres">
+
+    <!-- Formulaire création dossier -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-folder-plus" style="color:#818CF8;"></i> Créer un nouveau dossier
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('autre_litige_nouveau') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label">Titre du dossier *</label>
+                        <input class="form-control" name="titre"
+                               placeholder="Ex: Litige voisinage Bloc B, Sinistre toiture…"
+                               required maxlength="200">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Description (optionnel)</label>
+                        <input class="form-control" name="description"
+                               placeholder="Brève description du dossier…">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-plus-circle"></i> Créer
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Liste dossiers -->
+    {% if not autres %}
+    <div class="card text-center py-5">
+        <div class="card-body">
+            <i class="bi bi-folder2" style="font-size:3rem;color:var(--muted);"></i>
+            <h5 class="mt-3" style="color:var(--muted);">Aucun dossier</h5>
+            <p style="color:var(--muted);">
+                Créez un dossier pour tout litige avec un résident ou tiers (voisinage,
+                sinistre, prestataire, etc.).
+            </p>
+        </div>
+    </div>
+    {% else %}
+    <div class="row g-3">
+    {% for al in autres %}
+    {% set lbl = status_labels[al.status] %}
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100" style="border-left:4px solid
+            {% if al.status == 'ouvert' %}#f87171
+            {% elif al.status == 'en_cours' %}#f59e0b
+            {% else %}#00C896{% endif %};">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="mb-0 text-white" style="font-size:.95rem;">
+                        <i class="bi bi-folder2-open" style="color:#818CF8;"></i>
+                        {{ al.titre }}
+                    </h6>
+                    <span class="badge bg-{{ lbl[1] }}">{{ lbl[0] }}</span>
+                </div>
+                {% if al.description %}
+                <p style="font-size:.8rem;color:var(--muted);" class="mb-2">
+                    {{ al.description[:100] }}{% if al.description|length > 100 %}…{% endif %}
+                </p>
+                {% endif %}
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <small style="color:var(--muted);">
+                        <i class="bi bi-files"></i>
+                        {{ al.documents|length }} document{{ 's' if al.documents|length > 1 else '' }}
+                        &nbsp;·&nbsp;
+                        {{ al.created_at.strftime('%d/%m/%Y') }}
+                    </small>
+                    <a href="{{ url_for('autre_litige_dossier', al_id=al.id) }}"
+                       class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-folder2-open"></i> Ouvrir
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    </div>
+    {% endif %}
+
+</div><!-- /tab-autres -->
+
+</div><!-- /tab-content -->
+
+<script>
+// Activation onglet via hash URL
+const _hash = window.location.hash;
+if (_hash === '#autres') {
+    const _tab = document.querySelector('a[href="#tab-autres"]');
+    if (_tab) new bootstrap.Tab(_tab).show();
+}
+</script>
+
 {% endblock %}
