@@ -72,19 +72,31 @@ def tresorerie():
 def comptable():
     org = current_organization()
     today = date.today()
-    all_months = []
 
-    # 9 mois passés (mois courant inclus)
-    for i in range(8, -1, -1):
-        month_date = today - relativedelta(months=i)
-        all_months.append((month_date.year, month_date.month))
+    # Années disponibles depuis les paiements enregistrés
+    payments_all = Payment.query.filter_by(organization_id=org.id).all()
+    years_set = {today.year}
+    for p in payments_all:
+        if p.month_paid and len(p.month_paid) >= 4:
+            try:
+                years_set.add(int(p.month_paid[:4]))
+            except ValueError:
+                pass
+    available_years = sorted(years_set, reverse=True)
 
-    # 3 mois à venir
-    for i in range(1, 4):
-        month_date = today + relativedelta(months=i)
-        all_months.append((month_date.year, month_date.month))
-
-    months = all_months  # déjà triés chronologiquement
+    selected_year = request.args.get('year', '', type=str).strip()
+    if selected_year and selected_year.isdigit() and int(selected_year) in years_set:
+        year = int(selected_year)
+        months = [(year, m) for m in range(1, 13)]
+    else:
+        selected_year = ''
+        months = []
+        for i in range(8, -1, -1):
+            month_date = today - relativedelta(months=i)
+            months.append((month_date.year, month_date.month))
+        for i in range(1, 4):
+            month_date = today + relativedelta(months=i)
+            months.append((month_date.year, month_date.month))
 
     apartments = Apartment.query.filter_by(organization_id=org.id).order_by(Apartment.block_id, Apartment.number).all()
     payments = Payment.query.filter_by(organization_id=org.id).all()
@@ -115,7 +127,8 @@ def comptable():
         row['unpaid_count'] = get_unpaid_months_count(apt.id)
         data.append(row)
 
-    return render_template('comptable.html', data=data, months=months, user=current_user())
+    return render_template('comptable.html', data=data, months=months, user=current_user(),
+                           available_years=available_years, selected_year=selected_year)
 
 
 @app.route('/export_excel')

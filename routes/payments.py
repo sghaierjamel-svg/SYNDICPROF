@@ -91,7 +91,7 @@ def payments():
             months_actually_paid = 0
             total_recorded_amount = 0.0
             paid_months_list = []
-            first_payment_obj = None
+            all_payment_objs = []
 
             for i in range(months_to_pay):
                 month_paid_date = start_month_date + relativedelta(months=i)
@@ -103,7 +103,7 @@ def payments():
                     new_remainder += monthly_fee
                     continue
 
-                # Enregistrer le paiement — le mode et les infos chèque sont sur le 1er enregistrement
+                # Fix : cheque_number/bank stockés sur TOUS les mois du groupe, pas seulement le 1er
                 p = Payment(
                     organization_id=org.id,
                     apartment_id=apartment_id,
@@ -113,12 +113,11 @@ def payments():
                     description=f"Redevance {month_paid_str}",
                     credit_used=credit_used if i == 0 else 0.0,
                     payment_mode=payment_mode,
-                    cheque_number=cheque_number if i == 0 else None,
-                    cheque_bank=cheque_bank if i == 0 else None,
+                    cheque_number=cheque_number,
+                    cheque_bank=cheque_bank,
                 )
                 db.session.add(p)
-                if first_payment_obj is None:
-                    first_payment_obj = p
+                all_payment_objs.append(p)
                 months_actually_paid += 1
                 total_recorded_amount += monthly_fee
                 paid_months_list.append(month_paid_str)
@@ -129,10 +128,10 @@ def payments():
 
             # Mettre à jour le crédit résiduel
             apt.credit_balance = new_remainder
-            db.session.flush()  # obtenir l'ID du premier paiement avant l'upload
+            db.session.flush()  # obtenir les IDs avant l'upload
 
-            # Upload scan chèque (optionnel)
-            if payment_mode == 'cheque' and first_payment_obj is not None:
+            # Upload scan chèque — URL propagée sur tous les mois du groupe
+            if payment_mode == 'cheque' and all_payment_objs:
                 cheque_file = request.files.get('cheque_file')
                 if cheque_file and cheque_file.filename:
                     mime = cheque_file.mimetype
@@ -145,7 +144,8 @@ def payments():
                         else:
                             url = _storage_upload(raw, mime, folder='cheques')
                             if url:
-                                first_payment_obj.cheque_url = url
+                                for po in all_payment_objs:
+                                    po.cheque_url = url
                             else:
                                 flash('Scan chèque non sauvegardé (Storage non configuré).', 'warning')
 
@@ -444,7 +444,14 @@ def edit_payment(payment_id):
         except Exception as e:
             app.logger.error("ERREUR edit_payment: %s", e, exc_info=True)
             flash('Une erreur est survenue lors de la modification.', 'danger')
-        return redirect(url_for('payments'))
+        # Retour à la même recherche qu'avant l'édition
+        filters = {k: v for k, v in {
+            'year':     request.args.get('year', ''),
+            'block_id': request.args.get('block_id', ''),
+            'apt_id':   request.args.get('apt_id', ''),
+            'mode':     request.args.get('mode', ''),
+        }.items() if v}
+        return redirect(url_for('payments', **filters))
     return render_template('edit_payment.html', payment=p, apartments=apartments, user=current_user())
 
 

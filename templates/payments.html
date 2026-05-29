@@ -256,7 +256,7 @@
             <form method="GET" class="row g-2 align-items-end" id="filterForm">
                 <div class="col-auto">
                     <label class="form-label mb-1" style="font-size:.75rem;color:var(--muted);">Année</label>
-                    <select name="year" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <select name="year" class="form-select form-select-sm">
                         <option value="">Toutes</option>
                         {% for y in years_available %}
                         <option value="{{ y }}" {% if filter_year == y|string %}selected{% endif %}>{{ y }}</option>
@@ -265,7 +265,7 @@
                 </div>
                 <div class="col-auto">
                     <label class="form-label mb-1" style="font-size:.75rem;color:var(--muted);">Bloc</label>
-                    <select name="block_id" class="form-select form-select-sm" id="flt_block" onchange="filterFltApts(); this.form.submit()">
+                    <select name="block_id" class="form-select form-select-sm" id="flt_block" onchange="filterFltApts()">
                         <option value="">Tous</option>
                         {% for b in blocks %}
                         <option value="{{ b.id }}" {% if filter_block_id == b.id|string %}selected{% endif %}>{{ b.name }}</option>
@@ -274,7 +274,7 @@
                 </div>
                 <div class="col-auto">
                     <label class="form-label mb-1" style="font-size:.75rem;color:var(--muted);">Appartement</label>
-                    <select name="apt_id" class="form-select form-select-sm" id="flt_apt" onchange="this.form.submit()">
+                    <select name="apt_id" class="form-select form-select-sm" id="flt_apt">
                         <option value="">Tous</option>
                         {% for apt in apartments %}
                         <option value="{{ apt.id }}"
@@ -288,7 +288,7 @@
                 </div>
                 <div class="col-auto">
                     <label class="form-label mb-1" style="font-size:.75rem;color:var(--muted);">Mode</label>
-                    <select name="mode" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <select name="mode" class="form-select form-select-sm">
                         <option value="">Tous</option>
                         <option value="especes" {% if filter_mode == 'especes' %}selected{% endif %}>💵 Espèces</option>
                         <option value="virement" {% if filter_mode == 'virement' %}selected{% endif %}>🏦 Virement</option>
@@ -296,12 +296,18 @@
                     </select>
                 </div>
                 <div class="col-auto">
+                    <label class="form-label mb-1" style="font-size:.75rem;color:var(--muted);">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary btn-sm d-block">
+                        <i class="bi bi-search"></i> Rechercher
+                    </button>
+                </div>
+                <div class="col-auto">
                     {% if has_filter %}
-                    <a href="{{ url_for('payments') }}" class="btn btn-sm btn-outline-secondary">
+                    <a href="{{ url_for('payments') }}" class="btn btn-sm btn-outline-secondary d-block" style="margin-top:1.6rem;">
                         <i class="bi bi-x-circle"></i> Réinitialiser
                     </a>
                     {% else %}
-                    <span style="font-size:.75rem;color:var(--muted);">3 derniers mois</span>
+                    <small style="font-size:.75rem;color:var(--muted);display:block;margin-top:1.8rem;">3 derniers mois</small>
                     {% endif %}
                 </div>
             </form>
@@ -364,7 +370,7 @@
                                        class="btn btn-sm btn-outline-secondary" title="Reçu PDF">
                                         <i class="bi bi-file-earmark-pdf"></i>
                                     </a>
-                                    <a href="{{ url_for('edit_payment', payment_id=p.id) }}"
+                                    <a href="{{ url_for('edit_payment', payment_id=p.id, year=filter_year, block_id=filter_block_id, apt_id=filter_apt_id, mode=filter_mode) }}"
                                        class="btn btn-sm btn-warning" title="Modifier">
                                         <i class="bi bi-pencil"></i>
                                     </a>
