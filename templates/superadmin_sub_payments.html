@@ -121,26 +121,90 @@
 
           <!-- Modal Rejet -->
           <div class="modal fade" id="rejectModal{{ pr.id }}" tabindex="-1">
-            <div class="modal-dialog">
-              <div class="modal-content">
-                <div class="modal-header bg-danger text-white">
-                  <h5 class="modal-title"><i class="bi bi-x-circle"></i> Rejeter la demande</h5>
+            <div class="modal-dialog modal-lg">
+              <div class="modal-content border-0 shadow">
+                <div class="modal-header text-white" style="background:#DC2626;">
+                  <div>
+                    <h5 class="modal-title mb-0"><i class="bi bi-x-octagon me-2"></i>Rejeter le virement</h5>
+                    <small style="opacity:.8;">Le client sera notifié par email avec votre motif</small>
+                  </div>
                   <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <form method="POST"
-                      action="{{ url_for('superadmin_sub_reject', pr_id=pr.id) }}">
+                <form method="POST" action="{{ url_for('superadmin_sub_reject', pr_id=pr.id) }}">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <div class="modal-body">
-                    <p><strong>{{ pr.organization.name }}</strong> — {{ pr.amount_declared|int }} DT</p>
-                    <div class="mb-3">
-                      <label class="form-label">Motif du rejet <span class="text-danger">*</span></label>
-                      <textarea name="superadmin_notes" class="form-control" rows="3" required
-                                placeholder="Ex: Montant incorrect, référence virement manquante…"></textarea>
+                  <div class="modal-body p-4">
+
+                    <!-- Récapitulatif de la demande -->
+                    <div class="rounded-3 p-3 mb-4" style="background:#FEF2F2;border:1px solid #FECACA;">
+                      <div class="row g-2" style="font-size:.88rem;">
+                        <div class="col-6">
+                          <span class="text-muted d-block">Organisation</span>
+                          <strong>{{ pr.organization.name }}</strong><br>
+                          <small class="text-muted">{{ pr.organization.email }}</small>
+                        </div>
+                        <div class="col-3">
+                          <span class="text-muted d-block">Plan / Durée</span>
+                          <strong>{{ pr.plan_requested.capitalize() }}</strong> — {{ pr.months_count }} mois
+                        </div>
+                        <div class="col-3">
+                          <span class="text-muted d-block">Montant déclaré</span>
+                          <strong class="text-danger">{{ '%.3f'|format(pr.amount_declared) }} DT</strong>
+                        </div>
+                        {% if pr.bank_reference %}
+                        <div class="col-6 mt-1">
+                          <span class="text-muted d-block">Référence virement</span>
+                          <code style="font-size:.82rem;">{{ pr.bank_reference }}</code>
+                        </div>
+                        {% endif %}
+                        {% if pr.photo_url or pr.photo_data %}
+                        <div class="col-6 mt-1 d-flex align-items-end">
+                          <a href="{{ url_for('sub_payment_scan', pr_id=pr.id) }}" target="_blank"
+                             class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-image me-1"></i>Voir le scan du virement
+                          </a>
+                        </div>
+                        {% endif %}
+                      </div>
                     </div>
+
+                    <!-- Raisons rapides -->
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold">Raison du rejet <span class="text-danger">*</span></label>
+                      <div class="d-flex flex-wrap gap-2 mb-2">
+                        <button type="button" class="btn btn-sm btn-outline-danger reject-reason"
+                                data-target="notes_{{ pr.id }}"
+                                data-text="Montant reçu différent du montant déclaré.">
+                          Montant incorrect
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger reject-reason"
+                                data-target="notes_{{ pr.id }}"
+                                data-text="Le scan joint est illisible ou incomplet. Merci de soumettre une nouvelle photo claire du virement.">
+                          Scan illisible
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger reject-reason"
+                                data-target="notes_{{ pr.id }}"
+                                data-text="La référence de virement est manquante ou incorrecte. Merci de vérifier et de resoumettre.">
+                          Référence manquante
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger reject-reason"
+                                data-target="notes_{{ pr.id }}"
+                                data-text="Aucun virement correspondant n'a été reçu sur notre compte à cette date.">
+                          Virement non reçu
+                        </button>
+                      </div>
+                      <textarea id="notes_{{ pr.id }}" name="superadmin_notes"
+                                class="form-control" rows="3" required
+                                placeholder="Sélectionnez une raison ci-dessus ou écrivez un motif personnalisé…"></textarea>
+                    </div>
+
                   </div>
-                  <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-danger">Rejeter</button>
+                  <div class="modal-footer" style="background:#FEF2F2;border-top:1px solid #FECACA;">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                      <i class="bi bi-arrow-left me-1"></i>Annuler
+                    </button>
+                    <button type="submit" class="btn btn-danger px-4">
+                      <i class="bi bi-x-octagon me-2"></i>Confirmer le rejet
+                    </button>
                   </div>
                 </form>
               </div>
@@ -214,4 +278,18 @@
     {% endif %}
   </div>
 </div>
+<script>
+document.querySelectorAll('.reject-reason').forEach(btn => {
+  btn.addEventListener('click', function () {
+    const textarea = document.getElementById(this.dataset.target);
+    textarea.value = this.dataset.text;
+    textarea.focus();
+    const siblings = this.closest('.d-flex').querySelectorAll('.reject-reason');
+    siblings.forEach(b => { b.classList.remove('btn-danger'); b.classList.add('btn-outline-danger'); });
+    this.classList.remove('btn-outline-danger');
+    this.classList.add('btn-danger');
+  });
+});
+</script>
+
 {% endblock %}
