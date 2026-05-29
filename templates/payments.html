@@ -335,7 +335,13 @@
                         {% for p in payments %}
                         <tr>
                             <td style="white-space:nowrap;">{{ p.payment_date.strftime('%d/%m/%Y') }}</td>
-                            <td><strong>{% if p.apartment.block %}{{ p.apartment.block.name }}-{% endif %}{{ p.apartment.number }}</strong></td>
+                            <td>
+                                <strong>{% if p.apartment.block %}{{ p.apartment.block.name }}-{% endif %}{{ p.apartment.number }}</strong>
+                                {% set resident = p.apartment.residents[0] if p.apartment.residents else none %}
+                                {% if resident %}
+                                <div style="font-size:.72rem;color:var(--muted);margin-top:1px;">{{ resident.name or resident.email }}</div>
+                                {% endif %}
+                            </td>
                             <td><span class="badge bg-primary">{{ p.month_paid }}</span></td>
                             <td>
                                 {% set mode = p.payment_mode or 'especes' %}
