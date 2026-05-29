@@ -329,25 +329,25 @@ def etats_financiers_pdf():
         pdf.set_xy(0, 13)
         pdf.set_font('Helvetica', '', 9)
         pdf.set_text_color(255, 255, 255)
-        pdf.cell(0, 5, _s(f"{org.name}  -  {title}  -  Exercice {year}"), ln=True, align='C')
+        pdf.cell(0, 5, _s(f"{org.name}  -  {title}  -  Exercice {year}"), new_x="LMARGIN", new_y="NEXT", align='C')
         pdf.set_xy(0, 20)
         pdf.set_font('Helvetica', '', 7)
         pdf.cell(0, 4,
                  _s("Conforme au Systeme Comptable des Entreprises (SCE) - Loi n 96-112 du 30/12/1996"),
-                 ln=True, align='C')
+                 new_x="LMARGIN", new_y="NEXT", align='C')
         pdf.ln(4)
 
     def section_title(text):
         pdf.set_fill_color(HEADER_R, HEADER_G, HEADER_B)
         pdf.set_text_color(GREEN_R, GREEN_G, GREEN_B)
         pdf.set_font('Helvetica', 'B', 10)
-        pdf.cell(0, 8, _s(f"  {text}"), ln=True, fill=True)
+        pdf.cell(0, 8, _s(f"  {text}"), new_x="LMARGIN", new_y="NEXT", fill=True)
         pdf.ln(1)
 
     def sub_title(text):
         pdf.set_text_color(GREEN_R, GREEN_G, GREEN_B)
         pdf.set_font('Helvetica', 'B', 9)
-        pdf.cell(0, 6, _s(f"    {text}"), ln=True)
+        pdf.cell(0, 6, _s(f"    {text}"), new_x="LMARGIN", new_y="NEXT")
 
     def row(label, compte, montant, bold=False, indent=0, color=None):
         pdf.set_text_color(WHITE_R, WHITE_G, WHITE_B)
@@ -361,10 +361,10 @@ def etats_financiers_pdf():
         if color:
             pdf.set_text_color(*color)
         if montant >= 0:
-            pdf.cell(40, 6, f"{montant:,.3f} DT", ln=True, align='R')
+            pdf.cell(40, 6, f"{montant:,.3f} DT", new_x="LMARGIN", new_y="NEXT", align='R')
         else:
             pdf.set_text_color(RED_R, RED_G, RED_B)
-            pdf.cell(40, 6, f"({abs(montant):,.3f}) DT", ln=True, align='R')
+            pdf.cell(40, 6, f"({abs(montant):,.3f}) DT", new_x="LMARGIN", new_y="NEXT", align='R')
         pdf.set_text_color(WHITE_R, WHITE_G, WHITE_B)
 
     def separator():
@@ -381,7 +381,7 @@ def etats_financiers_pdf():
         pdf.cell(140, 7, _s(f"  {label}"), ln=False, fill=bg)
         color = (RED_R, RED_G, RED_B) if montant < 0 else (GREEN_R, GREEN_G, GREEN_B)
         pdf.set_text_color(*color)
-        pdf.cell(40, 7, f"{montant:,.3f} DT", ln=True, align='R', fill=bg)
+        pdf.cell(40, 7, f"{montant:,.3f} DT", new_x="LMARGIN", new_y="NEXT", align='R', fill=bg)
         pdf.ln(1)
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -418,7 +418,7 @@ def etats_financiers_pdf():
     pdf.set_fill_color(GREEN_R, GREEN_G, GREEN_B)
     pdf.set_text_color(BG_R, BG_G, BG_B)
     pdf.set_font('Helvetica', 'B', 10)
-    pdf.cell(0, 9, f"  TOTAL ACTIF  {data['total_actif']:,.3f} DT", ln=True, fill=True)
+    pdf.cell(0, 9, f"  TOTAL ACTIF  {data['total_actif']:,.3f} DT", new_x="LMARGIN", new_y="NEXT", fill=True)
     pdf.ln(4)
 
     # ── PASSIF ────────────────────────────────────────────────────────────────
@@ -451,14 +451,14 @@ def etats_financiers_pdf():
     pdf.set_fill_color(GREEN_R, GREEN_G, GREEN_B)
     pdf.set_text_color(BG_R, BG_G, BG_B)
     pdf.set_font('Helvetica', 'B', 10)
-    pdf.cell(0, 9, f"  TOTAL PASSIF  {data['total_passif']:,.3f} DT", ln=True, fill=True)
+    pdf.cell(0, 9, f"  TOTAL PASSIF  {data['total_passif']:,.3f} DT", new_x="LMARGIN", new_y="NEXT", fill=True)
 
     # Note de bas de page
     pdf.ln(6)
     pdf.set_text_color(MUTED_R, MUTED_G, MUTED_B)
     pdf.set_font('Helvetica', 'I', 7)
-    pdf.cell(0, 4, "Note : Les montants en parentheses ( ) sont negatifs (deficit).", ln=True, align='C')
-    pdf.cell(0, 4, _s(f"Arrete au {data['generated_at'].strftime('%d/%m/%Y')}  -  SyndicPro, {org.name}"), ln=True, align='C')
+    pdf.cell(0, 4, "Note : Les montants en parentheses ( ) sont negatifs (deficit).", new_x="LMARGIN", new_y="NEXT", align='C')
+    pdf.cell(0, 4, _s(f"Arrete au {data['generated_at'].strftime('%d/%m/%Y')}  -  SyndicPro, {org.name}"), new_x="LMARGIN", new_y="NEXT", align='C')
 
     # ══════════════════════════════════════════════════════════════════════════
     # PAGE 2 — ÉTAT DE RÉSULTAT
@@ -501,7 +501,7 @@ def etats_financiers_pdf():
     label_res = "EXCÉDENT DE GESTION" if data['resultat_net'] >= 0 else "DÉFICIT DE GESTION"
     pdf.cell(0, 10,
              f"  {label_res} DE L'EXERCICE {year}  :  {data['resultat_net']:+,.3f} DT",
-             ln=True, fill=True)
+             new_x="LMARGIN", new_y="NEXT", fill=True)
 
     # Indicateurs complémentaires
     pdf.ln(6)
@@ -520,7 +520,7 @@ def etats_financiers_pdf():
         pdf.set_fill_color(HEADER_R, HEADER_G, HEADER_B)
         pdf.cell(130, 6, f"  {label}", ln=False, fill=True)
         pdf.set_text_color(GREEN_R, GREEN_G, GREEN_B)
-        pdf.cell(50, 6, value, ln=True, fill=True, align='R')
+        pdf.cell(50, 6, value, new_x="LMARGIN", new_y="NEXT", fill=True, align='R')
         pdf.set_text_color(WHITE_R, WHITE_G, WHITE_B)
         pdf.ln(0.5)
 
@@ -535,7 +535,7 @@ def etats_financiers_pdf():
         "Principe de la partie double respecté (Total Actif = Total Passif).",
         align='J')
     pdf.ln(2)
-    pdf.cell(0, 4, _s(f"Arrete au {data['generated_at'].strftime('%d/%m/%Y')}  -  SyndicPro, {org.name}"), ln=True, align='C')
+    pdf.cell(0, 4, _s(f"Arrete au {data['generated_at'].strftime('%d/%m/%Y')}  -  SyndicPro, {org.name}"), new_x="LMARGIN", new_y="NEXT", align='C')
 
     # ══════════════════════════════════════════════════════════════════════════
     # PAGE 3 — TABLEAU DE FLUX DE TRÉSORERIE
@@ -605,15 +605,15 @@ def etats_financiers_pdf():
         pdf.set_text_color(GREEN_R if data['tresorerie_nette'] >= 0 else RED_R,
                            GREEN_G if data['tresorerie_nette'] >= 0 else RED_G,
                            GREEN_B if data['tresorerie_nette'] >= 0 else RED_B)
-        pdf.cell(50, 6, value, ln=True, fill=True, align='R')
+        pdf.cell(50, 6, value, new_x="LMARGIN", new_y="NEXT", fill=True, align='R')
         pdf.set_text_color(WHITE_R, WHITE_G, WHITE_B)
         pdf.ln(0.5)
 
     pdf.ln(6)
     pdf.set_text_color(MUTED_R, MUTED_G, MUTED_B)
     pdf.set_font('Helvetica', 'I', 7)
-    pdf.cell(0, 4, _s(f"Document genere le {data['generated_at'].strftime('%d/%m/%Y')}  -  SyndicPro, {org.name}"), ln=True, align='C')
-    pdf.cell(0, 4, "Ce document est produit a titre informatif et de gestion interne. Il ne remplace pas un bilan certifie par un expert-comptable agree.", ln=True, align='C')
+    pdf.cell(0, 4, _s(f"Document genere le {data['generated_at'].strftime('%d/%m/%Y')}  -  SyndicPro, {org.name}"), new_x="LMARGIN", new_y="NEXT", align='C')
+    pdf.cell(0, 4, "Ce document est produit a titre informatif et de gestion interne. Il ne remplace pas un bilan certifie par un expert-comptable agree.", new_x="LMARGIN", new_y="NEXT", align='C')
 
     # ── Export PDF ────────────────────────────────────────────────────────────
     pdf_bytes = pdf.output()

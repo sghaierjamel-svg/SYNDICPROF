@@ -440,9 +440,9 @@ def assembly_pv_pdf(ag_id):
     # ── En-tête sobre (pas de bandeau coloré) ───────────────────────────────
     pdf.set_font('Helvetica', 'B', 11)
     pdf.set_text_color(40, 40, 40)
-    pdf.cell(0, 6, s('REPUBLIQUE TUNISIENNE'), ln=True, align='C')
+    pdf.cell(0, 6, s('REPUBLIQUE TUNISIENNE'), new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.set_font('Helvetica', '', 10)
-    pdf.cell(0, 5, s('Code des Droits Reels — Articles 90 et suivants'), ln=True, align='C')
+    pdf.cell(0, 5, s('Code des Droits Reels — Articles 90 et suivants'), new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.ln(3)
     pdf.set_draw_color(80, 80, 80)
     pdf.set_line_width(0.8)
@@ -452,20 +452,20 @@ def assembly_pv_pdf(ag_id):
     # Résidence
     pdf.set_font('Helvetica', 'B', 13)
     pdf.set_text_color(0, 0, 0)
-    pdf.cell(0, 7, s(org.name), ln=True, align='C')
+    pdf.cell(0, 7, s(org.name), new_x="LMARGIN", new_y="NEXT", align='C')
     if org.address:
         pdf.set_font('Helvetica', '', 9)
         pdf.set_text_color(80, 80, 80)
-        pdf.cell(0, 5, s(org.address), ln=True, align='C')
+        pdf.cell(0, 5, s(org.address), new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.ln(4)
 
     # Titre PV
     pdf.set_font('Helvetica', 'B', 12)
     pdf.set_text_color(0, 0, 0)
     titre = "PROCES-VERBAL D'ASSEMBLEE GENERALE" + (" — BROUILLON" if is_draft else "")
-    pdf.cell(0, 8, titre, ln=True, align='C')
+    pdf.cell(0, 8, titre, new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.set_font('Helvetica', '', 10)
-    pdf.cell(0, 6, s(ag.title), ln=True, align='C')
+    pdf.cell(0, 6, s(ag.title), new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.ln(3)
     pdf.set_line_width(0.4)
     pdf.line(20, pdf.get_y(), 190, pdf.get_y())
@@ -475,7 +475,7 @@ def assembly_pv_pdf(ag_id):
         pdf.set_font('Helvetica', 'B', 10)
         pdf.set_fill_color(230, 230, 230)
         pdf.set_text_color(0, 0, 0)
-        pdf.cell(0, 7, '  ' + s(txt), ln=True, fill=True)
+        pdf.cell(0, 7, '  ' + s(txt), new_x="LMARGIN", new_y="NEXT", fill=True)
         pdf.ln(2)
 
     def info_row(label, value, bold_val=False):
@@ -487,7 +487,7 @@ def assembly_pv_pdf(ag_id):
         else:
             pdf.set_font('Helvetica', '', 9)
         pdf.set_text_color(0, 0, 0)
-        pdf.cell(0, 6, s(str(value)), ln=True)
+        pdf.cell(0, 6, s(str(value)), new_x="LMARGIN", new_y="NEXT")
 
     # ── Section 1 : Informations de séance ──────────────────────────────────
     section_title('1. INFORMATIONS DE SEANCE')
@@ -516,10 +516,10 @@ def assembly_pv_pdf(ag_id):
         pdf.set_font('Helvetica', 'B', 9)
         if quorum_ok:
             pdf.set_text_color(0, 120, 80)
-            pdf.cell(0, 6, '  -> QUORUM ATTEINT — L\'assemblee peut valablement deliberer.', ln=True)
+            pdf.cell(0, 6, '  -> QUORUM ATTEINT — L\'assemblee peut valablement deliberer.', new_x="LMARGIN", new_y="NEXT")
         else:
             pdf.set_text_color(180, 60, 60)
-            pdf.cell(0, 6, '  -> QUORUM NON ATTEINT — Deliberation sous reserve (2eme convocation).', ln=True)
+            pdf.cell(0, 6, '  -> QUORUM NON ATTEINT — Deliberation sous reserve (2eme convocation).', new_x="LMARGIN", new_y="NEXT")
         pdf.set_text_color(0, 0, 0)
     pdf.ln(3)
 
@@ -544,7 +544,7 @@ def assembly_pv_pdf(ag_id):
     else:
         pdf.set_font('Helvetica', 'I', 9)
         pdf.set_text_color(120, 120, 120)
-        pdf.cell(0, 6, "L'ordre du jour sera communique lors de la seance.", ln=True)
+        pdf.cell(0, 6, "L'ordre du jour sera communique lors de la seance.", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(3)
 
     # ── Section 5 : Délibérations ────────────────────────────────────────────
@@ -565,12 +565,12 @@ def assembly_pv_pdf(ag_id):
 
             pdf.set_font('Helvetica', '', 9)
             pdf.set_text_color(60, 60, 60)
-            pdf.cell(0, 5, s('Apres deliberation, l\'assemblee procede au vote :'), ln=True)
+            pdf.cell(0, 5, s('Apres deliberation, l\'assemblee procede au vote :'), new_x="LMARGIN", new_y="NEXT")
 
             # Résultat du vote
             pdf.set_font('Helvetica', 'B', 9)
             vote_line = f'  Pour : {pc}   |   Contre : {cc}   |   Abstention : {ac}   |   Total : {total} votants'
-            pdf.cell(0, 6, s(vote_line), ln=True)
+            pdf.cell(0, 6, s(vote_line), new_x="LMARGIN", new_y="NEXT")
 
             # Décision formulée
             if res == 'ADOPTÉ':
@@ -583,7 +583,7 @@ def assembly_pv_pdf(ag_id):
                 pdf.set_text_color(100, 100, 180)
                 decision = f'  EGALITE DES VOIX ({pc} pour / {cc} contre) — A soumettre a nouvelle deliberation.'
             pdf.set_font('Helvetica', 'B', 9)
-            pdf.cell(0, 6, s(decision), ln=True)
+            pdf.cell(0, 6, s(decision), new_x="LMARGIN", new_y="NEXT")
             pdf.set_text_color(0, 0, 0)
 
             pdf.set_draw_color(180, 180, 180)
@@ -593,7 +593,7 @@ def assembly_pv_pdf(ag_id):
     else:
         pdf.set_font('Helvetica', 'I', 9)
         pdf.set_text_color(120, 120, 120)
-        pdf.cell(0, 6, 'Les deliberations seront reportees ici apres la seance.', ln=True)
+        pdf.cell(0, 6, 'Les deliberations seront reportees ici apres la seance.', new_x="LMARGIN", new_y="NEXT")
         pdf.ln(3)
 
     # ── Section 6 : Clôture ──────────────────────────────────────────────────
@@ -601,9 +601,9 @@ def assembly_pv_pdf(ag_id):
     pdf.set_font('Helvetica', '', 9)
     pdf.set_text_color(0, 0, 0)
     if ag.heure_cloture:
-        pdf.cell(0, 6, s(f"L'ordre du jour etant epuise, la seance est levee a {ag.heure_cloture}."), ln=True)
+        pdf.cell(0, 6, s(f"L'ordre du jour etant epuise, la seance est levee a {ag.heure_cloture}."), new_x="LMARGIN", new_y="NEXT")
     else:
-        pdf.cell(0, 6, "L'ordre du jour etant epuise, la seance est levee a ___:___.", ln=True)
+        pdf.cell(0, 6, "L'ordre du jour etant epuise, la seance est levee a ___:___.", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(4)
 
     # ── Section 7 : Signatures ───────────────────────────────────────────────
@@ -613,7 +613,7 @@ def assembly_pv_pdf(ag_id):
     pdf.ln(5)
     pdf.set_font('Helvetica', 'B', 9)
     pdf.set_text_color(0, 0, 0)
-    pdf.cell(0, 5, 'SIGNATURES', ln=True, align='C')
+    pdf.cell(0, 5, 'SIGNATURES', new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.ln(4)
 
     col_w = 56
@@ -656,11 +656,11 @@ def assembly_pv_pdf(ag_id):
     statut_label = 'BROUILLON — non officiel' if is_draft else 'Document officiel'
     pdf.cell(0, 4,
              s(f'{statut_label} — Etabli le {datetime.now().strftime("%d/%m/%Y")} — SyndicPro — {org.name}'),
-             ln=True, align='C')
+             new_x="LMARGIN", new_y="NEXT", align='C')
     if not is_draft:
         pdf.cell(0, 4,
                  "Ce PV constitue le document officiel de l'assemblee generale — CDR Tunisie.",
-                 ln=True, align='C')
+                 new_x="LMARGIN", new_y="NEXT", align='C')
 
     buf = io.BytesIO(pdf.output())
     buf.seek(0)
@@ -715,25 +715,25 @@ def assembly_convocation_pdf(ag_id):
         pdf.set_xy(0, 6)
         pdf.set_text_color(255, 255, 255)
         pdf.set_font('Helvetica', 'B', 18)
-        pdf.cell(0, 10, s(org.name), ln=True, align='C')
+        pdf.cell(0, 10, s(org.name), new_x="LMARGIN", new_y="NEXT", align='C')
         pdf.set_font('Helvetica', '', 9)
-        pdf.cell(0, 5, 'SyndicPro - Gestion de copropriete', ln=True, align='C')
+        pdf.cell(0, 5, 'SyndicPro - Gestion de copropriete', new_x="LMARGIN", new_y="NEXT", align='C')
         pdf.ln(2)
 
         pdf.set_text_color(40, 40, 40)
         pdf.set_font('Helvetica', '', 10)
         pdf.set_xy(120, 48)
         if resident:
-            pdf.cell(80, 6, s(resident.name or resident.email), ln=True, align='L')
+            pdf.cell(80, 6, s(resident.name or resident.email), new_x="LMARGIN", new_y="NEXT", align='L')
             pdf.set_x(120)
             if apt_label:
-                pdf.cell(80, 6, s('Appartement ' + apt_label), ln=True, align='L')
+                pdf.cell(80, 6, s('Appartement ' + apt_label), new_x="LMARGIN", new_y="NEXT", align='L')
                 pdf.set_x(120)
-            pdf.cell(80, 6, s(org.name), ln=True, align='L')
+            pdf.cell(80, 6, s(org.name), new_x="LMARGIN", new_y="NEXT", align='L')
         else:
-            pdf.cell(80, 6, '[Nom du destinataire]', ln=True, align='L')
+            pdf.cell(80, 6, '[Nom du destinataire]', new_x="LMARGIN", new_y="NEXT", align='L')
             pdf.set_x(120)
-            pdf.cell(80, 6, '[Appartement]', ln=True, align='L')
+            pdf.cell(80, 6, '[Appartement]', new_x="LMARGIN", new_y="NEXT", align='L')
 
         pdf.set_xy(10, 48)
         pdf.set_font('Helvetica', '', 9)
@@ -746,14 +746,14 @@ def assembly_convocation_pdf(ag_id):
         pdf.set_text_color(40, 40, 40)
         pdf.cell(40, 6, 'Objet :')
         pdf.set_font('Helvetica', 'B', 10)
-        pdf.cell(0, 6, s('Convocation a l\'Assemblee Generale - ' + ag.title), ln=True)
+        pdf.cell(0, 6, s('Convocation a l\'Assemblee Generale - ' + ag.title), new_x="LMARGIN", new_y="NEXT")
         pdf.ln(1)
         pdf.set_x(10)
         pdf.set_font('Helvetica', 'B', 9)
         pdf.set_text_color(180, 60, 60)
         pdf.cell(0, 5,
                  'Lettre recommandee avec accuse de reception - Art. 7 Loi 77-35 du 25 mai 1977',
-                 ln=True)
+                 new_x="LMARGIN", new_y="NEXT")
         pdf.ln(5)
 
         pdf.set_draw_color(0, 200, 150)
@@ -767,7 +767,7 @@ def assembly_convocation_pdf(ag_id):
             salut = s('Madame, Monsieur ' + resident.name + ',')
         else:
             salut = 'Madame, Monsieur,'
-        pdf.cell(0, 7, salut, ln=True)
+        pdf.cell(0, 7, salut, new_x="LMARGIN", new_y="NEXT")
         pdf.ln(2)
 
         intro = s('Nous avons l\'honneur de vous convoquer a l\'Assemblee Generale de la '
@@ -780,17 +780,17 @@ def assembly_convocation_pdf(ag_id):
         pdf.set_font('Helvetica', 'B', 11)
         pdf.set_text_color(0, 140, 100)
         date_str = s(ag.meeting_date.strftime('%d/%m/%Y a %H:%M'))
-        pdf.cell(0, 8, date_str, ln=True, align='C', fill=True)
+        pdf.cell(0, 8, date_str, new_x="LMARGIN", new_y="NEXT", align='C', fill=True)
         if ag.location:
             pdf.set_x(10)
             pdf.set_font('Helvetica', '', 10)
             pdf.set_text_color(60, 60, 60)
-            pdf.cell(0, 6, s('Lieu : ' + ag.location), ln=True, align='C')
+            pdf.cell(0, 6, s('Lieu : ' + ag.location), new_x="LMARGIN", new_y="NEXT", align='C')
         pdf.ln(5)
 
         pdf.set_font('Helvetica', 'B', 11)
         pdf.set_text_color(0, 140, 100)
-        pdf.cell(0, 8, 'ORDRE DU JOUR', ln=True)
+        pdf.cell(0, 8, 'ORDRE DU JOUR', new_x="LMARGIN", new_y="NEXT")
         pdf.set_draw_color(0, 200, 150)
         pdf.line(10, pdf.get_y(), 200, pdf.get_y())
         pdf.ln(3)
@@ -808,7 +808,7 @@ def assembly_convocation_pdf(ag_id):
         else:
             pdf.set_font('Helvetica', 'I', 9)
             pdf.set_text_color(120, 120, 120)
-            pdf.cell(0, 6, "L'ordre du jour sera communique ulterieurement.", ln=True)
+            pdf.cell(0, 6, "L'ordre du jour sera communique ulterieurement.", new_x="LMARGIN", new_y="NEXT")
 
         pdf.ln(3)
         pdf.set_draw_color(200, 200, 200)
@@ -827,10 +827,10 @@ def assembly_convocation_pdf(ag_id):
 
         pdf.set_font('Helvetica', '', 10)
         pdf.set_text_color(40, 40, 40)
-        pdf.cell(0, 6, 'Nous vous prions d\'agreer, Madame, Monsieur, nos salutations distinguees.', ln=True)
+        pdf.cell(0, 6, 'Nous vous prions d\'agreer, Madame, Monsieur, nos salutations distinguees.', new_x="LMARGIN", new_y="NEXT")
         pdf.ln(8)
         pdf.set_font('Helvetica', 'B', 10)
-        pdf.cell(0, 6, s('Le Syndic de la copropriete - ' + org.name), ln=True)
+        pdf.cell(0, 6, s('Le Syndic de la copropriete - ' + org.name), new_x="LMARGIN", new_y="NEXT")
         pdf.ln(2)
         pdf.set_font('Helvetica', '', 9)
         pdf.set_text_color(100, 100, 100)
@@ -847,7 +847,7 @@ def assembly_convocation_pdf(ag_id):
         pdf.ln(3)
         pdf.set_font('Helvetica', 'B', 8)
         pdf.set_text_color(80, 80, 80)
-        pdf.cell(0, 5, 'ACCUSE DE RECEPTION - A retourner signe au syndic', ln=True, align='C')
+        pdf.cell(0, 5, 'ACCUSE DE RECEPTION - A retourner signe au syndic', new_x="LMARGIN", new_y="NEXT", align='C')
         pdf.ln(2)
         pdf.set_font('Helvetica', '', 8)
         ag_date = ag.meeting_date.strftime('%d/%m/%Y')
@@ -862,7 +862,7 @@ def assembly_convocation_pdf(ag_id):
         pdf.multi_cell(0, 5, ligne, align='C')
         pdf.ln(3)
         pdf.cell(90, 5, 'Date : _____________________', ln=False)
-        pdf.cell(0, 5, 'Signature : _______________________', ln=True)
+        pdf.cell(0, 5, 'Signature : _______________________', new_x="LMARGIN", new_y="NEXT")
 
         pdf.ln(3)
         pdf.set_font('Helvetica', 'I', 7)
@@ -870,7 +870,7 @@ def assembly_convocation_pdf(ag_id):
         pdf.cell(0, 4,
                  s('Document genere le ' + datetime.now().strftime('%d/%m/%Y')
                    + ' par SyndicPro - ' + org.name),
-                 ln=True, align='C')
+                 new_x="LMARGIN", new_y="NEXT", align='C')
 
     buf = io.BytesIO(pdf.output())
     buf.seek(0)

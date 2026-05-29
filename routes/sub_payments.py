@@ -324,21 +324,21 @@ def sub_payment_invoice(pr_id):
     pdf.set_xy(0, 5)
     pdf.set_text_color(255, 255, 255)
     pdf.set_font('Helvetica', 'B', 20)
-    pdf.cell(0, 10, _s(em['produit']), ln=True, align='C')
+    pdf.cell(0, 10, _s(em['produit']), new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.set_font('Helvetica', 'B', 11)
-    pdf.cell(0, 6, _s(em['nom']), ln=True, align='C')
+    pdf.cell(0, 6, _s(em['nom']), new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.set_font('Helvetica', '', 9)
-    pdf.cell(0, 5, _s(em['adresse']), ln=True, align='C')
+    pdf.cell(0, 5, _s(em['adresse']), new_x="LMARGIN", new_y="NEXT", align='C')
     if em.get('mf'):
-        pdf.cell(0, 4, _s(f"MF : {em['mf']}  |  {em['email']}  |  {em['phone']}"), ln=True, align='C')
+        pdf.cell(0, 4, _s(f"MF : {em['mf']}  |  {em['email']}  |  {em['phone']}"), new_x="LMARGIN", new_y="NEXT", align='C')
     else:
-        pdf.cell(0, 4, _s(f"{em['email']}  |  {em['phone']}"), ln=True, align='C')
+        pdf.cell(0, 4, _s(f"{em['email']}  |  {em['phone']}"), new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.ln(8)
 
     # ── Titre ────────────────────────────────────────────────────────────────
     pdf.set_text_color(30, 58, 138)
     pdf.set_font('Helvetica', 'B', 14)
-    pdf.cell(0, 9, f"FACTURE  {_s(pr.invoice_number)}", ln=True, align='C')
+    pdf.cell(0, 9, f"FACTURE  {_s(pr.invoice_number)}", new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.set_draw_color(30, 58, 138)
     pdf.set_line_width(0.5)
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
@@ -353,7 +353,7 @@ def sub_payment_invoice(pr_id):
     pdf.set_text_color(120, 120, 120)
     pdf.cell(col_w, 5, 'EMETTEUR', ln=False)
     pdf.set_xy(110, y_start)
-    pdf.cell(col_w, 5, 'FACTURE A', ln=True)
+    pdf.cell(col_w, 5, 'FACTURE A', new_x="LMARGIN", new_y="NEXT")
 
     def _col(left, right, y_off):
         pdf.set_xy(10, y_start + y_off)
@@ -361,7 +361,7 @@ def sub_payment_invoice(pr_id):
         pdf.set_text_color(40, 40, 40)
         pdf.cell(col_w, 5, _s(left), ln=False)
         pdf.set_xy(110, y_start + y_off)
-        pdf.cell(col_w, 5, _s(right), ln=True)
+        pdf.cell(col_w, 5, _s(right), new_x="LMARGIN", new_y="NEXT")
 
     _col(em['nom'],              org.name,         7)
     _col(em['adresse'][:45],     org.address or '', 13)
@@ -385,7 +385,7 @@ def sub_payment_invoice(pr_id):
         pdf.cell(58, 6, label)
         pdf.set_font('Helvetica', '', 9)
         pdf.set_text_color(40, 40, 40)
-        pdf.cell(0, 6, _s(str(value)), ln=True)
+        pdf.cell(0, 6, _s(str(value)), new_x="LMARGIN", new_y="NEXT")
 
     _meta('N Facture :',       pr.invoice_number)
     _meta('Date emission :',   pr.confirmed_at.strftime('%d/%m/%Y'))
@@ -404,7 +404,7 @@ def sub_payment_invoice(pr_id):
     pdf.cell(100, 8, 'Description',    fill=True, border='B')
     pdf.cell(28,  8, 'Qte',            fill=True, border='B', align='C')
     pdf.cell(30,  8, 'PU (DT)',        fill=True, border='B', align='R')
-    pdf.cell(0,   8, 'Total (DT)',     fill=True, border='B', align='R', ln=True)
+    pdf.cell(0,   8, 'Total (DT)',     fill=True, border='B', align='R', new_x="LMARGIN", new_y="NEXT")
 
     plan_label = details.get('label', pr.plan_requested.capitalize())
     unit_price = details.get('price', round(amount / max(pr.months_count, 1), 3))
@@ -413,7 +413,7 @@ def sub_payment_invoice(pr_id):
     pdf.cell(100, 7, _s(f"Abonnement {em['produit']} - Plan {plan_label}"))
     pdf.cell(28,  7, f"{pr.months_count} mois", align='C')
     pdf.cell(30,  7, f"{unit_price:.3f}", align='R')
-    pdf.cell(0,   7, f"{amount:.3f}", align='R', ln=True)
+    pdf.cell(0,   7, f"{amount:.3f}", align='R', new_x="LMARGIN", new_y="NEXT")
 
     pdf.set_draw_color(200, 200, 200)
     pdf.set_line_width(0.3)
@@ -424,7 +424,7 @@ def sub_payment_invoice(pr_id):
     pdf.set_fill_color(30, 58, 138)
     pdf.set_text_color(255, 255, 255)
     pdf.set_font('Helvetica', 'B', 13)
-    pdf.cell(0, 12, f"  TOTAL TTC : {amount:.3f} DT", fill=True, ln=True)
+    pdf.cell(0, 12, f"  TOTAL TTC : {amount:.3f} DT", fill=True, new_x="LMARGIN", new_y="NEXT")
     pdf.ln(6)
 
     # ── Coordonnées bancaires ─────────────────────────────────────────────────
@@ -435,14 +435,14 @@ def sub_payment_invoice(pr_id):
         pdf.set_line_width(0.3)
         pdf.set_font('Helvetica', 'B', 9)
         pdf.set_text_color(30, 58, 138)
-        pdf.cell(0, 7, '  Coordonnees bancaires pour virement', fill=True, border=1, ln=True)
+        pdf.cell(0, 7, '  Coordonnees bancaires pour virement', fill=True, border=1, new_x="LMARGIN", new_y="NEXT")
         pdf.set_font('Helvetica', '', 9)
         pdf.set_text_color(40, 40, 40)
         if em.get('rib'):
-            pdf.cell(0, 6, _s(f"  RIB : {em['rib']}"), ln=True)
+            pdf.cell(0, 6, _s(f"  RIB : {em['rib']}"), new_x="LMARGIN", new_y="NEXT")
         if em.get('iban'):
-            pdf.cell(0, 6, _s(f"  IBAN : {em['iban']}"), ln=True)
-        pdf.cell(0, 5, _s(f"  Beneficiaire : {em['nom']}"), ln=True)
+            pdf.cell(0, 6, _s(f"  IBAN : {em['iban']}"), new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 5, _s(f"  Beneficiaire : {em['nom']}"), new_x="LMARGIN", new_y="NEXT")
         pdf.ln(4)
 
     # ── Pied de page ──────────────────────────────────────────────────────────
@@ -451,8 +451,8 @@ def sub_payment_invoice(pr_id):
     pdf.ln(3)
     pdf.set_font('Helvetica', 'I', 7)
     pdf.set_text_color(160, 160, 160)
-    pdf.cell(0, 4, _s(f"Genere le {datetime.now().strftime('%d/%m/%Y %H:%M')} - {em['produit']} (www.syndicpro.tn) - {em['nom']}"), ln=True, align='C')
-    pdf.cell(0, 4, 'Cette facture est valable comme justificatif de paiement conformement a la legislation tunisienne.', ln=True, align='C')
+    pdf.cell(0, 4, _s(f"Genere le {datetime.now().strftime('%d/%m/%Y %H:%M')} - {em['produit']} (www.syndicpro.tn) - {em['nom']}"), new_x="LMARGIN", new_y="NEXT", align='C')
+    pdf.cell(0, 4, 'Cette facture est valable comme justificatif de paiement conformement a la legislation tunisienne.', new_x="LMARGIN", new_y="NEXT", align='C')
 
     buf = io.BytesIO(pdf.output())
     buf.seek(0)

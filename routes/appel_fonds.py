@@ -328,9 +328,9 @@ def appel_fonds_recu(af_id, p_id):
         pdf.set_xy(0, 5)
         pdf.set_text_color(255, 255, 255)
         pdf.set_font('Helvetica', 'B', 22)
-        pdf.cell(0, 11, 'SyndicPro', ln=True, align='C')
+        pdf.cell(0, 11, 'SyndicPro', new_x="LMARGIN", new_y="NEXT", align='C')
         pdf.set_font('Helvetica', '', 10)
-        pdf.cell(0, 6, _s(org.name), ln=True, align='C')
+        pdf.cell(0, 6, _s(org.name), new_x="LMARGIN", new_y="NEXT", align='C')
         pdf.ln(6)
 
         # Titre
@@ -340,7 +340,7 @@ def appel_fonds_recu(af_id, p_id):
         pdf.set_text_color(0, 80, 160)
         pdf.set_font('Helvetica', 'B', 12)
         pdf.cell(0, 10, _s(f'  RECU PAIEMENT - APPEL DE FONDS  N{chr(176)} {p.id:05d}'),
-                 ln=True, fill=True, border=1)
+                 new_x="LMARGIN", new_y="NEXT", fill=True, border=1)
         pdf.ln(5)
 
         def info_line(label, value):
@@ -349,7 +349,7 @@ def appel_fonds_recu(af_id, p_id):
             pdf.cell(65, 7, _s(label))
             pdf.set_font('Helvetica', '', 9)
             pdf.set_text_color(40, 40, 40)
-            pdf.cell(0, 7, _s(str(value)), ln=True)
+            pdf.cell(0, 7, _s(str(value)), new_x="LMARGIN", new_y="NEXT")
 
         info_line('Projet :', af.titre)
         info_line('Appartement :', f"{block_name}-{apt.number}")
@@ -367,7 +367,7 @@ def appel_fonds_recu(af_id, p_id):
         pdf.set_fill_color(0, 120, 200)
         pdf.set_text_color(255, 255, 255)
         pdf.set_font('Helvetica', 'B', 14)
-        pdf.cell(0, 13, _s(f'  MONTANT VERSE : {p.amount:.3f} DT'), ln=True, fill=True)
+        pdf.cell(0, 13, _s(f'  MONTANT VERSE : {p.amount:.3f} DT'), new_x="LMARGIN", new_y="NEXT", fill=True)
 
         # Quota de l'appartement
         quotas_list = list(af.quotas)
@@ -380,7 +380,7 @@ def appel_fonds_recu(af_id, p_id):
             pdf.set_text_color(80, 80, 80)
             pdf.cell(0, 5, _s(
                 f'  Quote-part : {quota:.3f} DT  |  Verse total : {total_verse:.3f} DT  |  Reste : {reste:.3f} DT'
-            ), ln=True)
+            ), new_x="LMARGIN", new_y="NEXT")
 
         pdf.ln(8)
         pdf.set_draw_color(200, 200, 200)
@@ -390,10 +390,10 @@ def appel_fonds_recu(af_id, p_id):
         pdf.set_text_color(150, 150, 150)
         pdf.cell(0, 4, _s(
             f'Document genere le {datetime.now().strftime("%d/%m/%Y")} - SyndicPro, {org.name}'
-        ), ln=True, align='C')
+        ), new_x="LMARGIN", new_y="NEXT", align='C')
         pdf.cell(0, 4,
                  'Ce recu concerne exclusivement les fonds de travaux - distinct de la gestion courante.',
-                 ln=True, align='C')
+                 new_x="LMARGIN", new_y="NEXT", align='C')
 
         output = pdf.output()
         buf = io.BytesIO(bytes(output) if not isinstance(output, bytes) else output)

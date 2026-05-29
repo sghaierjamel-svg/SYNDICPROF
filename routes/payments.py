@@ -511,9 +511,9 @@ def payment_receipt(payment_id):
     pdf.set_xy(0, 5)
     pdf.set_text_color(255, 255, 255)
     pdf.set_font('Helvetica', 'B', 22)
-    pdf.cell(0, 11, 'SyndicPro', ln=True, align='C')
+    pdf.cell(0, 11, 'SyndicPro', new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.set_font('Helvetica', '', 10)
-    pdf.cell(0, 6, _s(org.name), ln=True, align='C')
+    pdf.cell(0, 6, _s(org.name), new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.ln(6)
 
     # Titre
@@ -526,7 +526,7 @@ def payment_receipt(payment_id):
     pdf.set_line_width(0.5)
     pdf.set_text_color(0, 120, 90)
     pdf.set_font('Helvetica', 'B', 13)
-    pdf.cell(0, 10, f'  {titre}  {ref}', ln=True, fill=True, border=1)
+    pdf.cell(0, 10, f'  {titre}  {ref}', new_x="LMARGIN", new_y="NEXT", fill=True, border=1)
     pdf.ln(6)
 
     # Infos generales
@@ -536,7 +536,7 @@ def payment_receipt(payment_id):
         pdf.cell(65, 7, _s(label))
         pdf.set_font('Helvetica', '', 9)
         pdf.set_text_color(40, 40, 40)
-        pdf.cell(0, 7, _s(str(value)), ln=True)
+        pdf.cell(0, 7, _s(str(value)), new_x="LMARGIN", new_y="NEXT")
 
     line('Appartement :', f"{apt.block.name}-{apt.number}")
     line('Resident :', resident.name if resident else '-')
@@ -561,7 +561,7 @@ def payment_receipt(payment_id):
         pdf.set_fill_color(232, 249, 244)
         pdf.cell(12, 7, '#',          fill=True, border='B')
         pdf.cell(55, 7, 'Mois paye',  fill=True, border='B')
-        pdf.cell(0,  7, 'Montant',    fill=True, border='B', ln=True)
+        pdf.cell(0,  7, 'Montant',    fill=True, border='B', new_x="LMARGIN", new_y="NEXT")
         for i, s in enumerate(group, 1):
             pdf.set_font('Helvetica', '', 9)
             pdf.set_text_color(40, 40, 40)
@@ -569,7 +569,7 @@ def payment_receipt(payment_id):
             pdf.set_fill_color(*bg)
             pdf.cell(12, 6, str(i),               fill=True)
             pdf.cell(55, 6, _s(s.month_paid),     fill=True)
-            pdf.cell(0,  6, f'{s.amount:.3f} DT', fill=True, ln=True)
+            pdf.cell(0,  6, f'{s.amount:.3f} DT', fill=True, new_x="LMARGIN", new_y="NEXT")
         pdf.ln(3)
         pdf.set_draw_color(200, 200, 200)
         pdf.set_line_width(0.3)
@@ -591,11 +591,11 @@ def payment_receipt(payment_id):
     pdf.set_font('Helvetica', 'B', 14)
     label_total = 'MONTANT TOTAL PAYE' if multi else 'MONTANT PAYE'
     nb_mois = f'  ({len(group)} mois)' if multi else ''
-    pdf.cell(0, 13, f'  {label_total} : {total_amount:.3f} DT{nb_mois}', ln=True, fill=True)
+    pdf.cell(0, 13, f'  {label_total} : {total_amount:.3f} DT{nb_mois}', new_x="LMARGIN", new_y="NEXT", fill=True)
     if total_credit > 0:
         pdf.set_font('Helvetica', '', 8)
         pdf.set_text_color(100, 100, 100)
-        pdf.cell(0, 5, f'  (dont {total_credit:.3f} DT de credit reporte)', ln=True)
+        pdf.cell(0, 5, f'  (dont {total_credit:.3f} DT de credit reporte)', new_x="LMARGIN", new_y="NEXT")
 
     pdf.ln(10)
     pdf.set_draw_color(200, 200, 200)
@@ -603,8 +603,8 @@ def payment_receipt(payment_id):
     pdf.ln(4)
     pdf.set_font('Helvetica', 'I', 7)
     pdf.set_text_color(150, 150, 150)
-    pdf.cell(0, 4, _s(f'Document genere le {datetime.now().strftime("%d/%m/%Y")} - SyndicPro, {org.name}'), ln=True, align='C')
-    pdf.cell(0, 4, 'Ce recu est emis par le syndic de copropriete et vaut justificatif de paiement.', ln=True, align='C')
+    pdf.cell(0, 4, _s(f'Document genere le {datetime.now().strftime("%d/%m/%Y")} - SyndicPro, {org.name}'), new_x="LMARGIN", new_y="NEXT", align='C')
+    pdf.cell(0, 4, 'Ce recu est emis par le syndic de copropriete et vaut justificatif de paiement.', new_x="LMARGIN", new_y="NEXT", align='C')
 
     buf = io.BytesIO(pdf.output())
     buf.seek(0)

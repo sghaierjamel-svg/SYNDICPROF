@@ -132,18 +132,18 @@ def pdf_report():
     pdf.set_xy(0, 5)
     pdf.set_text_color(255, 255, 255)
     pdf.set_font('Helvetica', 'B', 20)
-    pdf.cell(0, 12, 'SyndicPro', ln=True, align='C')
+    pdf.cell(0, 12, 'SyndicPro', new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.set_font('Helvetica', '', 12)
     pdf.set_text_color(255, 255, 255)
-    pdf.cell(0, 6, f"Rapport mensuel — {month_label}", ln=True, align='C')
-    pdf.cell(0, 6, org.name, ln=True, align='C')
+    pdf.cell(0, 6, f"Rapport mensuel — {month_label}", new_x="LMARGIN", new_y="NEXT", align='C')
+    pdf.cell(0, 6, org.name, new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.ln(6)
 
     def section(title):
         pdf.set_fill_color(220, 240, 235)
         pdf.set_text_color(0, 140, 100)
         pdf.set_font('Helvetica', 'B', 11)
-        pdf.cell(0, 8, title, ln=True, fill=True)
+        pdf.cell(0, 8, title, new_x="LMARGIN", new_y="NEXT", fill=True)
         pdf.set_text_color(30, 30, 30)
         pdf.ln(2)
 
@@ -152,7 +152,7 @@ def pdf_report():
         pdf.set_text_color(50, 50, 50)
         pdf.cell(100, 7, label)
         pdf.set_text_color(0, 150, 100)
-        pdf.cell(0, 7, str(value), ln=True)
+        pdf.cell(0, 7, str(value), new_x="LMARGIN", new_y="NEXT")
 
     # Résumé du mois
     section(f"  Résumé — {month_label}")
@@ -182,7 +182,7 @@ def pdf_report():
         pdf.cell(55, 6, "Appartement")
         pdf.cell(35, 6, "Montant")
         pdf.cell(40, 6, "Date paiement")
-        pdf.cell(0, 6, "Mois payé", ln=True)
+        pdf.cell(0, 6, "Mois payé", new_x="LMARGIN", new_y="NEXT")
         pdf.set_draw_color(200, 200, 200)
         pdf.line(10, pdf.get_y(), 200, pdf.get_y())
         pdf.ln(1)
@@ -193,7 +193,7 @@ def pdf_report():
             pdf.cell(55, 6, apt_label)
             pdf.cell(35, 6, f"{p.amount:.3f} DT")
             pdf.cell(40, 6, p.payment_date.strftime('%d/%m/%Y'))
-            pdf.cell(0, 6, p.month_paid, ln=True)
+            pdf.cell(0, 6, p.month_paid, new_x="LMARGIN", new_y="NEXT")
         pdf.ln(4)
 
     # Impayés du mois
@@ -204,7 +204,7 @@ def pdf_report():
         pdf.set_text_color(100, 100, 100)
         pdf.cell(55, 6, "Appartement")
         pdf.cell(40, 6, "Mois en retard")
-        pdf.cell(0, 6, "Montant dû", ln=True)
+        pdf.cell(0, 6, "Montant dû", new_x="LMARGIN", new_y="NEXT")
         pdf.line(10, pdf.get_y(), 200, pdf.get_y())
         pdf.ln(1)
         for a in unpaid_apts:
@@ -214,7 +214,7 @@ def pdf_report():
             apt_label = f"{a.block.name}-{a.number}"
             pdf.cell(55, 6, apt_label)
             pdf.cell(40, 6, str(cnt))
-            pdf.cell(0, 6, f"{cnt * a.monthly_fee:.0f} DT", ln=True)
+            pdf.cell(0, 6, f"{cnt * a.monthly_fee:.0f} DT", new_x="LMARGIN", new_y="NEXT")
         pdf.ln(4)
 
     # Dépenses du mois
@@ -226,7 +226,7 @@ def pdf_report():
         pdf.cell(55, 6, "Date")
         pdf.cell(35, 6, "Montant")
         pdf.cell(50, 6, "Catégorie")
-        pdf.cell(0, 6, "Description", ln=True)
+        pdf.cell(0, 6, "Description", new_x="LMARGIN", new_y="NEXT")
         pdf.line(10, pdf.get_y(), 200, pdf.get_y())
         pdf.ln(1)
         for e in month_expenses:
@@ -235,7 +235,7 @@ def pdf_report():
             pdf.cell(55, 6, e.expense_date.strftime('%d/%m/%Y'))
             pdf.cell(35, 6, f"{e.amount:.3f} DT")
             pdf.cell(50, 6, (e.category or '')[:20])
-            pdf.cell(0, 6, (e.description or '')[:30], ln=True)
+            pdf.cell(0, 6, (e.description or '')[:30], new_x="LMARGIN", new_y="NEXT")
 
     # Pied de page
     pdf.ln(8)
