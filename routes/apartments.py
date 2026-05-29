@@ -31,6 +31,11 @@ def apartments():
             monthly_fee = request.form.get('monthly_fee', 100.0)
             if number and block_id:
                 try:
+                    # CRIT-002 : valider que le bloc appartient à l'organisation
+                    block = Block.query.filter_by(id=int(block_id), organization_id=org.id).first()
+                    if not block:
+                        flash('Bloc invalide.', 'danger')
+                        return redirect(url_for('apartments'))
                     fee = float(monthly_fee)
                     # HIGH-006 : validation redevance
                     if fee <= 0 or fee > 99_999:
@@ -40,7 +45,7 @@ def apartments():
                     a = Apartment(
                         organization_id=org.id,
                         number=number,
-                        block_id=int(block_id),
+                        block_id=block.id,
                         monthly_fee=fee,
                         credit_balance=0.0,
                         parking_spot=parking_spot
@@ -68,7 +73,14 @@ def edit_apartment(apartment_id):
     blocks = Block.query.filter_by(organization_id=org.id).all()
     if request.method == 'POST':
         apt.number = request.form['apt_number']
-        apt.block_id = int(request.form['block_id'])
+        # CRIT-002 : valider que le bloc appartient à l'organisation
+        new_block = Block.query.filter_by(
+            id=int(request.form['block_id']), organization_id=org.id
+        ).first()
+        if not new_block:
+            flash('Bloc invalide.', 'danger')
+            return redirect(url_for('edit_apartment', apartment_id=apartment_id))
+        apt.block_id = new_block.id
         try:
             fee = float(request.form.get('monthly_fee', 100.0))
             if fee <= 0 or fee > 99_999:

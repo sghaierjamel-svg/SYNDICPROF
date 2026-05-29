@@ -126,6 +126,11 @@ def flouci_success():
         dest = url_for('residents_menu') if user else url_for('login')
         return redirect(dest)
 
+    # CRIT-001 : valider l'organisation même si user non connecté (session expirée)
+    org = Organization.query.get(fp.organization_id)
+    if not org:
+        flash("Paiement introuvable.", "danger")
+        return redirect(url_for('login'))
     if user and user.organization_id and user.organization_id != fp.organization_id:
         flash("Accès non autorisé.", "danger")
         return redirect(url_for('login'))
@@ -134,7 +139,6 @@ def flouci_success():
         return render_template('flouci_success.html', fp=fp, already_done=True, user=user)
 
     # Vérification auprès de l'API Flouci
-    org = Organization.query.get(fp.organization_id)
     verified = False
     try:
         resp = http.get(

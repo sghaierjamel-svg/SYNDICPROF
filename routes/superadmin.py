@@ -530,7 +530,8 @@ def superadmin_reset_admin_password(org_id):
         flash('Aucun admin trouvé.', 'danger')
         return redirect(url_for('superadmin_org_detail', org_id=org_id))
     admin.set_password(new_password)
-    for u in User.query.filter_by(email=admin.email).all():
+    # CRIT-003 : limiter la sync au même email ET à cette organisation uniquement
+    for u in User.query.filter_by(email=admin.email, organization_id=org.id).all():
         u.password_hash = admin.password_hash
     db.session.commit()
     flash(f'Mot de passe réinitialisé pour {admin.email}.', 'success')
