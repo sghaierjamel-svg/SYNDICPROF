@@ -77,41 +77,91 @@
 
           <!-- Modal Approbation -->
           <div class="modal fade" id="approveModal{{ pr.id }}" tabindex="-1">
-            <div class="modal-dialog">
-              <div class="modal-content">
-                <div class="modal-header bg-success text-white">
-                  <h5 class="modal-title"><i class="bi bi-check-circle"></i> Approuver le virement</h5>
+            <div class="modal-dialog modal-lg">
+              <div class="modal-content border-0 shadow">
+                <div class="modal-header text-white" style="background:#15803D;">
+                  <div>
+                    <h5 class="modal-title mb-0"><i class="bi bi-check-circle me-2"></i>Approuver le virement</h5>
+                    <small style="opacity:.8;">L'abonnement sera activé et une facture PDF générée automatiquement</small>
+                  </div>
                   <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <form method="POST"
-                      action="{{ url_for('superadmin_sub_approve', pr_id=pr.id) }}">
+                <form method="POST" action="{{ url_for('superadmin_sub_approve', pr_id=pr.id) }}">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <div class="modal-body">
-                    <p>
-                      <strong>{{ pr.organization.name }}</strong> —
-                      Plan {{ pr.plan_requested.capitalize() }},
-                      {{ pr.months_count }} mois
-                    </p>
-                    <div class="mb-3">
-                      <label class="form-label">Montant confirmé reçu (DT)</label>
-                      <input type="number" name="amount_confirmed" class="form-control"
-                             step="0.001" value="{{ '%.3f'|format(pr.amount_declared) }}" required>
+                  <div class="modal-body p-4">
+
+                    <!-- Récapitulatif de la demande -->
+                    <div class="rounded-3 p-3 mb-4" style="background:#F0FDF4;border:1px solid #BBF7D0;">
+                      <div class="row g-2" style="font-size:.88rem;">
+                        <div class="col-6">
+                          <span class="text-muted d-block">Organisation</span>
+                          <strong>{{ pr.organization.name }}</strong><br>
+                          <small class="text-muted">{{ pr.organization.email }}</small>
+                        </div>
+                        <div class="col-3">
+                          <span class="text-muted d-block">Plan / Durée</span>
+                          <strong>{{ pr.plan_requested.capitalize() }}</strong> — {{ pr.months_count }} mois
+                        </div>
+                        <div class="col-3">
+                          <span class="text-muted d-block">Montant déclaré</span>
+                          <strong style="color:#15803D;">{{ '%.3f'|format(pr.amount_declared) }} DT</strong>
+                        </div>
+                        {% if pr.bank_reference %}
+                        <div class="col-6 mt-1">
+                          <span class="text-muted d-block">Référence virement</span>
+                          <code style="font-size:.82rem;">{{ pr.bank_reference }}</code>
+                        </div>
+                        {% endif %}
+                        {% if pr.photo_url or pr.photo_data %}
+                        <div class="col-6 mt-1 d-flex align-items-end">
+                          <a href="{{ url_for('sub_payment_scan', pr_id=pr.id) }}" target="_blank"
+                             class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-image me-1"></i>Voir le scan du virement
+                          </a>
+                        </div>
+                        {% endif %}
+                      </div>
                     </div>
+
+                    <!-- Montant confirmé -->
                     <div class="mb-3">
-                      <label class="form-label">Notes (optionnel)</label>
+                      <label class="form-label fw-semibold">
+                        Montant réellement reçu (DT) <span class="text-danger">*</span>
+                      </label>
+                      <div class="input-group">
+                        <input type="number" name="amount_confirmed" class="form-control form-control-lg"
+                               step="0.001" value="{{ '%.3f'|format(pr.amount_declared) }}" required>
+                        <span class="input-group-text fw-bold">DT</span>
+                      </div>
+                      <div class="form-text">Modifiez si le montant reçu diffère du montant déclaré.</div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold">Notes internes (optionnel)</label>
                       <textarea name="superadmin_notes" class="form-control" rows="2"
-                                placeholder="Ex: Reçu le 28/05, virement BT"></textarea>
+                                placeholder="Ex : Reçu le 30/05, virement Banque de Tunisie, ref XYZ…"></textarea>
                     </div>
-                    <div class="alert alert-info small mb-0">
-                      <i class="bi bi-info-circle"></i>
-                      L'abonnement sera prolongé de <strong>{{ pr.months_count }} mois</strong>
-                      et une facture PDF sera générée automatiquement.
+
+                    <!-- Ce qui va se passer -->
+                    <div class="rounded-3 p-3" style="background:#F0FDF4;border:1px solid #BBF7D0;">
+                      <div style="font-size:.85rem;color:#15803D;">
+                        <i class="bi bi-check2-all me-1"></i>
+                        <strong>En validant :</strong>
+                        abonnement <strong>{{ pr.plan_requested.capitalize() }}</strong> prolongé de
+                        <strong>{{ pr.months_count }} mois</strong> +
+                        facture <strong>SP-{{ pr.created_at.year }}-XXXX</strong> générée automatiquement
+                        pour les deux parties.
+                      </div>
                     </div>
+
                   </div>
-                  <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-success">
-                      <i class="bi bi-check-lg"></i> Confirmer l'activation
+                  <div class="modal-footer" style="background:#F0FDF4;border-top:1px solid #BBF7D0;">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                      <i class="bi bi-arrow-left me-1"></i>Annuler
+                    </button>
+                    <button type="submit" class="btn btn-success px-4">
+                      <i class="bi bi-check-circle me-2"></i>Confirmer l'activation
                     </button>
                   </div>
                 </form>
