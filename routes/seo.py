@@ -1,6 +1,19 @@
-from flask import render_template, Response, request
+from flask import render_template, Response, request, send_from_directory
 from core import app
+import os
 from datetime import datetime
+
+# ─── favicon.ico ───────────────────────────────────────────────────────────────
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(
+        os.path.join(app.root_path, 'static', 'icons'),
+        'icon-192.png',
+        mimetype='image/png',
+        max_age=86400
+    )
+
 
 # ─── robots.txt ────────────────────────────────────────────────────────────────
 
