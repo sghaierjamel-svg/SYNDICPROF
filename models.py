@@ -1650,6 +1650,37 @@ def init_db():
     except Exception as e:
         print(f"Migration assembly_general PV : {e}")
 
+    # Migration PERF : index sur les colonnes filtrées (multi-tenant à grande échelle)
+    # PostgreSQL ne crée PAS d'index sur les clés étrangères → balayage complet sans ça.
+    # CREATE INDEX IF NOT EXISTS fonctionne sur PostgreSQL ET SQLite. Idempotent.
+    _perf_indexes = [
+        "CREATE INDEX IF NOT EXISTS ix_payment_org          ON payment (organization_id)",
+        "CREATE INDEX IF NOT EXISTS ix_payment_apt          ON payment (apartment_id)",
+        "CREATE INDEX IF NOT EXISTS ix_payment_org_month    ON payment (organization_id, month_paid)",
+        "CREATE INDEX IF NOT EXISTS ix_payment_org_date     ON payment (organization_id, payment_date)",
+        "CREATE INDEX IF NOT EXISTS ix_expense_org          ON expense (organization_id)",
+        "CREATE INDEX IF NOT EXISTS ix_expense_org_date     ON expense (organization_id, expense_date)",
+        "CREATE INDEX IF NOT EXISTS ix_misc_org             ON misc_receipt (organization_id)",
+        "CREATE INDEX IF NOT EXISTS ix_apartment_org        ON apartment (organization_id)",
+        "CREATE INDEX IF NOT EXISTS ix_apartment_block      ON apartment (block_id)",
+        "CREATE INDEX IF NOT EXISTS ix_block_org            ON block (organization_id)",
+        'CREATE INDEX IF NOT EXISTS ix_user_org             ON "user" (organization_id)',
+        'CREATE INDEX IF NOT EXISTS ix_user_apt             ON "user" (apartment_id)',
+        "CREATE INDEX IF NOT EXISTS ix_ticket_org           ON ticket (organization_id)",
+        "CREATE INDEX IF NOT EXISTS ix_dm_org               ON direct_message (organization_id)",
+        "CREATE INDEX IF NOT EXISTS ix_announcement_org     ON announcement (organization_id)",
+        "CREATE INDEX IF NOT EXISTS ix_unpaid_alert_org     ON unpaid_alert (organization_id)",
+    ]
+    # Chaque index dans sa propre transaction : une erreur n'annule pas les autres
+    for _stmt in _perf_indexes:
+        try:
+            with db.engine.connect() as conn:
+                conn.execute(db.text(_stmt))
+                conn.commit()
+        except Exception as e:
+            print(f"Index perf ignoré ({_stmt.split('ON')[-1].strip()}) : {e}")
+    print("Migration PERF : index multi-tenant vérifiés.")
+
     if not User.query.filter_by(email='superadmin@syndicpro.tn').first():
         # CRIT-003 : SUPERADMIN_PASSWORD obligatoire et >= 16 caractères
         _sa_pwd = os.environ.get('SUPERADMIN_PASSWORD', '')

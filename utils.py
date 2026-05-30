@@ -375,14 +375,78 @@ def get_next_unpaid_month(apartment_id):
     return ym_str(end_next_ym + 1)
 
 
+# ─── Helpers BATCH : calcul des impayés de toute l'org en 1 requête (anti N+1) ──
+# Ces fonctions remplacent les appels répétés à get_unpaid_months_count() dans les
+# boucles `for apt in apartments`. Logique de calcul IDENTIQUE, mais une seule
+# requête SQL au lieu d'une par appartement.
+
+def get_paid_months_map(org_id):
+    """{apartment_id: set(month_paid)} pour toute l'org — 1 requête légère (2 colonnes)."""
+    rows = (db.session.query(Payment.apartment_id, Payment.month_paid)
+            .filter(Payment.organization_id == org_id).all())
+    paid = {}
+    for apt_id, mp in rows:
+        if mp:
+            paid.setdefault(apt_id, set()).add(mp)
+    return paid
+
+
+def _unpaid_count_from_set(apt, paid_set, today_ym):
+    """Nombre de mois impayés d'un apt depuis sa création — sans requête."""
+    start_d  = apt.created_at.date().replace(day=1) if apt.created_at else date.today().replace(day=1)
+    start_ym = start_d.year * 12 + start_d.month
+    return sum(1 for ym in range(start_ym, today_ym + 1) if ym_str(ym) not in paid_set)
+
+
+def get_unpaid_map(org_id, apartments, paid=None):
+    """{apartment_id: unpaid_count} pour une liste d'apts — 1 requête au total.
+    Équivaut à appeler get_unpaid_months_count() sur chaque apt, mais sans N+1.
+    `paid` : map déjà chargée via get_paid_months_map() pour éviter une 2e requête."""
+    if paid is None:
+        paid = get_paid_months_map(org_id)
+    td = date.today().replace(day=1)
+    today_ym = td.year * 12 + td.month
+    return {apt.id: _unpaid_count_from_set(apt, paid.get(apt.id, set()), today_ym)
+            for apt in apartments}
+
+
+def get_unpaid_details_map(org_id, apartments, horizon=3, paid=None):
+    """{apartment_id: (unpaid_count, next_unpaid_month)} — 1 requête, calcul en une passe.
+    Réplique exactement get_unpaid_months_count() + get_next_unpaid_month()."""
+    if paid is None:
+        paid = get_paid_months_map(org_id)
+    td = date.today().replace(day=1)
+    today_ym    = td.year * 12 + td.month
+    end_next_ym = today_ym + horizon
+    result = {}
+    for apt in apartments:
+        apt_paid = paid.get(apt.id, set())
+        start_d  = apt.created_at.date().replace(day=1) if apt.created_at else td
+        start_ym = start_d.year * 12 + start_d.month
+        unpaid   = 0
+        next_u   = ym_str(end_next_ym + 1)   # défaut : tout payé dans la fenêtre
+        next_set = False
+        for ym in range(start_ym, end_next_ym + 1):
+            m_str = ym_str(ym)
+            if m_str not in apt_paid:
+                if ym <= today_ym:
+                    unpaid += 1
+                if not next_set:
+                    next_u   = m_str
+                    next_set = True
+        result[apt.id] = (unpaid, next_u)
+    return result
+
+
 def check_unpaid_alerts():
     org = current_organization()
     if not org:
         return []
     apartments = Apartment.query.filter_by(organization_id=org.id).all()
+    unpaid_map = get_unpaid_map(org.id, apartments)   # 1 requête au lieu de N
     alerts_created = []
     for apt in apartments:
-        unpaid_count = get_unpaid_months_count(apt.id)
+        unpaid_count = unpaid_map.get(apt.id, 0)
         if unpaid_count >= 3:
             recent_alert = UnpaidAlert.query.filter_by(
                 apartment_id=apt.id

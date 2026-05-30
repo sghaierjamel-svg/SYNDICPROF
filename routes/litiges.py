@@ -3,7 +3,9 @@ from flask import render_template, request, redirect, url_for, flash, send_file,
 from core import app, db
 from models import Litige, AutreLitige, LitigeDocument, Apartment, Intervenant
 from utils import (current_user, current_organization, login_required,
-                   admin_required, subscription_required, get_unpaid_months_count)
+                   admin_required, subscription_required,
+                   get_unpaid_months_count, get_unpaid_map)
+from sqlalchemy.orm import joinedload
 from datetime import datetime, date
 from storage_helper import upload_file as _storage_upload, delete_file as _storage_delete
 
@@ -70,7 +72,8 @@ def litiges():
     org = current_organization()
 
     # Appartements avec 3+ mois impayés sans litige actif
-    apartments = Apartment.query.filter_by(organization_id=org.id).all()
+    apartments = (Apartment.query.options(joinedload(Apartment.block))
+                  .filter_by(organization_id=org.id).all())
     litiges_actifs_ids = {
         l.apartment_id for l in
         Litige.query.filter(
@@ -78,9 +81,11 @@ def litiges():
             Litige.status != 'resolu'
         ).all()
     }
+    # Impayés de tous les appartements en 1 requête (au lieu de N+1)
+    unpaid_map = get_unpaid_map(org.id, apartments)
     alertes = []
     for apt in apartments:
-        cnt = get_unpaid_months_count(apt.id)
+        cnt = unpaid_map.get(apt.id, 0)
         if cnt >= SEUIL_ALERTE and apt.id not in litiges_actifs_ids:
             alertes.append({'apt': apt, 'unpaid': cnt, 'due': cnt * apt.monthly_fee})
 

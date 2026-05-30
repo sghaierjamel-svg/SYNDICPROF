@@ -2,8 +2,10 @@ from flask import render_template, redirect, url_for, flash, send_file
 from core import app, db
 from models import Apartment, Payment, Expense, User, Organization
 from utils import (current_user, current_organization, login_required,
-                   admin_required, subscription_required, get_unpaid_months_count)
+                   admin_required, subscription_required, get_unpaid_map)
 from utils_whatsapp import send_whatsapp
+from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 from datetime import date
 import io
 
@@ -16,22 +18,27 @@ import io
 @subscription_required
 def automation():
     org = current_organization()
-    apartments = Apartment.query.filter_by(organization_id=org.id).all()
+    apartments = (Apartment.query.options(joinedload(Apartment.block))
+                  .filter_by(organization_id=org.id).all())
     current_month = date.today().strftime('%Y-%m')
-    paid_ids = {
-        p.apartment_id for p in
-        Payment.query.filter_by(organization_id=org.id).all()
-        if p.month_paid == current_month
-    }
+    # Appartements payés ce mois — requête scopée (pas tout l'historique)
+    paid_ids = {row[0] for row in
+                db.session.query(Payment.apartment_id)
+                .filter(Payment.organization_id == org.id,
+                        Payment.month_paid == current_month).all()}
+    # Impayés + résidents en batch (au lieu de 2 N+1 par appartement)
+    unpaid_map = get_unpaid_map(org.id, apartments)
+    residents_by_apt = {}
+    for u in User.query.filter_by(organization_id=org.id, role='resident').all():
+        residents_by_apt.setdefault(u.apartment_id, u)
 
     unpaid = []
     for a in apartments:
         if a.id not in paid_ids:
-            cnt = get_unpaid_months_count(a.id)
-            r = User.query.filter_by(apartment_id=a.id).first()
+            r = residents_by_apt.get(a.id)
             unpaid.append({
                 'apt': a,
-                'unpaid_count': cnt,
+                'unpaid_count': unpaid_map.get(a.id, 0),
                 'resident': r,
                 'has_whatsapp': bool(r and r.phone),
             })
@@ -54,23 +61,27 @@ def send_reminders():
         return redirect(url_for('automation'))
 
     current_month = date.today().strftime('%Y-%m')
-    apartments = Apartment.query.filter_by(organization_id=org.id).all()
-    paid_ids = {
-        p.apartment_id for p in
-        Payment.query.filter_by(organization_id=org.id).all()
-        if p.month_paid == current_month
-    }
+    apartments = (Apartment.query.options(joinedload(Apartment.block))
+                  .filter_by(organization_id=org.id).all())
+    paid_ids = {row[0] for row in
+                db.session.query(Payment.apartment_id)
+                .filter(Payment.organization_id == org.id,
+                        Payment.month_paid == current_month).all()}
+    unpaid_map = get_unpaid_map(org.id, apartments)
+    residents_by_apt = {}
+    for u in User.query.filter_by(organization_id=org.id, role='resident').all():
+        residents_by_apt.setdefault(u.apartment_id, u)
 
     sent = 0
     no_phone = 0
     for a in apartments:
         if a.id in paid_ids:
             continue
-        r = User.query.filter_by(apartment_id=a.id).first()
+        r = residents_by_apt.get(a.id)
         if not (r and r.phone):
             no_phone += 1
             continue
-        cnt = get_unpaid_months_count(a.id)
+        cnt = unpaid_map.get(a.id, 0)
         msg = (
             f"📢 *SyndicPro — Rappel paiement*\n"
             f"Bonjour {r.name or 'résident'},\n"
@@ -110,16 +121,26 @@ def pdf_report():
                  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
     month_label = f"{months_fr[int(month_num)]} {year}"
 
-    apartments = Apartment.query.filter_by(organization_id=org.id).all()
-    payments   = Payment.query.filter_by(organization_id=org.id).all()
-    expenses   = Expense.query.filter_by(organization_id=org.id).all()
-
-    paid_ids = {p.apartment_id for p in payments if p.month_paid == current_month}
-    encaisse_mois = sum(p.amount for p in payments if p.month_paid == current_month)
-    depenses_mois = sum(e.amount for e in expenses
-                        if e.expense_date.strftime('%Y-%m') == current_month)
-    total_encaisse = sum(p.amount for p in payments)
-    total_depenses = sum(e.amount for e in expenses)
+    apartments = (Apartment.query.options(joinedload(Apartment.block))
+                  .filter_by(organization_id=org.id).all())
+    # Données du mois — requêtes scopées (pas tout l'historique en RAM)
+    month_payments = (Payment.query
+                      .options(joinedload(Payment.apartment).joinedload(Apartment.block))
+                      .filter(Payment.organization_id == org.id,
+                              Payment.month_paid == current_month).all())
+    month_expenses = (Expense.query
+                      .filter(Expense.organization_id == org.id,
+                              func.extract('year',  Expense.expense_date) == int(year),
+                              func.extract('month', Expense.expense_date) == int(month_num)).all())
+    paid_ids = {p.apartment_id for p in month_payments}
+    encaisse_mois = sum(p.amount for p in month_payments)
+    depenses_mois = sum(e.amount for e in month_expenses)
+    # Totaux cumulés — agrégats SQL (pas de chargement de l'historique)
+    total_encaisse = db.session.query(func.coalesce(func.sum(Payment.amount), 0))\
+        .filter_by(organization_id=org.id).scalar()
+    total_depenses = db.session.query(func.coalesce(func.sum(Expense.amount), 0))\
+        .filter_by(organization_id=org.id).scalar()
+    unpaid_map = get_unpaid_map(org.id, apartments)
 
     # ── Création PDF ──────────────────────────────────────────────────────────
     pdf = FPDF()
@@ -173,8 +194,7 @@ def pdf_report():
     row("Solde général :", f"{total_encaisse - total_depenses:.3f} DT", bold=True)
     pdf.ln(4)
 
-    # Encaissements du mois
-    month_payments = [p for p in payments if p.month_paid == current_month]
+    # Encaissements du mois (déjà chargés, scopés au mois)
     if month_payments:
         section(f"  Encaissements — {month_label}")
         pdf.set_font('Helvetica', 'B', 9)
@@ -208,7 +228,7 @@ def pdf_report():
         pdf.line(10, pdf.get_y(), 200, pdf.get_y())
         pdf.ln(1)
         for a in unpaid_apts:
-            cnt = get_unpaid_months_count(a.id)
+            cnt = unpaid_map.get(a.id, 0)
             pdf.set_font('Helvetica', '', 9)
             pdf.set_text_color(180, 50, 50)
             apt_label = f"{a.block.name}-{a.number}"
@@ -217,8 +237,7 @@ def pdf_report():
             pdf.cell(0, 6, f"{cnt * a.monthly_fee:.0f} DT", new_x="LMARGIN", new_y="NEXT")
         pdf.ln(4)
 
-    # Dépenses du mois
-    month_expenses = [e for e in expenses if e.expense_date.strftime('%Y-%m') == current_month]
+    # Dépenses du mois (déjà chargées, scopées au mois)
     if month_expenses:
         section(f"  Dépenses — {month_label}")
         pdf.set_font('Helvetica', 'B', 9)

@@ -1,11 +1,13 @@
 from flask import render_template, send_file, jsonify, request
-from core import app
+from core import app, db
 from models import Apartment, Payment, Expense, MiscReceipt
 from utils import (current_user, current_organization, login_required,
                    subscription_required, last_n_months, get_month_name,
-                   get_unpaid_months_count, get_next_unpaid_month)
+                   get_paid_months_map, get_unpaid_map, get_unpaid_details_map)
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
+from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 import pandas as pd
 import io
 
@@ -16,39 +18,67 @@ import io
 def tresorerie():
     org = current_organization()
     months = last_n_months(12)
-    apartments = Apartment.query.filter_by(organization_id=org.id).order_by(Apartment.block_id, Apartment.number).all()
-    expenses = Expense.query.filter_by(organization_id=org.id).all()
-    payments = Payment.query.filter_by(organization_id=org.id).all()
-    misc_receipts = MiscReceipt.query.filter_by(organization_id=org.id).all()
+    apartments = (Apartment.query.options(joinedload(Apartment.block))
+                  .filter_by(organization_id=org.id)
+                  .order_by(Apartment.block_id, Apartment.number).all())
+
+    # Fenêtre de la requête = premier mois affiché → on ne charge QUE les 12 mois,
+    # pas les 10 ans d'historique. Agrégation SQL GROUP BY (pas de boucle Python).
+    first_year, first_month = months[0]
+    window_start = date(first_year, first_month, 1)
+
+    def _mk(y, m):
+        return f"{y}-{m:02d}"
+
+    # Paiements agrégés par (appartement, année, mois)
+    pay_rows = (db.session.query(
+            Payment.apartment_id,
+            func.extract('year',  Payment.payment_date).label('y'),
+            func.extract('month', Payment.payment_date).label('m'),
+            func.sum(Payment.amount).label('total'))
+        .filter(Payment.organization_id == org.id,
+                Payment.payment_date >= window_start)
+        .group_by(Payment.apartment_id, 'y', 'm').all())
+    pay_map = {(r.apartment_id, _mk(int(r.y), int(r.m))): float(r.total or 0) for r in pay_rows}
+
+    # Dépenses agrégées par (année, mois)
+    exp_rows = (db.session.query(
+            func.extract('year',  Expense.expense_date).label('y'),
+            func.extract('month', Expense.expense_date).label('m'),
+            func.sum(Expense.amount).label('total'))
+        .filter(Expense.organization_id == org.id,
+                Expense.expense_date >= window_start)
+        .group_by('y', 'm').all())
+    exp_map = {_mk(int(r.y), int(r.m)): float(r.total or 0) for r in exp_rows}
+
+    # Encaissements divers agrégés par (année, mois)
+    misc_rows = (db.session.query(
+            func.extract('year',  MiscReceipt.payment_date).label('y'),
+            func.extract('month', MiscReceipt.payment_date).label('m'),
+            func.sum(MiscReceipt.amount).label('total'))
+        .filter(MiscReceipt.organization_id == org.id,
+                MiscReceipt.payment_date >= window_start)
+        .group_by('y', 'm').all())
+    misc_map = {_mk(int(r.y), int(r.m)): float(r.total or 0) for r in misc_rows}
 
     data = []
     for apt in apartments:
         row = {'apartment': f"{apt.block.name}-{apt.number}", 'months': {}}
         for year, month in months:
             month_key = f"{year}-{month:02d}"
-            total = sum(p.amount for p in payments
-                       if p.apartment_id == apt.id
-                       and p.payment_date.year == year
-                       and p.payment_date.month == month)
-            row['months'][month_key] = total
+            row['months'][month_key] = pay_map.get((apt.id, month_key), 0)
         data.append(row)
 
     # Ligne encaissements divers
     misc_row = {'apartment': 'ENCAISSEMENTS DIVERS', 'months': {}}
     for year, month in months:
         month_key = f"{year}-{month:02d}"
-        misc_row['months'][month_key] = sum(
-            m.amount for m in misc_receipts
-            if m.payment_date.year == year and m.payment_date.month == month
-        )
+        misc_row['months'][month_key] = misc_map.get(month_key, 0)
 
     expense_row = {'apartment': 'DÉPENSES', 'months': {}}
     for year, month in months:
         month_key = f"{year}-{month:02d}"
-        total = sum(e.amount for e in expenses
-                   if e.expense_date.year == year
-                   and e.expense_date.month == month)
-        expense_row['months'][month_key] = total
+        expense_row['months'][month_key] = exp_map.get(month_key, 0)
 
     solde_row = {'apartment': 'SOLDE', 'months': {}}
     for year, month in months:
@@ -73,14 +103,16 @@ def comptable():
     org = current_organization()
     today = date.today()
 
-    # Années disponibles depuis les paiements enregistrés
-    payments_all = Payment.query.filter_by(organization_id=org.id).all()
+    # Années disponibles — DISTINCT en SQL (pas de chargement de tous les paiements)
+    year_rows = (db.session.query(func.substr(Payment.month_paid, 1, 4))
+                 .filter(Payment.organization_id == org.id)
+                 .distinct().all())
     years_set = {today.year}
-    for p in payments_all:
-        if p.month_paid and len(p.month_paid) >= 4:
+    for (ystr,) in year_rows:
+        if ystr and len(ystr) >= 4:
             try:
-                years_set.add(int(p.month_paid[:4]))
-            except ValueError:
+                years_set.add(int(ystr))
+            except (ValueError, TypeError):
                 pass
     available_years = sorted(years_set, reverse=True)
 
@@ -98,15 +130,14 @@ def comptable():
             month_date = today + relativedelta(months=i)
             months.append((month_date.year, month_date.month))
 
-    apartments = Apartment.query.filter_by(organization_id=org.id).order_by(Apartment.block_id, Apartment.number).all()
-    payments = Payment.query.filter_by(organization_id=org.id).all()
-    data = []
+    apartments = (Apartment.query.options(joinedload(Apartment.block))
+                  .filter_by(organization_id=org.id)
+                  .order_by(Apartment.block_id, Apartment.number).all())
 
-    all_paid_months = {}
-    for p in payments:
-        if p.apartment_id not in all_paid_months:
-            all_paid_months[p.apartment_id] = set()
-        all_paid_months[p.apartment_id].add(p.month_paid)
+    # 1 seule requête pour les mois payés, réutilisée pour la grille ET les impayés
+    all_paid_months = get_paid_months_map(org.id)
+    unpaid_map = get_unpaid_map(org.id, apartments, paid=all_paid_months)
+    data = []
 
     for apt in apartments:
         row = {
@@ -124,7 +155,7 @@ def comptable():
             amount = apt.monthly_fee if paid else 0
             row['months'][month_key] = {'paid': paid, 'amount': amount}
 
-        row['unpaid_count'] = get_unpaid_months_count(apt.id)
+        row['unpaid_count'] = unpaid_map.get(apt.id, 0)
         data.append(row)
 
     return render_template('comptable.html', data=data, months=months, user=current_user(),
@@ -139,18 +170,17 @@ def export_excel():
     from models import User as UserModel
 
     org = current_organization()
-    all_payments = Payment.query.filter_by(organization_id=org.id).all()
-    all_expenses = Expense.query.filter_by(organization_id=org.id).all()
 
-    # Collect available years from month_paid (handles advance payments) + expense dates
-    years_set = set()
-    for p in all_payments:
-        if p.month_paid and len(p.month_paid) >= 4:
-            years_set.add(p.month_paid[:4])
-    for e in all_expenses:
-        if e.expense_date:
-            years_set.add(str(e.expense_date.year))
-    years_set.add(str(date.today().year))
+    # Années disponibles — DISTINCT en SQL (paiements via month_paid + dépenses via année)
+    years_set = {str(date.today().year)}
+    for (ystr,) in (db.session.query(func.substr(Payment.month_paid, 1, 4))
+                    .filter(Payment.organization_id == org.id).distinct().all()):
+        if ystr and len(ystr) >= 4:
+            years_set.add(ystr)
+    for (yr,) in (db.session.query(func.extract('year', Expense.expense_date))
+                  .filter(Expense.organization_id == org.id).distinct().all()):
+        if yr:
+            years_set.add(str(int(yr)))
     available_years = sorted(years_set, reverse=True)
 
     year_param = request.args.get('year', '')
@@ -163,16 +193,23 @@ def export_excel():
     year_str = year_param
     year = int(year_str)
 
-    # Filter data for selected year — month_paid drives the year (advance payments land in correct year)
-    payments_year = sorted(
-        [p for p in all_payments if p.month_paid and p.month_paid.startswith(f"{year_str}-")],
-        key=lambda p: (p.payment_date, p.id), reverse=True
-    )
-    expenses_year = sorted(
-        [e for e in all_expenses if e.expense_date and e.expense_date.year == year],
-        key=lambda e: e.expense_date, reverse=True
-    )
-    apartments = Apartment.query.filter_by(organization_id=org.id).order_by(Apartment.block_id, Apartment.number).all()
+    # Données de l'année sélectionnée — requêtes scopées (pas de chargement des 10 ans)
+    # month_paid pilote l'année (les paiements en avance tombent dans la bonne année)
+    payments_year = (Payment.query
+                     .options(joinedload(Payment.apartment).joinedload(Apartment.block))
+                     .filter(Payment.organization_id == org.id,
+                             Payment.month_paid.like(f"{year_str}-%"))
+                     .order_by(Payment.payment_date.desc(), Payment.id.desc()).all())
+    expenses_year = (Expense.query
+                     .filter(Expense.organization_id == org.id,
+                             func.extract('year', Expense.expense_date) == year)
+                     .order_by(Expense.expense_date.desc()).all())
+    apartments = (Apartment.query.options(joinedload(Apartment.block))
+                  .filter_by(organization_id=org.id)
+                  .order_by(Apartment.block_id, Apartment.number).all())
+
+    # Impayés de TOUS les appartements en 1 requête (au lieu de 7 appels N+1 par apt)
+    unpaid_details = get_unpaid_details_map(org.id, apartments)
 
     # ---- Sheet 1: Appartements (état actuel) ----
     residents_by_apt = {u.apartment_id: u for u in UserModel.query.filter_by(organization_id=org.id, role='resident').all()}
@@ -186,8 +223,8 @@ def export_excel():
         'Résident': residents_by_apt[apt.id].name if apt.id in residents_by_apt else '',
         'Email Résident': residents_by_apt[apt.id].email if apt.id in residents_by_apt else '',
         'Téléphone': residents_by_apt[apt.id].phone if apt.id in residents_by_apt else '',
-        'Mois Impayés': get_unpaid_months_count(apt.id),
-        'Total Dû (DT)': apt.monthly_fee * get_unpaid_months_count(apt.id),
+        'Mois Impayés': unpaid_details.get(apt.id, (0, ''))[0],
+        'Total Dû (DT)': apt.monthly_fee * unpaid_details.get(apt.id, (0, ''))[0],
         'Créé le': apt.created_at.strftime('%d/%m/%Y') if apt.created_at else '',
     } for apt in apartments])
 
@@ -225,20 +262,20 @@ def export_excel():
         'Place Parking': apt.parking_spot or '',
         'Redevance Mensuelle (DT)': apt.monthly_fee,
         'Crédit Disponible (DT)': apt.credit_balance,
-        'Mois Impayés': get_unpaid_months_count(apt.id),
-        'Prochain Mois': get_next_unpaid_month(apt.id),
-        'Total Dû (DT)': apt.monthly_fee * get_unpaid_months_count(apt.id),
-    } for apt in apartments if get_unpaid_months_count(apt.id) > 0])
+        'Mois Impayés': unpaid_details.get(apt.id, (0, ''))[0],
+        'Prochain Mois': unpaid_details.get(apt.id, (0, ''))[1],
+        'Total Dû (DT)': apt.monthly_fee * unpaid_details.get(apt.id, (0, ''))[0],
+    } for apt in apartments if unpaid_details.get(apt.id, (0, ''))[0] > 0])
     if df_unpaid.empty:
         df_unpaid = pd.DataFrame(columns=['Appartement', 'Place Parking', 'Redevance Mensuelle (DT)', 'Crédit Disponible (DT)', 'Mois Impayés', 'Prochain Mois', 'Total Dû (DT)'])
 
     # ---- Sheet 5: Tableau Comptable YYYY (12 mois fixes, avec couleurs) ----
     MONTH_NAMES = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc']
 
-    # Paid months per apartment for the selected year (uses month_paid, not payment_date)
+    # Paid months per apartment for the selected year (payments_year déjà scopé à l'année)
     paid_by_apt = {}
-    for p in all_payments:
-        if p.month_paid and p.month_paid.startswith(f"{year_str}-"):
+    for p in payments_year:
+        if p.month_paid:
             paid_by_apt.setdefault(p.apartment_id, set()).add(p.month_paid)
 
     comptable_data = []

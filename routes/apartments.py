@@ -3,7 +3,7 @@ from core import app, db
 from models import Block, Apartment
 from utils import (current_user, current_organization, login_required,
                    admin_required, subscription_required,
-                   get_unpaid_months_count, get_next_unpaid_month)
+                   get_unpaid_details_map)
 
 
 @app.route('/apartments', methods=['GET', 'POST'])
@@ -56,10 +56,11 @@ def apartments():
                 except ValueError:
                     flash('Erreur de saisie', 'danger')
         return redirect(url_for('apartments'))
-    for block in blocks:
-        for apt in block.apartments:
-            apt.unpaid_count = get_unpaid_months_count(apt.id)
-            apt.next_unpaid = get_next_unpaid_month(apt.id)
+    # Impayés de tous les appartements en 1 requête (au lieu de 2 appels N+1 par apt)
+    all_apts = [apt for block in blocks for apt in block.apartments]
+    details = get_unpaid_details_map(org.id, all_apts)
+    for apt in all_apts:
+        apt.unpaid_count, apt.next_unpaid = details.get(apt.id, (0, ''))
     return render_template('apartments.html', blocks=blocks, user=current_user(), org=org)
 
 

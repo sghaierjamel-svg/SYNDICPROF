@@ -79,10 +79,15 @@ def _compute_financial_data(org, year):
 
     # 411 — Créances copropriétaires : charges impayées (valeur des mois en souffrance)
     today = date.today()
+    # Mois payés par appartement, construits UNE fois (au lieu de parcourir
+    # all_payments pour chaque appartement → évite O(apts × paiements))
+    paid_by_apt = {}
+    for p in all_payments:
+        paid_by_apt.setdefault(p.apartment_id, set()).add(p.month_paid)
     creances_detail = []
     total_creances = 0.0
     for apt in apartments:
-        apt_paid_months = {p.month_paid for p in all_payments if p.apartment_id == apt.id}
+        apt_paid_months = paid_by_apt.get(apt.id, set())
         # Compter les mois depuis la création de l'appartement jusqu'à aujourd'hui
         start = apt.created_at.date().replace(day=1)
         cursor = start
