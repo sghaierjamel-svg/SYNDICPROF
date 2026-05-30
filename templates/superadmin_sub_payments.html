@@ -319,8 +319,78 @@
                 <i class="bi bi-image"></i>
               </a>
               {% endif %}
+              <!-- Modifier -->
+              <button class="btn btn-sm btn-outline-primary ms-1" title="Modifier"
+                      data-bs-toggle="modal" data-bs-target="#editModal{{ h.id }}">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <!-- Supprimer -->
+              <button class="btn btn-sm btn-outline-danger ms-1" title="Supprimer"
+                      data-bs-toggle="modal" data-bs-target="#deleteModal{{ h.id }}">
+                <i class="bi bi-trash"></i>
+              </button>
             </td>
           </tr>
+
+          <!-- Modal Modifier -->
+          <div class="modal fade" id="editModal{{ h.id }}" tabindex="-1">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Modifier le virement</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="{{ url_for('superadmin_sub_edit', pr_id=h.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <div class="modal-body">
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold">Montant confirmé (DT)</label>
+                      <input type="number" name="amount_confirmed" class="form-control"
+                             step="0.001" value="{{ '%.3f'|format(h.amount_confirmed or h.amount_declared) }}">
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold">Notes internes</label>
+                      <textarea name="superadmin_notes" class="form-control" rows="3">{{ h.superadmin_notes or '' }}</textarea>
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modal Supprimer -->
+          <div class="modal fade" id="deleteModal{{ h.id }}" tabindex="-1">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                  <h5 class="modal-title"><i class="bi bi-trash me-2"></i>Supprimer le virement</h5>
+                  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  <p>Supprimer le virement de <strong>{{ h.organization.name }}</strong>
+                     ({{ h.plan_requested.capitalize() }}, {{ '%.0f'|format(h.amount_confirmed or h.amount_declared) }} DT) ?</p>
+                  {% if h.status == 'approuve' %}
+                  <div class="alert alert-warning py-2 mb-0" style="font-size:.85rem;">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    L'abonnement restera actif — seule l'entrée historique sera supprimée.
+                  </div>
+                  {% endif %}
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                  <form method="POST" action="{{ url_for('superadmin_sub_delete', pr_id=h.id) }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">Supprimer</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {% endfor %}
         </tbody>
       </table>

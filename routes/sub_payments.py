@@ -211,8 +211,9 @@ def superadmin_sub_approve(pr_id):
         sub = Subscription(organization_id=org.id)
         db.session.add(sub)
 
-    # Partir de la date d'expiration actuelle si abonnement encore valide
-    if sub.end_date and sub.end_date > now:
+    # Étendre depuis la date actuelle uniquement si l'org a déjà un abonnement PAYANT actif.
+    # Si le plan est 'trial' (même avec une date future), on part d'aujourd'hui.
+    if sub.end_date and sub.end_date > now and sub.plan != 'trial':
         new_end = sub.end_date + timedelta(days=30 * pr.months_count)
     else:
         new_end = now + timedelta(days=30 * pr.months_count)
@@ -265,7 +266,50 @@ def superadmin_sub_reject(pr_id):
     return redirect(url_for('superadmin_sub_payments'))
 
 
-# ─── 5. Scan virement — affichage (superadmin + admin de l'org) ──────────────
+# ─── 5. Superadmin — supprimer un virement de l'historique ──────────────────
+
+@app.route('/superadmin/abonnements/paiements/<int:pr_id>/supprimer', methods=['POST'])
+@login_required
+@superadmin_required
+def superadmin_sub_delete(pr_id):
+    pr = SubscriptionPaymentRequest.query.get_or_404(pr_id)
+    if pr.status == 'en_attente':
+        flash('Impossible de supprimer une demande en attente. Rejetez-la d\'abord.', 'warning')
+        return redirect(url_for('superadmin_sub_payments'))
+    org_name = pr.organization.name
+    db.session.delete(pr)
+    db.session.commit()
+    flash(f'Virement de {org_name} supprimé de l\'historique.', 'success')
+    return redirect(url_for('superadmin_sub_payments'))
+
+
+# ─── 5b. Superadmin — modifier un virement de l'historique ───────────────────
+
+@app.route('/superadmin/abonnements/paiements/<int:pr_id>/modifier', methods=['POST'])
+@login_required
+@superadmin_required
+def superadmin_sub_edit(pr_id):
+    pr = SubscriptionPaymentRequest.query.get_or_404(pr_id)
+    if pr.status == 'en_attente':
+        flash('Impossible de modifier une demande en attente.', 'warning')
+        return redirect(url_for('superadmin_sub_payments'))
+
+    try:
+        amount = float(request.form.get('amount_confirmed', '').strip())
+        if amount > 0:
+            pr.amount_confirmed = amount
+    except (ValueError, AttributeError):
+        pass
+
+    notes = request.form.get('superadmin_notes', '').strip()
+    pr.superadmin_notes = notes or None
+
+    db.session.commit()
+    flash(f'Virement de {pr.organization.name} mis à jour.', 'success')
+    return redirect(url_for('superadmin_sub_payments'))
+
+
+# ─── 6. Scan virement — affichage (superadmin + admin de l'org) ──────────────
 
 @app.route('/subscription/paiement/<int:pr_id>/scan')
 @login_required
