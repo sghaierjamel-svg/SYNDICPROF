@@ -37,8 +37,14 @@ if not database_url:
 if database_url.startswith('postgres://'):
     database_url = database_url.replace('postgres://', 'postgresql://', 1)
 
-app.config['SQLALCHEMY_DATABASE_URI']      = database_url
+app.config['SQLALCHEMY_DATABASE_URI']        = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping':  True,   # teste la connexion avant chaque requête (évite les connexions mortes)
+    'pool_recycle':   280,    # recycle toutes les 280s (avant le timeout Supabase à ~300s)
+    'pool_size':      5,
+    'max_overflow':   2,
+}
 
 db = SQLAlchemy(app)
 

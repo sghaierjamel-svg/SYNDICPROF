@@ -276,17 +276,30 @@ def residents_menu():
 def api_dashboard_data():
     org = current_organization()
     months = last_n_months(12)
-    payments = Payment.query.filter_by(organization_id=org.id).all()
-    expenses = Expense.query.filter_by(organization_id=org.id).all()
-    labels = []
-    data_pay = []
-    data_exp = []
+
+    # 2 requêtes SQL GROUP BY au lieu de charger tous les enregistrements en mémoire
+    pay_rows = (db.session.query(
+            func.extract('year',  Payment.payment_date).label('y'),
+            func.extract('month', Payment.payment_date).label('m'),
+            func.sum(Payment.amount).label('total')
+        ).filter(Payment.organization_id == org.id)
+        .group_by('y', 'm').all())
+
+    exp_rows = (db.session.query(
+            func.extract('year',  Expense.expense_date).label('y'),
+            func.extract('month', Expense.expense_date).label('m'),
+            func.sum(Expense.amount).label('total')
+        ).filter(Expense.organization_id == org.id)
+        .group_by('y', 'm').all())
+
+    pay_map = {(int(r.y), int(r.m)): float(r.total or 0) for r in pay_rows}
+    exp_map = {(int(r.y), int(r.m)): float(r.total or 0) for r in exp_rows}
+
+    labels, data_pay, data_exp = [], [], []
     for (y, m) in months:
         labels.append(f"{get_month_name(m)} {y}")
-        s_p = sum(p.amount for p in payments if p.payment_date.year == y and p.payment_date.month == m)
-        s_e = sum(e.amount for e in expenses if e.expense_date.year == y and e.expense_date.month == m)
-        data_pay.append(round(s_p, 2))
-        data_exp.append(round(s_e, 2))
+        data_pay.append(round(pay_map.get((y, m), 0), 2))
+        data_exp.append(round(exp_map.get((y, m), 0), 2))
     return jsonify({'labels': labels, 'payments': data_pay, 'expenses': data_exp})
 
 
@@ -295,7 +308,9 @@ def api_dashboard_data():
 def api_notif_seen():
     """Marque les notifications comme vues (met à jour notif_seen_at)."""
     from datetime import datetime
+    from utils import invalidate_notif_cache
     user = current_user()
     user.notif_seen_at = datetime.utcnow()
     db.session.commit()
+    invalidate_notif_cache(user.id)
     return jsonify({'ok': True})

@@ -1,14 +1,19 @@
 from functools import wraps
-from flask import session, flash, redirect, url_for, request as _req
+from flask import session, flash, redirect, url_for, request as _req, g
 from core import app, db
 from models import User, Organization, Apartment, Payment, UnpaidAlert
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 
 
+_notif_cache: dict = {}   # {user_id: (datetime, result_dict)}
+_NOTIF_TTL = 30           # secondes — équilibre fraîcheur vs charge DB
+
+
 @app.context_processor
 def inject_notifications():
-    """Injecte les notifications dans tous les templates (admin + résident)."""
+    """Injecte les notifications dans tous les templates (admin + résident).
+    Résultat mis en cache 30 s par utilisateur pour éviter 7 requêtes/page."""
     if _req.endpoint in (None, 'static', 'login', 'logout', 'register',
                          'register_resident', 'complete_profile',
                          'index', 'demo', 'subscription_status'):
@@ -27,6 +32,14 @@ def inject_notifications():
 
     if not user.organization_id:
         return {}
+
+    # Vérifier le cache 30 s
+    now = datetime.utcnow()
+    cached = _notif_cache.get(user.id)
+    if cached:
+        cached_at, cached_result = cached
+        if (now - cached_at).total_seconds() < _NOTIF_TTL:
+            return cached_result
 
     org_id = user.organization_id
     result = {}
@@ -154,7 +167,21 @@ def inject_notifications():
             'unread_messages_count': unread_msgs_res,
         })
 
+    # Mettre en cache le résultat
+    _notif_cache[user.id] = (datetime.utcnow(), result)
+    # Nettoyer les entrées expirées (évite que le dict grossisse indéfiniment)
+    if len(_notif_cache) > 500:
+        cutoff = datetime.utcnow() - timedelta(seconds=_NOTIF_TTL * 2)
+        expired = [uid for uid, (ts, _) in _notif_cache.items() if ts < cutoff]
+        for uid in expired:
+            _notif_cache.pop(uid, None)
+
     return result
+
+
+def invalidate_notif_cache(user_id: int):
+    """Invalide le cache de notifications pour un utilisateur (ex: après clic sur la cloche)."""
+    _notif_cache.pop(user_id, None)
 
 
 @app.before_request
@@ -222,19 +249,29 @@ def warn_subscription_expiry():
 
 
 def current_user():
+    """Retourne l'utilisateur courant — mis en cache dans g pour la durée de la requête."""
+    if 'current_user_obj' in g:
+        return g.current_user_obj
     uid = session.get('user_id')
     if not uid:
+        g.current_user_obj = None
         return None
-    return User.query.get(uid)
+    user = User.query.get(uid)
+    g.current_user_obj = user
+    return user
 
 
 def current_organization():
+    """Retourne l'organisation courante — mise en cache dans g pour la durée de la requête."""
+    if 'current_org_obj' in g:
+        return g.current_org_obj
     user = current_user()
-    if not user:
+    if not user or user.role == 'superadmin':
+        g.current_org_obj = None
         return None
-    if user.role == 'superadmin':
-        return None
-    return Organization.query.get(user.organization_id)
+    org = Organization.query.get(user.organization_id)
+    g.current_org_obj = org
+    return org
 
 
 def check_subscription():
